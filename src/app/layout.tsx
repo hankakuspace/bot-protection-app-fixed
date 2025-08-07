@@ -1,8 +1,8 @@
-// src/app/layout.tsx
 import './globals.css';
+
 export const metadata = {
-  title: 'Bot Protection App',
-  description: 'IP block admin tool',
+  title: 'Tailwind Check',
+  description: 'Test if Tailwind CSS is working',
 };
 
 export default function RootLayout({

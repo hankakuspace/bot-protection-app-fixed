@@ -1,99 +1,72 @@
-// src/app/admin/logs/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getAccessLogs } from '@/lib/get-access-logs';
+import { useEffect, useState, useMemo } from 'react';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
+import FilterBar, { FilterOptions } from '@/components/FilterBar';
 
-export default function LogsPage() {
+export default function AdminLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
-  const [countryFilter, setCountryFilter] = useState('');
-  const [adminOnly, setAdminOnly] = useState(false);
-  const [blockedOnly, setBlockedOnly] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const fetched = await getAccessLogs();
-      setLogs(fetched);
-    })();
-  }, []);
-
-  const filteredLogs = logs.filter((log) => {
-    if (countryFilter && log.country !== countryFilter) return false;
-    if (adminOnly && !log.isAdmin) return false;
-    if (blockedOnly && !log.blocked) return false;
-    return true;
+  const [filter, setFilter] = useState<FilterOptions>({
+    country: '',
+    isAdmin: false,
+    blocked: false,
   });
 
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const db = getFirestore(app);
+      const snapshot = await getDocs(collection(db, 'access_logs'));
+      const data = snapshot.docs.map((doc) => doc.data());
+      setLogs(data);
+    };
+    fetchLogs();
+  }, []);
+
+  // ユニークな国コードリスト
+  const countries = useMemo(() => {
+    const set = new Set<string>();
+    logs.forEach((log) => {
+      if (log.country) set.add(log.country);
+    });
+    return Array.from(set).sort();
+  }, [logs]);
+
+  // フィルタ適用
+  const filtered = useMemo(() => {
+    return logs.filter((log) => {
+      if (filter.country && log.country !== filter.country) return false;
+      if (filter.isAdmin && !log.isAdmin) return false;
+      if (filter.blocked && !log.blocked) return false;
+      return true;
+    });
+  }, [logs, filter]);
+
   return (
-    <main className="p-6">
-      <h1 className="text-2xl font-bold mb-4">アクセスログ一覧</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">アクセスログ</h1>
+      <FilterBar countries={countries} filter={filter} onChange={setFilter} />
 
-      {/* フィルタUI */}
-      <div className="mb-4 flex gap-4 items-center">
-        <label>
-          国コード:
-          <select
-            value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value)}
-            className="ml-2 border px-2 py-1"
-          >
-            <option value="">すべて</option>
-            <option value="JP">JP</option>
-            <option value="US">US</option>
-            <option value="UNKNOWN">UNKNOWN</option>
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={adminOnly}
-            onChange={(e) => setAdminOnly(e.target.checked)}
-            className="mr-1"
-          />
-          管理者のみ
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={blockedOnly}
-            onChange={(e) => setBlockedOnly(e.target.checked)}
-            className="mr-1"
-          />
-          ブロック対象のみ
-        </label>
-      </div>
-
-      {/* ログテーブル */}
-      <table className="min-w-full border text-sm">
+      <table className="mt-4 w-full border text-sm">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-2 py-1">日時</th>
-            <th className="border px-2 py-1">IP</th>
-            <th className="border px-2 py-1">国</th>
-            <th className="border px-2 py-1">管理者</th>
-            <th className="border px-2 py-1">ブロック</th>
-            <th className="border px-2 py-1">UA</th>
+          <tr className="bg-gray-200">
+            <th className="p-2 border">IP</th>
+            <th className="p-2 border">Country</th>
+            <th className="p-2 border">isAdmin</th>
+            <th className="p-2 border">Blocked</th>
           </tr>
         </thead>
         <tbody>
-          {filteredLogs.map((log) => (
-            <tr key={log.id}>
-              <td className="border px-2 py-1">
-                {log.timestamp?.toDate().toLocaleString?.() || '-'}
-              </td>
-              <td className="border px-2 py-1">{log.ip}</td>
-              <td className="border px-2 py-1">{log.country}</td>
-              <td className="border px-2 py-1">{log.isAdmin ? '✅' : ''}</td>
-              <td className="border px-2 py-1">{log.blocked ? '🚫' : ''}</td>
-              <td className="border px-2 py-1">{log.userAgent?.slice(0, 30)}...</td>
+          {filtered.map((log, i) => (
+            <tr key={i} className="odd:bg-white even:bg-gray-50">
+              <td className="p-2 border">{log.ip}</td>
+              <td className="p-2 border">{log.country}</td>
+              <td className="p-2 border">{String(log.isAdmin)}</td>
+              <td className="p-2 border">{String(log.blocked)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <div className="force-tailwind-debug">
-  Tailwind デバッグ表示
-</div>
-
-    </main>
+    </div>
   );
 }

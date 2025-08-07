@@ -1,25 +1,11 @@
-/** @type {import('tailwindcss').Config} */
+// tailwind.config.js
 module.exports = {
   content: [
-    './src/**/*.{js,ts,jsx,tsx}',
+    './app/**/*.{js,ts,jsx,tsx}',
+    './src/**/*.{js,ts,jsx,tsx}', // ← 念のためsrc全体も
   ],
   theme: {
     extend: {},
   },
   plugins: [],
-  safelist: [
-    'p-6',
-    'text-sm',
-    'bg-gray-100',
-    'border',
-    'px-2',
-    'py-1',
-    'text-red-600',
-    'text-3xl',
-    'bg-yellow-100',
-    'rounded',
-    'shadow',
-    'font-bold',
-    'mt-4',
-  ],
 };
