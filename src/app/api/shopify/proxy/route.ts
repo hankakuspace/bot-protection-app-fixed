@@ -1,7 +1,7 @@
 // src/app/api/shopify/proxy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyShopifyProxySignature } from '@/lib/shopify';
-import { checkIpAndLog } from '@/lib/check-ip'; // 既存
+import checkIpAndLog from '@/lib/check-ip';
 
 export const runtime = 'nodejs'; // crypto使用のため
 
