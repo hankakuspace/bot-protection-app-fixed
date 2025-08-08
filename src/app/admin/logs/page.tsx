@@ -1,366 +1,408 @@
+// src/app/admin/logs/page.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { db } from '@/lib/firebase';
 import {
-  getFirestore,
   collection,
-  query,
-  orderBy,
-  limit,
   getDocs,
-  Timestamp,
-  doc,
-  setDoc,
-  serverTimestamp,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  startAfter,
+  startAt,
+  where,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
+import IpActions from './IpActions';
+import AdminToggle from './AdminToggle';
 
 type LogRow = {
-  id: string;
-  timestamp?: Timestamp;
-  ip?: string;
+  ip: string;
   country?: string;
+  allowedCountry?: boolean;
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
+  timestamp: number;
 };
 
-const FETCH_COUNT = 500; // pull latest N then filter/paginate on client
+/* --- 小さなボタン（色・アイコンつき） --- */
+type BtnProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  icon?: string;
+  variant?: 'primary' | 'success' | 'muted' | 'warning' | 'danger' | 'indigo' | 'slate';
+  active?: boolean;
+};
+function ToolbarButton({ icon, children, variant = 'muted', active, className = '', ...rest }: BtnProps) {
+  const base = 'inline-flex items-center gap-1 rounded-md px-3 py-1 text-sm transition-colors border';
+  const scheme: Record<NonNullable<BtnProps['variant']>, string> = {
+    primary: 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700',
+    success: active
+      ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+      : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50',
+    muted: 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50',
+    warning: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200',
+    danger: 'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200',
+    indigo: 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700',
+    slate: 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200',
+  };
+  return (
+    <button className={`${base} ${scheme[variant]} ${className}`} {...rest}>
+      {icon ? <span aria-hidden>{icon}</span> : null}
+      <span>{children}</span>
+    </button>
+  );
+}
 
-export default function AdminLogsPage() {
-  const db = getFirestore(app);
-
-  // data & loading
-  const [allRows, setAllRows] = useState<LogRow[]>([]);
+export default function LogsPage() {
+  const [rows, setRows] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // filters (persist in localStorage)
-  const [ipFilter, setIpFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [blockedFilter, setBlockedFilter] = useState<'all' | 'true' | 'false'>('all');
-
-  // sort & pagination
-  const [sortAsc, setSortAsc] = useState(false); // timestamp sort
-  const [pageSize, setPageSize] = useState(50);
+  // ページネーション
   const [page, setPage] = useState(1);
+  const [firstDoc, setFirstDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [cursors, setCursors] = useState<
+    { page: number; first: QueryDocumentSnapshot<DocumentData> | null; last: QueryDocumentSnapshot<DocumentData> | null }[]
+  >([]);
 
-  // busy key for buttons
-  const [busy, setBusy] = useState<string | null>(null);
+  // 件数セレクタ
+  const [pageSize, setPageSize] = useState<number>(20);
 
-  // load saved filters on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('logs.filters');
-      if (raw) {
-        const saved = JSON.parse(raw);
-        setIpFilter(saved.ip ?? '');
-        setCountryFilter(saved.country ?? '');
-        setBlockedFilter(saved.blocked ?? 'all');
-        setPageSize(saved.pageSize ?? 50);
-        setSortAsc(saved.sortAsc ?? false);
-      }
-    } catch {}
-  }, []);
+  // フィルタ
+  const [filterCountry, setFilterCountry] = useState('');
+  const [filterIsAdmin, setFilterIsAdmin] = useState<'all' | 'true' | 'false'>('all');
+  const [filterBlocked, setFilterBlocked] = useState<'all' | 'true' | 'false'>('all');
 
-  // save filters when changed
-  useEffect(() => {
-    const payload = { ip: ipFilter, country: countryFilter, blocked: blockedFilter, pageSize, sortAsc };
-    localStorage.setItem('logs.filters', JSON.stringify(payload));
-  }, [ipFilter, countryFilter, blockedFilter, pageSize, sortAsc]);
+  // 並び順（初期：降順＝新しい順）
+  const [sortAsc, setSortAsc] = useState(false);
 
-  // fetch latest logs
-  const reload = async () => {
+  // リアルタイム購読トグル
+  const [live, setLive] = useState(false);
+
+  const hasPrev = page > 1;
+  const hasNext = rows.length === pageSize;
+
+  const buildBaseQuery = () => {
+    let qBase = query(collection(db, 'access_logs'), orderBy('timestamp', sortAsc ? 'asc' : 'desc'));
+    if (filterCountry.trim()) qBase = query(qBase, where('country', '==', filterCountry.trim()));
+    if (filterIsAdmin !== 'all') qBase = query(qBase, where('isAdmin', '==', filterIsAdmin === 'true'));
+    if (filterBlocked !== 'all') qBase = query(qBase, where('blocked', '==', filterBlocked === 'true'));
+    return qBase;
+  };
+
+  // 非Live時の読み込み
+  const loadPage = async (opts?: { direction?: 'init' | 'next' | 'prev' }) => {
     setLoading(true);
     setError(null);
     try {
-      const q = query(collection(db, 'access_logs'), orderBy('timestamp', 'desc'), limit(FETCH_COUNT));
-      const snap = await getDocs(q);
-      const rows: LogRow[] = [];
-      snap.forEach((d) => rows.push({ id: d.id, ...(d.data() as any) }));
-      setAllRows(rows);
-      setPage(1);
+      const dir = opts?.direction ?? 'init';
+      let qBase = buildBaseQuery();
+
+      if (dir === 'next' && lastDoc) qBase = query(qBase, startAfter(lastDoc));
+      else if (dir === 'prev') {
+        const prev = cursors.find((c) => c.page === page - 1);
+        if (prev?.first) qBase = query(qBase, startAt(prev.first));
+      }
+
+      const snap = await getDocs(query(qBase, limit(pageSize)));
+      const docs = snap.docs;
+
+      const data: LogRow[] = docs.map((d) => {
+        const v: any = d.data();
+        const ts =
+          typeof v.timestamp === 'number' ? v.timestamp : v.timestamp?.toMillis ? v.timestamp.toMillis() : 0;
+        return {
+          ip: v.ip,
+          country: v.country,
+          allowedCountry: v.allowedCountry,
+          blocked: v.blocked,
+          isAdmin: v.isAdmin,
+          userAgent: v.userAgent,
+          timestamp: ts,
+        };
+      });
+
+      setRows(data);
+      setFirstDoc(docs[0] ?? null);
+      setLastDoc(docs[docs.length - 1] ?? null);
+
+      if (dir === 'init') {
+        setPage(1);
+        setCursors([{ page: 1, first: docs[0] ?? null, last: docs[docs.length - 1] ?? null }]);
+      } else if (dir === 'next') {
+        const newPage = page + 1;
+        setPage(newPage);
+        setCursors((prev) =>
+          prev.find((p) => p.page === newPage)
+            ? prev
+            : [...prev, { page: newPage, first: docs[0] ?? null, last: docs[docs.length - 1] ?? null }]
+        );
+      } else if (dir === 'prev') {
+        setPage((p) => Math.max(1, p - 1));
+      }
     } catch (e: any) {
       console.error(e);
-      setError(e?.message ?? 'failed to load');
+      setError(e?.message || 'Failed to load logs');
     } finally {
       setLoading(false);
     }
   };
 
+  // Live購読（1ページ分）
   useEffect(() => {
-    reload();
+    if (!live) return;
+    setPage(1);
+    const unsub = onSnapshot(
+      query(buildBaseQuery(), limit(pageSize)),
+      (snap) => {
+        const docs = snap.docs;
+        const data: LogRow[] = docs.map((d) => {
+          const v: any = d.data();
+          const ts =
+            typeof v.timestamp === 'number' ? v.timestamp : v.timestamp?.toMillis ? v.timestamp.toMillis() : 0;
+          return {
+            ip: v.ip,
+            country: v.country,
+            allowedCountry: v.allowedCountry,
+            blocked: v.blocked,
+            isAdmin: v.isAdmin,
+            userAgent: v.userAgent,
+            timestamp: ts,
+          };
+        });
+        setRows(data);
+        setFirstDoc(docs[0] ?? null);
+        setLastDoc(docs[docs.length - 1] ?? null);
+        setCursors([{ page: 1, first: docs[0] ?? null, last: docs[docs.length - 1] ?? null }]);
+      },
+      (err) => {
+        console.error('[logs live] onSnapshot error:', err);
+        setError(err?.message || 'Live update failed');
+      }
+    );
+    return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [live, filterCountry, filterIsAdmin, filterBlocked, sortAsc, pageSize]);
 
-  // filtering & sorting (client side)
-  const filtered = useMemo(() => {
-    const ipq = ipFilter.trim().toLowerCase();
-    const ctq = countryFilter.trim().toUpperCase();
+  // フィルタ/ソート/件数変更時（非Live）
+  useEffect(() => {
+    if (live) return;
+    loadPage({ direction: 'init' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterCountry, filterIsAdmin, filterBlocked, sortAsc, pageSize, live]);
 
-    let rows = allRows.filter((r) => {
-      const okIp = ipq ? (r.ip ?? '').toLowerCase().includes(ipq) : true;
-      const okCt = ctq ? (r.country ?? '').toUpperCase() === ctq : true;
-      const okBlocked =
-        blockedFilter === 'all'
-          ? true
-          : blockedFilter === 'true'
-          ? !!r.blocked
-          : !r.blocked;
-
-      return okIp && okCt && okBlocked;
-    });
-
-    rows = rows.sort((a, b) => {
-      const ta = a.timestamp?.toMillis?.() ?? 0;
-      const tb = b.timestamp?.toMillis?.() ?? 0;
-      return sortAsc ? ta - tb : tb - ta;
-    });
-
-    return rows;
-  }, [allRows, ipFilter, countryFilter, blockedFilter, sortAsc]);
-
-  // pagination (client-side)
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const fmt = (ts?: Timestamp) =>
-    ts ? new Date(ts.toMillis()).toLocaleString('en-US', { timeZone: 'UTC' }) : '-';
-
-  // block helpers
-  const clearProxyCache = async () => {
-    try {
-      await fetch('http://localhost:3001/admin/clear-block-cache', { method: 'POST' });
-    } catch {
-      // ignore if proxy endpoint is not available
-    }
+  const onClickNext = () => {
+    if (!hasNext || live) return;
+    loadPage({ direction: 'next' });
+  };
+  const onClickPrev = () => {
+    if (!hasPrev || live) return;
+    loadPage({ direction: 'prev' });
   };
 
-  const blockIp = async (ip?: string) => {
-    if (!ip) return;
-    setBusy(`ip:${ip}`);
-    try {
-      await setDoc(
-        doc(db, 'block_ips', ip),
-        { enabled: true, note: 'added from /admin/logs', updatedAt: serverTimestamp() },
-        { merge: true }
-      );
-      await clearProxyCache();
-      alert(`Blocked IP: ${ip}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const blockCountry = async (code?: string) => {
-    if (!code) return;
-    setBusy(`ct:${code}`);
-    try {
-      await setDoc(
-        doc(db, 'block_countries', code),
-        { enabled: true, note: 'added from /admin/logs', updatedAt: serverTimestamp() },
-        { merge: true }
-      );
-      await clearProxyCache();
-      alert(`Blocked country: ${code}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  // exports
-  const exportJSON = () => {
-    const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' });
+  // Export
+  const downloadText = (filename: string, text: string) => {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `logs_${Date.now()}.json`;
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(url);
+  };
+  const handleExportJSON = () =>
+    downloadText(`access_logs_page${page}${live ? '_live' : ''}.json`, JSON.stringify(rows, null, 2));
+  const toCsvValue = (v: unknown) => `"${(v ?? '').toString().replace(/"/g, '""')}"`;
+  const handleExportCSV = () => {
+    const headers = ['Timestamp', 'IP', 'Country', 'AllowedCountry', 'isAdmin', 'blocked (at log)', 'UA'];
+    const lines = [headers.map(toCsvValue).join(',')];
+    rows.forEach((r) =>
+      lines.push(
+        [
+          r.timestamp ? new Date(r.timestamp).toISOString() : '',
+          r.ip,
+          r.country ?? '',
+          r.allowedCountry === undefined ? '' : String(r.allowedCountry),
+          r.isAdmin === undefined ? '' : String(r.isAdmin),
+          r.blocked === undefined ? '' : String(r.blocked),
+          r.userAgent ?? '',
+        ]
+          .map(toCsvValue)
+          .join(',')
+      )
+    );
+    downloadText(`access_logs_page${page}${live ? '_live' : ''}.csv`, lines.join('\n'));
   };
 
-  const exportCSV = () => {
-    const headers = ['timestamp', 'ip', 'country', 'blocked', 'isAdmin', 'userAgent'];
-    const lines = [headers.join(',')];
-    filtered.forEach((r) => {
-      const row = [
-        r.timestamp?.toDate?.().toISOString?.() ?? '',
-        r.ip ?? '',
-        r.country ?? '',
-        String(!!r.blocked),
-        String(!!r.isAdmin),
-        JSON.stringify(r.userAgent ?? '').replaceAll(',', ';'), // keep CSV sane
-      ];
-      lines.push(row.join(','));
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `logs_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const header = useMemo(
+    () => (
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <h1 className="text-xl font-bold">Access Logs</h1>
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Admin IPs への導線 */}
+          <Link
+            href="/admin/admin-ips"
+            className="inline-flex items-center gap-1 rounded-md px-3 py-1 text-sm bg-violet-600 text-white border border-violet-600 hover:bg-violet-700"
+            title="管理者IPの追加・削除"
+          >
+            🧑‍💼 Admin IPs
+          </Link>
+
+          {/* Filters */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm opacity-70">Country</label>
+            <input
+              value={filterCountry}
+              onChange={(e) => setFilterCountry(e.target.value)}
+              placeholder="JP など"
+              className="border rounded px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm opacity-70">isAdmin</label>
+            <select
+              value={filterIsAdmin}
+              onChange={(e) => setFilterIsAdmin(e.target.value as any)}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value="all">all</option>
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm opacity-70">blocked</label>
+            <select
+              value={filterBlocked}
+              onChange={(e) => setFilterBlocked(e.target.value as any)}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              <option value="all">all</option>
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+
+          {/* 件数セレクタ */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm opacity-70">Rows</label>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="border rounded px-2 py-1 text-sm"
+              title="1ページの表示件数"
+            >
+              <option value={20}>20</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+            </select>
+          </div>
+
+          {/* Live toggle */}
+          <ToolbarButton
+            icon={live ? '🟢' : '⚪️'}
+            variant="success"
+            active={live}
+            onClick={() => setLive((p) => !p)}
+            title="Liveモード（リアルタイム購読）"
+          >
+            Live: {live ? 'On' : 'Off'}
+          </ToolbarButton>
+
+          {/* Reload */}
+          <ToolbarButton
+            icon="🔄"
+            variant="primary"
+            onClick={() => loadPage({ direction: 'init' })}
+            disabled={loading || live}
+            title={live ? 'Live中は無効' : '再読み込み'}
+          >
+            Reload
+          </ToolbarButton>
+
+          {/* Export */}
+          <ToolbarButton icon="📄" variant="slate" onClick={handleExportCSV} disabled={rows.length === 0}>
+            Export CSV
+          </ToolbarButton>
+          <ToolbarButton icon="🧩" variant="slate" onClick={handleExportJSON} disabled={rows.length === 0}>
+            Export JSON
+          </ToolbarButton>
+        </div>
+      </div>
+    ),
+    [filterCountry, filterIsAdmin, filterBlocked, pageSize, live, loading, rows.length]
+  );
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">Access Logs</h1>
+    <div className="p-6">
+      {header}
 
-      {/* Controls */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="block text-xs text-gray-600">IP (contains)</label>
-          <input
-            value={ipFilter}
-            onChange={(e) => setIpFilter(e.target.value)}
-            className="border rounded px-2 py-1"
-            placeholder="e.g. 203.0.113."
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-gray-600">Country (ISO2)</label>
-          <input
-            value={countryFilter}
-            onChange={(e) => setCountryFilter(e.target.value.toUpperCase())}
-            className="border rounded px-2 py-1 uppercase"
-            maxLength={2}
-            placeholder="JP"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-gray-600">Blocked</label>
-          <select
-            value={blockedFilter}
-            onChange={(e) => setBlockedFilter(e.target.value as any)}
-            className="border rounded px-2 py-1"
-          >
-            <option value="all">All</option>
-            <option value="true">True</option>
-            <option value="false">False</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-gray-600">Page size</label>
-          <input
-            type="number"
-            min={10}
-            max={200}
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value) || 50);
-              setPage(1);
-            }}
-            className="border rounded px-2 py-1 w-24"
-          />
-        </div>
-
-        <button
-          onClick={() => {
-            setPage(1);
-            reload();
-          }}
-          className="px-3 py-1 border rounded hover:bg-gray-50"
-          disabled={loading}
-          title="Reload from Firestore"
-        >
-          {loading ? 'Loading…' : 'Reload'}
-        </button>
-
-        <button onClick={exportCSV} className="px-3 py-1 border rounded hover:bg-gray-50">
-          Export CSV
-        </button>
-        <button onClick={exportJSON} className="px-3 py-1 border rounded hover:bg-gray-50">
-          Export JSON
-        </button>
-      </div>
-
-      {error && <p className="text-red-600 text-sm">Error: {error}</p>}
-
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-[900px] w-full text-sm border">
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="p-2 border text-left w-64">
-                <button
-                  onClick={() => setSortAsc((v) => !v)}
-                  className="inline-flex items-center gap-2"
-                  title="Toggle sort by timestamp"
-                >
-                  <span>Timestamp (UTC)</span>
-                  <span className="text-xs">{sortAsc ? '▲' : '▼'}</span>
-                </button>
+            <tr className="border-b">
+              <th
+                className="text-left p-2 cursor-pointer select-none"
+                onClick={() => setSortAsc((p) => !p)}
+                title="クリックで昇順/降順を切替"
+              >
+                Timestamp {sortAsc ? '▲' : '▼'}
               </th>
-              <th className="p-2 border text-left">IP</th>
-              <th className="p-2 border text-left">Country</th>
-              <th className="p-2 border text-left">Blocked</th>
-              <th className="p-2 border text-left">Admin</th>
-              <th className="p-2 border text-left">UserAgent</th>
-              <th className="p-2 border text-left">Actions</th>
+              <th className="text-left p-2">IP</th>
+              <th className="text-left p-2">Country</th>
+              <th className="text-left p-2">AllowedCountry</th>
+              <th className="text-left p-2">isAdmin</th>
+              <th className="text-left p-2">blocked (at log)</th>
+              <th className="text-left p-2">UA</th>
+              <th className="text-left p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((r) => (
-              <tr key={r.id} className="even:bg-gray-50">
-                <td className="p-2 border">{fmt(r.timestamp)}</td>
-
-                <td className="p-2 border">
-                  <div className="flex items-center gap-2">
-                    <span>{r.ip ?? '-'}</span>
-                  </div>
-                </td>
-
-                <td className="p-2 border">{r.country ?? '-'}</td>
-
-                <td className="p-2 border">
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs ${
-                      r.blocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                    }`}
-                  >
-                    {r.blocked ? 'true' : 'false'}
-                  </span>
-                </td>
-
-                <td className="p-2 border">{r.isAdmin ? 'true' : 'false'}</td>
-
-                <td className="p-2 border">
-                  <div className="max-w-[420px] truncate" title={r.userAgent}>
-                    {r.userAgent ?? '-'}
-                  </div>
-                </td>
-
-                <td className="p-2 border">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className="text-xs px-2 py-0.5 rounded border hover:bg-red-50 disabled:opacity-50"
-                      onClick={() => blockIp(r.ip)}
-                      disabled={!r.ip || busy === `ip:${r.ip}`}
-                      title="Block this IP"
-                    >
-                      Block IP
-                    </button>
-
-                    <button
-                      className="text-xs px-2 py-0.5 rounded border hover:bg-red-50 disabled:opacity-50"
-                      onClick={() => blockCountry(r.country)}
-                      disabled={!r.country || busy === `ct:${r.country}`}
-                      title="Block this country"
-                    >
-                      Block Country
-                    </button>
+            {rows.map((r) => (
+              <tr key={`${r.ip}-${r.timestamp}`} className="border-b align-top">
+                <td className="p-2">{r.timestamp ? new Date(r.timestamp).toLocaleString() : '-'}</td>
+                <td className="p-2">{r.ip}</td>
+                <td className="p-2">{r.country ?? '-'}</td>
+                <td className="p-2">{r.allowedCountry === undefined ? '-' : String(r.allowedCountry)}</td>
+                <td className="p-2">{r.isAdmin === undefined ? '-' : String(r.isAdmin)}</td>
+                <td className="p-2">{r.blocked === undefined ? '-' : String(r.blocked)}</td>
+                <td className="p-2 truncate max-w-[360px]">{r.userAgent ?? '-'}</td>
+                <td className="p-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <IpActions
+                      ip={r.ip}
+                      initialBlocked={Boolean(r.blocked)}
+                      onChange={(b) => {
+                        setRows((prev) =>
+                          prev.map((x) =>
+                            x.ip === r.ip && x.timestamp === r.timestamp ? { ...x, blocked: b } : x
+                          )
+                        );
+                      }}
+                    />
+                    <AdminToggle
+                      ip={r.ip}
+                      initialIsAdmin={Boolean(r.isAdmin)}
+                      onChange={(isAdmin) => {
+                        setRows((prev) => prev.map((x) => (x.ip === r.ip ? { ...x, isAdmin } : x)));
+                      }}
+                    />
                   </div>
                 </td>
               </tr>
             ))}
 
-            {pageRows.length === 0 && !loading && (
+            {!loading && rows.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-gray-500" colSpan={7}>
-                  No results
+                <td colSpan={8} className="p-6 text-center opacity-70">
+                  No logs
                 </td>
               </tr>
             )}
@@ -368,31 +410,20 @@ export default function AdminLogsPage() {
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="text-sm text-gray-600">
-          Showing {(page - 1) * pageSize + 1}–
-          {Math.min(page * pageSize, filtered.length)} of {filtered.length}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-          >
-            Prev
-          </button>
-          <span className="text-sm">
-            Page {page} / {totalPages}
-          </span>
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-          >
-            Next
-          </button>
-        </div>
+      {error && <div className="mt-3 text-sm text-red-600">Error: {error}</div>}
+      {loading && <div className="mt-3 text-sm opacity-70">Loading…</div>}
+
+      <div className="mt-4 flex items-center gap-2">
+        <ToolbarButton onClick={onClickPrev} disabled={!hasPrev || loading || live}>
+          ◀ Prev
+        </ToolbarButton>
+        <span className="text-sm">
+          Page {page}
+          {live ? ' (Live)' : ''}
+        </span>
+        <ToolbarButton onClick={onClickNext} disabled={!hasNext || loading || live}>
+          Next ▶
+        </ToolbarButton>
       </div>
     </div>
   );
