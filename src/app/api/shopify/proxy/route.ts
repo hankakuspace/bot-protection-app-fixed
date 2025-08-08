@@ -26,10 +26,13 @@ async function handleProxy(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'invalid_signature' }, { status: 401 });
     }
 
-    const ip =
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      req.ip ||
-      '0.0.0.0';
+const ip =
+ req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+req.headers.get('x-real-ip') ||
+req.headers.get('cf-connecting-ip') || // Cloudflare系
+req.headers.get('fly-client-ip') ||    // Fly.io 等
+req.headers.get('true-client-ip') ||   // Akamai 等
+'0.0.0.0';
     const userAgent = req.headers.get('user-agent') || '';
 
     // 既存ロジック呼び出し（国判定・ブラックリスト判定・ログ保存）
