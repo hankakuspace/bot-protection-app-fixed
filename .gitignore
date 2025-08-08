@@ -8,3 +8,8 @@ node_modules
 # macOS特有ファイル
 .DS_Store
 
+# Proxy
+/proxy/node_modules
+/proxy/dist
+/proxy/.env
+/proxy/serviceAccount.json
