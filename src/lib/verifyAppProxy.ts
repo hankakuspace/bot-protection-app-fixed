@@ -4,32 +4,31 @@ export function verifyAppProxySignature(
   url: URL,
   appSecret: string
 ): { ok: boolean; reason?: string; debug?: any } {
-  const params = new URLSearchParams(url.search);
-  const signature = params.get("signature");
-  if (!signature) return { ok: false, reason: "missing signature" };
+  const search = url.search.startsWith("?") ? url.search.slice(1) : url.search;
 
-  // 署名以外を取り出してソート & 連結（URLエンコードなし）
-  params.delete("signature");
-  const message = Array.from(params.entries())
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join("&");
+  // URLSearchParams でパース（自動デコードされる）
+  const map = new Map<string, string[]>();
+  for (const [k, v] of new URLSearchParams(search).entries()) {
+    if (k === "signature") continue;
+    const arr = map.get(k);
+    if (arr) arr.push(v);
+    else map.set(k, [v]);
+  }
 
-  const digest = crypto
-    .createHmac("sha256", appSecret)
-    .update(message, "utf8")
-    .digest("hex");
+  // 値が複数あるキーは "," で連結 → "key=value1,value2"
+  const parts = Array.from(map.entries()).map(([k, vs]) => `${k}=${vs.join(",")}`);
 
-  const ok = signature === digest;
+  // キー昇順でソートして、区切り文字なしで連結（重要！）
+  const message = parts.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join("");
 
-  // デバッグ情報を返す（okでもfalseでも）
+  const signature = new URLSearchParams(search).get("signature") || "";
+  const digest = crypto.createHmac("sha256", appSecret).update(message, "utf8").digest("hex");
+
+  const ok = signature.length > 0 && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+
   return {
     ok,
     reason: ok ? undefined : "invalid signature",
-    debug: {
-      constructedMessage: message,
-      calculatedDigest: digest,
-      signatureFromShopify: signature,
-    },
+    debug: { constructedMessage: message, calculatedDigest: digest, signatureFromShopify: signature },
   };
 }
