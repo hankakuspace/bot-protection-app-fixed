@@ -1,72 +1,68 @@
-// ページ版: /auth-start?shop=<shop>.myshopify.com
-// 何もリダイレクトしません。画面に authorize/redirectUri を表示し、ボタンで手動開始します。
-"use client";
+// GET /api/auth-start?shop=<shop>.myshopify.com[&dry=1]
+// POST /api/auth-start で OAuth 開始（リダイレクト実施）
+import { NextRequest, NextResponse } from 'next/server';
 
-import { useMemo } from "react";
+const SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || '').trim();
+const SCOPES = (process.env.SHOPIFY_SCOPES || '').trim();
 
-export default function AuthStartPage({
-  searchParams,
-}: { searchParams: Record<string, string|undefined> }) {
-  const shop = searchParams.shop ?? "";
+function originOnly(req: NextRequest) {
+  const fromEnv = (process.env.SHOPIFY_APP_URL || process.env.APP_URL || '').trim();
+  if (fromEnv) {
+    try { const u = new URL(fromEnv); return `${u.protocol}//${u.host}`; } catch {}
+  }
+  const u = new URL(req.url);
+  return `${u.protocol}//${u.host}`;
+}
 
-  const { origin, redirectUri, authorizeUrl, problems } = useMemo(() => {
-    const out = { origin: "", redirectUri: "", authorizeUrl: "", problems: [] as string[] };
-    try {
-      // window.origin を使えば環境変数やNodeの層を踏まずに算出できます
-      out.origin = typeof window !== "undefined" ? window.location.origin : "";
-      if (!shop.endsWith(".myshopify.com")) out.problems.push("invalid shop");
-      if (!out.origin) out.problems.push("no window.origin");
-      if (out.origin) {
-        out.redirectUri = `${out.origin}/api/auth/callback`;
-        const u = new URL(`https://${shop}/admin/oauth/authorize`);
-        const state = "debug-" + Math.random().toString(36).slice(2);
-        u.searchParams.set("client_id", process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ?? "");
-        u.searchParams.set("scope", process.env.NEXT_PUBLIC_SHOPIFY_SCOPES ?? "");
-        u.searchParams.set("redirect_uri", out.redirectUri);
-        u.searchParams.set("state", state);
-        out.authorizeUrl = u.toString();
-      }
-    } catch (e) {
-      out.problems.push(String(e));
-    }
-    return out;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shop]);
+function buildAuthorizeURL(shop: string, origin: string, state: string) {
+  const redirectUri = `${origin}/api/auth/callback`;
+  const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
+  authorize.searchParams.set('client_id', SHOPIFY_API_KEY);
+  authorize.searchParams.set('scope', SCOPES);
+  authorize.searchParams.set('redirect_uri', redirectUri);
+  authorize.searchParams.set('state', state);
+  return { authorize: authorize.toString(), redirectUri };
+}
 
-  return (
-    <main style={{ fontFamily: "system-ui", padding: 24, lineHeight: 1.6 }}>
-      <h1>/auth-start (page)</h1>
-      <p>※ ここは <b>APIを使わず</b>にauthorize URLを計算して表示するページです。</p>
-      <ul>
-        <li><b>shop:</b> {shop || "(missing)"} </li>
-        <li><b>origin:</b> {origin}</li>
-        <li><b>redirectUri:</b> {redirectUri}</li>
-        <li style={{ wordBreak: "break-all" }}><b>authorize:</b> {authorizeUrl}</li>
-      </ul>
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const shop = (url.searchParams.get('shop') || '').trim();
 
-      {problems.length > 0 && (
-        <div style={{ color: "crimson" }}>
-          <b>problems:</b>
-          <ul>{problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
-        </div>
-      )}
+  console.log('[AUTH-START/GET]', { path: url.pathname, qs: url.search, shop,
+    env_APP_URL: process.env.APP_URL, env_SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL });
 
-      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-        <a href="/hello">← back to /hello</a>
-        <a href={`/auth-start?shop=${encodeURIComponent(shop || "")}`} onClick={(e) => { if (!shop) e.preventDefault(); }} style={{ opacity: 0.6 }}>
-          reload
-        </a>
-        <button
-          onClick={() => { if (authorizeUrl) window.location.href = authorizeUrl; }}
-          disabled={!authorizeUrl}
-          style={{ padding: "8px 16px" }}
-        >
-          1クリックで OAuth 開始（authorize へ遷移）
-        </button>
-      </div>
+  if (!SHOPIFY_API_KEY) return NextResponse.json({ ok:false, error:'missing SHOPIFY_API_KEY' }, { status:500 });
+  if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ ok:false, error:'invalid shop', shop }, { status:400 });
 
-      <hr style={{ margin: "24px 0" }} />
-      <p>もしこのページでもリダイレクトエラーになるなら、<b>Next.js/ Vercel のリダイレクト設定</b>が原因です。</p>
-    </main>
-  );
+  const origin = originOnly(req);
+  const state = crypto.randomUUID();
+  const { authorize, redirectUri } = buildAuthorizeURL(shop, origin, state);
+
+  // ★ ここでは絶対にリダイレクトしない（dry-run出力）
+  return NextResponse.json({
+    ok: true,
+    mode: 'visible',
+    note: 'POST /api/auth-start で OAuth を開始します（このGETはリダイレクトしません）',
+    shop, origin, redirectUri, authorize,
+    env: { SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || null, APP_URL: process.env.APP_URL || null }
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const url = new URL(req.url);
+  const shop = (url.searchParams.get('shop') || '').trim();
+  if (!SHOPIFY_API_KEY) return NextResponse.json({ ok:false, error:'missing SHOPIFY_API_KEY' }, { status:500 });
+  if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ ok:false, error:'invalid shop', shop }, { status:400 });
+
+  const origin = originOnly(req);
+  const state = crypto.randomUUID();
+  const { authorize } = buildAuthorizeURL(shop, origin, state);
+
+  console.log('[AUTH-START/POST -> REDIRECT]', { shop, to: authorize });
+
+  const res = NextResponse.redirect(authorize, { status: 302 });
+  res.headers.set('Set-Cookie', [
+    `shopify_state=${state}`, 'Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax', 'Max-Age=600',
+  ].join('; '));
+  return res;
 }
