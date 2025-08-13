@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function AuthStartPage({ searchParams }: { searchParams: Record<string, string|undefined> }) {
-  const shop = searchParams.shop ?? "";
+export default function AuthStartPage() {
+  const sp = useSearchParams();
+  const shop = sp.get("shop") ?? "";
+
   const { origin, redirectUri, authorizeUrl, problems } = useMemo(() => {
     const out = { origin: "", redirectUri: "", authorizeUrl: "", problems: [] as string[] };
     try {
