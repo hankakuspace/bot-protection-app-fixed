@@ -1,5 +1,5 @@
 // src/app/api/auth/route.ts
-// GET /api/auth?shop=<shop>.myshopify.com[&dry=1]
+// GET /api/auth?shop=<shop>.myshopify.com
 import { NextRequest, NextResponse } from 'next/server';
 
 const SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || '').trim();
@@ -16,44 +16,22 @@ function getOrigin(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const shop = url.searchParams.get('shop') || '';
-  const dryRun = url.searchParams.get('dry') === '1';
-
-  // 直観測ログ
-  console.log('[AUTH/START]', {
-    path: url.pathname, shop, qs: url.search, appUrlEnv: process.env.SHOPIFY_APP_URL || process.env.APP_URL
-  });
+  const shop = url.searchParams.get('shop');
 
   if (!SHOPIFY_API_KEY) return NextResponse.json({ error: 'missing SHOPIFY_API_KEY' }, { status: 500 });
-  if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ error: 'invalid shop', shop }, { status: 400 });
+  if (!shop || !shop.endsWith('.myshopify.com')) return NextResponse.json({ error: 'missing shop' }, { status: 400 });
 
-  const origin = getOrigin(req); // 例) https://bot-protection-ten.vercel.app
+  const origin = getOrigin(req);
   const redirectUri = `${origin}/api/auth/callback`;
   const state = crypto.randomUUID();
 
-  const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
-  authorize.searchParams.set('client_id', SHOPIFY_API_KEY);
-  authorize.searchParams.set('scope', SCOPES);
-  authorize.searchParams.set('redirect_uri', redirectUri);
-  authorize.searchParams.set('state', state);
+  const authorizeUrl = new URL(`https://${shop}/admin/oauth/authorize`);
+  authorizeUrl.searchParams.set('client_id', SHOPIFY_API_KEY);
+  authorizeUrl.searchParams.set('scope', SCOPES);
+  authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+  authorizeUrl.searchParams.set('state', state);
 
-  // ★ dry=1 ならリダイレクトせず JSON で中身を返す
-  if (dryRun) {
-    return NextResponse.json({
-      ok: true,
-      mode: 'dry-run',
-      shop,
-      origin,
-      redirectUri,
-      authorize: authorize.toString(),
-      env: {
-        SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || null,
-        APP_URL: process.env.APP_URL || null,
-      }
-    });
-  }
-
-  const res = NextResponse.redirect(authorize.toString(), { status: 302 });
+  const res = NextResponse.redirect(authorizeUrl.toString(), { status: 302 });
   res.headers.set(
     'Set-Cookie',
     ['shopify_state=' + state, 'Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax', 'Max-Age=600'].join('; ')
