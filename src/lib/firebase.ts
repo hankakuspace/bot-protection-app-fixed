@@ -1,21 +1,13 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import {
-  initializeFirestore,
-  getFirestore,
-  type Firestore,
-} from 'firebase/firestore';
+import { initializeFirestore, getFirestore, type Firestore } from 'firebase/firestore';
 
 function requireEnv(name: string): string {
   const v = process.env[name];
-  if (!v) {
-    // 明示的に分かるエラーにしてデバッグしやすく
-    throw new Error(`Missing env: ${name}`);
-  }
+  if (!v) throw new Error(`Missing env: ${name}`);
   return v;
 }
 
-// ※ NEXT_PUBLIC_ のままでOK（サーバでも参照可）
 const firebaseConfig = {
   apiKey: requireEnv('NEXT_PUBLIC_FIREBASE_API_KEY'),
   authDomain: requireEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'),
@@ -25,22 +17,18 @@ const firebaseConfig = {
   appId: requireEnv('NEXT_PUBLIC_FIREBASE_APP_ID'),
 };
 
-// ← ここを export するのがポイント
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// gRPCを避け、Serverlessで安定するRESTトランスポートを使用
+// Web/Serverless で安定運用（undefined を無視）。REST 強制は不要なので外す
 let _db: Firestore;
 try {
   _db = initializeFirestore(app, {
     ignoreUndefinedProperties: true,
-    preferRest: true, // ←これが重要
+    // experimentalAutoDetectLongPolling: true, // 必要ならコメント解除（ブラウザでの接続安定化）
   });
 } catch {
-  // initializeFirestore が使えない環境でもフォールバック
   _db = getFirestore(app);
 }
 
 export const db = _db;
-
-// お好みで default も出しておくと import app from '@/lib/firebase' も可能
 export default app;
