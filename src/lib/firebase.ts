@@ -25,7 +25,8 @@ const firebaseConfig = {
   appId: requireEnv('NEXT_PUBLIC_FIREBASE_APP_ID'),
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// ← ここを export するのがポイント
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // gRPCを避け、Serverlessで安定するRESTトランスポートを使用
 let _db: Firestore;
@@ -40,3 +41,6 @@ try {
 }
 
 export const db = _db;
+
+// お好みで default も出しておくと import app from '@/lib/firebase' も可能
+export default app;
