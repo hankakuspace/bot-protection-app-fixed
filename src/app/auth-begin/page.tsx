@@ -1,11 +1,11 @@
 // src/app/auth-begin/page.tsx
-import { cookies, headers } from "next/headers";
+import { cookies as getCookies, headers as getHeaders } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
-export const runtime = "nodejs"; // Server Actions を Node 実行
+export const runtime = "nodejs";
 
 export default async function Page({
   searchParams,
@@ -30,16 +30,18 @@ export default async function Page({
       return redirect("/auth-begin?error=missing_api_key");
     }
 
-    // オリジン算出
-    const h = headers();
+    // ← ここを await に変更（Next 15 の Server Action では Promise）
+    const h = await getHeaders();
     const proto = h.get("x-forwarded-proto") || "https";
     const host = h.get("host") || "";
     const origin = `${proto}://${host}`;
     const redirectUri = `${origin}/api/auth/callback`;
 
-    // state Cookie 発行
     const state = crypto.randomUUID();
-    cookies().set("shopify_state", state, {
+
+    // cookies() も await で安全
+    const ck = await getCookies();
+    ck.set("shopify_state", state, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
@@ -47,15 +49,13 @@ export default async function Page({
       maxAge: 600,
     });
 
-    // authorize URL 構築
     const u = new URL(`https://${shopFromForm}/admin/oauth/authorize`);
     u.searchParams.set("client_id", apiKey);
     if (scopes) u.searchParams.set("scope", scopes);
     u.searchParams.set("redirect_uri", redirectUri);
     u.searchParams.set("state", state);
 
-    // Shopify へ 302
-    redirect(u.toString());
+    redirect(u.toString()); // Shopify 認可へ 302
   }
 
   return (
