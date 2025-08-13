@@ -1,32 +1,44 @@
-// middleware.ts
+// src/middleware.ts
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+/**
+ * 許可パス：
+ * - /api/* は OAuth や App Proxy を含むため “必ず素通し”
+ * - ルート "/" は配布リンクの着地用（hmac/shop を保持したまま /api/auth へ一度だけ転送）
+ * - Next静的/各種メタは除外
+ */
 const ALLOW_PATHS = [
-  /^\/admin(\/|$)/,          // 管理画面は常に許可
-  /^\/api(\/|$)/,            // ← まとめて API を除外（これで /api/shopify/proxy も素通り）
-  // もし細かく除外したいなら ↓ を使う:
-  // /^\/api\/shopify(\/|$)/, // App Proxy 系は必ず除外
-  // /^\/api\/auth(\/|$)/,    // Auth コールバック等も除外
-  // /^\/api\/get-ip$/,       // get-ip を個別に除外したい場合は残す
-  /^\/_next(\/|$)/,          // Nextの静的アセット
+  /^\/$/,                   // ルートは許可（OAuthクエリを受けるため）
+  /^\/api(\/|$)/,           // API 全許可（/api/auth, /api/auth/callback, /api/shopify/proxy など）
+  /^\/_next(\/|$)/,         // Next.js 静的アセット
   /^\/favicon\.ico$/,
   /^\/robots\.txt$/,
   /^\/sitemap\.xml$/,
+  /^\/admin(\/|$)/,         // 管理UIを運用しているなら許可（任意）
 ];
 
-// 60秒以内は再送しない（タブ×ページ遷移でログ氾濫防止）
+// 60秒以内は再送しない（タブ遷移でのログ氾濫防止）
 const THROTTLE_SECONDS = 60;
 const FETCH_TIMEOUT_MS = 1500;
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const url = req.nextUrl;
+  const { pathname } = url;
 
-  // 許可リストに一致ならスルー（ここで /api は即スルー）
+  // 1) 許可パスは素通し。ただし "/" に OAuth クエリがある場合のみ /api/auth に一度だけ転送
   if (ALLOW_PATHS.some((re) => re.test(pathname))) {
+    if (
+      pathname === '/' &&
+      (url.searchParams.has('hmac') || url.searchParams.has('shop'))
+    ) {
+      // クエリを保持したまま /api/auth に302
+      return NextResponse.redirect(new URL('/api/auth' + url.search, url.origin));
+    }
     return NextResponse.next();
   }
 
+  // 2) 以降は HTML GET のみ IPブロック判定を実行（/api は上で素通しされる）
   const isGet = req.method === 'GET';
   const accept = req.headers.get('accept') || '';
   const isHtml = accept.includes('text/html');
@@ -36,12 +48,12 @@ export async function middleware(req: NextRequest) {
 
   const lastPing = Number(req.cookies.get('ip_ping')?.value || '0');
   const now = Date.now();
-  const shouldThrottle = lastPing && (now - lastPing) < THROTTLE_SECONDS * 1000;
+  const shouldThrottle = lastPing && now - lastPing < THROTTLE_SECONDS * 1000;
 
   const resp = NextResponse.next();
 
   if (!shouldThrottle) {
-    // /api/get-ip は middleware から除外済みでも問題なく叩けます
+    // /api/get-ip は middleware の ALLOW_PATHS により到達可能
     const base = process.env.NEXT_PUBLIC_BASE_URL || `${req.nextUrl.origin}`;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -65,13 +77,13 @@ export async function middleware(req: NextRequest) {
         const blocked = !!data.blocked;
 
         if (!isAdmin && blocked) {
-          const url = req.nextUrl.clone();
-          url.pathname = '/blocked';
-          return NextResponse.redirect(url);
+          const redirectUrl = req.nextUrl.clone();
+          redirectUrl.pathname = '/blocked';
+          return NextResponse.redirect(redirectUrl);
         }
       }
     } catch {
-      // タイムアウト・ネットワークエラーは可用性優先で通す
+      // タイムアウト/ネットワークエラーは可用性優先で通す
     }
 
     resp.cookies.set('ip_ping', String(now), {
