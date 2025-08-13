@@ -1,35 +1,22 @@
 /** @type {import('next').NextConfig} */
 
-// App Proxy のサブパス（Shopify 側の「サブパス」と一致）
 const PROXY_SUBPATH = process.env.SHOPIFY_PROXY_SUBPATH || 'bot-protection-proxy';
 
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify: true, // ← 削除
   trailingSlash: false,
   output: 'standalone',
-
-  // ※ 機密情報はここ（env）に書かないでください！
-  //   next.config.js の env はクライアントへもバンドルされます。
-  //   すべて Vercel の Environment Variables / .env.* で管理してください。
 
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'Content-Security-Policy',
-            // Shopify 管理画面・店舗ドメインからの埋め込みを許可
-            value: 'frame-ancestors https://admin.shopify.com https://*.myshopify.com;',
-          },
-          // X-Frame-Options は DENY/SAMEORIGIN しかなく、CSP と競合しやすいので付けない
+          { key: 'Content-Security-Policy', value: 'frame-ancestors https://admin.shopify.com https://*.myshopify.com;' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
-          {
-            key: 'Permissions-Policy',
-            value:
-              'accelerometer=(), ambient-light-sensor=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=*, geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), speaker=(), usb=()',
-          },
+          { key: 'Permissions-Policy',
+            value: 'accelerometer=(), ambient-light-sensor=(), autoplay=(), camera=(), encrypted-media=(), fullscreen=*, geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), speaker=(), usb=()' },
         ],
       },
     ];
@@ -37,8 +24,10 @@ const nextConfig = {
 
   async redirects() {
     return [
-       // ★ /api はリダイレクト除外
-    { source: '/api/:path*', destination: '/api/:path*', permanent: false },
+      // 🚫 これが無限ループの原因：{ source: '/api/:path*', destination: '/api/:path*' }
+      // 必要なら “redirect” ではなく “rewrite” を検討してください（ただし今回は不要）
+
+      // （任意）/auth を API に寄せたい場合だけ残す。不要なら消してOK
       { source: '/auth', destination: '/api/auth', permanent: false },
       { source: '/auth/callback', destination: '/api/auth/callback', permanent: false },
     ];
@@ -46,9 +35,7 @@ const nextConfig = {
 
   async rewrites() {
     return [
-      // 例: /apps/bot-protection-proxy → /api/shopify/proxy
       { source: `/apps/${PROXY_SUBPATH}`, destination: '/api/shopify/proxy' },
-      // 例: /apps/bot-protection-proxy/check → /api/shopify/proxy?extra_path=check
       { source: `/apps/${PROXY_SUBPATH}/:path*`, destination: '/api/shopify/proxy?extra_path=:path*' },
     ];
   },
