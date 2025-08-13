@@ -1,5 +1,6 @@
-// GET /api/auth-start?shop=<shop>.myshopify.com[&dry=1]
-// POST /api/auth-start で OAuth 開始（リダイレクト実施）
+// src/app/api/auth-start/route.ts
+// GET: 可視化（JSONを返すだけ）
+// POST: 実際に Shopify の authorize へ 302 リダイレクト
 import { NextRequest, NextResponse } from 'next/server';
 
 const SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || '').trim();
@@ -16,20 +17,19 @@ function originOnly(req: NextRequest) {
 
 function buildAuthorizeURL(shop: string, origin: string, state: string) {
   const redirectUri = `${origin}/api/auth/callback`;
-  const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
-  authorize.searchParams.set('client_id', SHOPIFY_API_KEY);
-  authorize.searchParams.set('scope', SCOPES);
-  authorize.searchParams.set('redirect_uri', redirectUri);
-  authorize.searchParams.set('state', state);
-  return { authorize: authorize.toString(), redirectUri };
+  const u = new URL(`https://${shop}/admin/oauth/authorize`);
+  u.searchParams.set('client_id', SHOPIFY_API_KEY);
+  u.searchParams.set('scope', SCOPES);
+  u.searchParams.set('redirect_uri', redirectUri);
+  u.searchParams.set('state', state);
+  return { authorize: u.toString(), redirectUri };
 }
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const shop = (url.searchParams.get('shop') || '').trim();
 
-  console.log('[AUTH-START/GET]', { path: url.pathname, qs: url.search, shop,
-    env_APP_URL: process.env.APP_URL, env_SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL });
+  console.log('[AUTH-START/GET]', { path: url.pathname, qs: url.search, shop });
 
   if (!SHOPIFY_API_KEY) return NextResponse.json({ ok:false, error:'missing SHOPIFY_API_KEY' }, { status:500 });
   if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ ok:false, error:'invalid shop', shop }, { status:400 });
@@ -38,11 +38,9 @@ export async function GET(req: NextRequest) {
   const state = crypto.randomUUID();
   const { authorize, redirectUri } = buildAuthorizeURL(shop, origin, state);
 
-  // ★ ここでは絶対にリダイレクトしない（dry-run出力）
+  // 可視化（※リダイレクトしない）
   return NextResponse.json({
-    ok: true,
-    mode: 'visible',
-    note: 'POST /api/auth-start で OAuth を開始します（このGETはリダイレクトしません）',
+    ok: true, mode: 'visible',
     shop, origin, redirectUri, authorize,
     env: { SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || null, APP_URL: process.env.APP_URL || null }
   });
@@ -50,7 +48,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const url = new URL(req.url);
-  const shop = (url.searchParams.get('shop') || '').trim();
+
+  // フォーム body からも受け取れるようにする（/hello から hidden 送信）
+  let shop = (url.searchParams.get('shop') || '').trim();
+  if (!shop) {
+    try {
+      const form = await req.formData();
+      shop = (String(form.get('shop') || '')).trim();
+    } catch {}
+  }
+
   if (!SHOPIFY_API_KEY) return NextResponse.json({ ok:false, error:'missing SHOPIFY_API_KEY' }, { status:500 });
   if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ ok:false, error:'invalid shop', shop }, { status:400 });
 

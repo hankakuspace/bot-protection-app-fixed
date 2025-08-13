@@ -1,3 +1,4 @@
+// src/app/hello/page.tsx
 export default function Page() {
   const shop = 'ruhra-store.myshopify.com';
   return (
@@ -10,15 +11,12 @@ export default function Page() {
           </a>
         </li>
         <li>
-          <form action={`/api/auth-start?shop=${shop}`} method="post">
+          <form action={`/api/auth-start`} method="post">
+            <input type="hidden" name="shop" value={shop} />
             <button type="submit" style={{padding:'8px 16px'}}>2) OAuth を開始（POST）</button>
           </form>
         </li>
-        <li>
-          <a href="/api/debug/echo?from=hello" target="_blank" rel="noreferrer">/api/debug/echo</a>
-        </li>
       </ol>
-      <p>※ まず 1) の JSON に <code>origin</code> と <code>redirectUri</code> が正しいかを確認します。</p>
     </main>
   );
 }
