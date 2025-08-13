@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function AuthStartPage() {
+// ← 事前レンダリングを避ける（このページは動的に評価させる）
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+function AuthStartInner() {
   const sp = useSearchParams();
   const shop = sp.get("shop") ?? "";
 
@@ -53,5 +57,13 @@ export default function AuthStartPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<main style={{padding:24}}>Loading…</main>}>
+      <AuthStartInner />
+    </Suspense>
   );
 }
