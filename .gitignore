@@ -1,0 +1,15 @@
+# Node.js関連
+node_modules
+.next
+
+# 環境変数
+.env
+
+# macOS特有ファイル
+.DS_Store
+
+# Proxy
+/proxy/node_modules
+/proxy/dist
+/proxy/.env
+/proxy/serviceAccount.json
