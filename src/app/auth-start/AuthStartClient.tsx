@@ -51,17 +51,22 @@ export default function AuthStartClient({
           <ul>{problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
         </div>
       )}
-      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+
+      <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center" }}>
         <a href="/hello">← back to /hello</a>
-        <button
-          onClick={() => {
-            if (authorizeUrl) window.location.href = authorizeUrl;
-          }}
-          disabled={!authorizeUrl}
-          style={{ padding: "8px 16px" }}
-        >
-          1クリックで OAuth 開始（authorize へ遷移）
-        </button>
+
+        {/* ★ サーバ経由（POST）で開始：state Cookie を確実に発行 */}
+        <form action="/api/auth-start" method="post" style={{ display: "inline-block" }}>
+          <input type="hidden" name="shop" value={shop} />
+          <button
+            type="submit"
+            disabled={!shop || !apiKey}
+            style={{ padding: "8px 16px" }}
+            title={!shop ? "shop が空です" : !apiKey ? "API key が空です" : "開始"}
+          >
+            1クリックで OAuth 開始（サーバ経由）
+          </button>
+        </form>
       </div>
     </main>
   );
