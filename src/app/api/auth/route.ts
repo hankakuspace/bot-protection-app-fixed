@@ -1,17 +1,14 @@
 // src/app/api/auth/route.ts
-// GET /api/auth?shop=<shop>.myshopify.com[&hmac=...&host=...&timestamp=...]
+// GET /api/auth?shop=<shop>.myshopify.com[&dry=1]
 import { NextRequest, NextResponse } from 'next/server';
 
 const SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || '').trim();
 const SCOPES = (process.env.SHOPIFY_SCOPES || '').trim();
 
-function getBaseUrl(req: NextRequest) {
+function getOrigin(req: NextRequest) {
   const fromEnv = (process.env.SHOPIFY_APP_URL || process.env.APP_URL || '').trim();
   if (fromEnv) {
-    try {
-      const u = new URL(fromEnv);
-      return `${u.protocol}//${u.host}`;
-    } catch {}
+    try { const u = new URL(fromEnv); return `${u.protocol}//${u.host}`; } catch {}
   }
   const u = new URL(req.url);
   return `${u.protocol}//${u.host}`;
@@ -19,66 +16,47 @@ function getBaseUrl(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const shop = url.searchParams.get('shop');
-  const hmac = url.searchParams.get('hmac');
-  const host = url.searchParams.get('host');
+  const shop = url.searchParams.get('shop') || '';
+  const dryRun = url.searchParams.get('dry') === '1';
 
-  // ループガード（5秒以内に同一パスへ再訪ならループ疑いでJSON返す）
-  const loopGuard = req.cookies.get('oauth_loop_guard')?.value;
-  if (loopGuard) {
-    console.error('[AUTH/LOOP_DETECTED]', { shop, url: url.toString() });
-    return NextResponse.json({ ok: false, error: 'loop_detected_at_auth', url: url.toString() }, { status: 508 });
-  }
-
+  // 直観測ログ
   console.log('[AUTH/START]', {
-    shop,
-    hasHmac: !!hmac,
-    hasHost: !!host,
-    env_APP_URL: process.env.APP_URL,
-    env_SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL,
+    path: url.pathname, shop, qs: url.search, appUrlEnv: process.env.SHOPIFY_APP_URL || process.env.APP_URL
   });
 
-  if (!SHOPIFY_API_KEY) {
-    return NextResponse.json({ error: 'missing SHOPIFY_API_KEY' }, { status: 500 });
-  }
-  if (!shop || !shop.endsWith('.myshopify.com')) {
-    return NextResponse.json({ error: 'missing shop' }, { status: 400 });
-  }
+  if (!SHOPIFY_API_KEY) return NextResponse.json({ error: 'missing SHOPIFY_API_KEY' }, { status: 500 });
+  if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ error: 'invalid shop', shop }, { status: 400 });
 
-  const baseUrl = getBaseUrl(req); // 例: https://bot-protection-ten.vercel.app
-  const redirectUri = `${baseUrl}/api/auth/callback`;
-
+  const origin = getOrigin(req); // 例) https://bot-protection-ten.vercel.app
+  const redirectUri = `${origin}/api/auth/callback`;
   const state = crypto.randomUUID();
-  const authorizeUrl = new URL(`https://${shop}/admin/oauth/authorize`);
-  authorizeUrl.searchParams.set('client_id', SHOPIFY_API_KEY);
-  authorizeUrl.searchParams.set('scope', SCOPES);
-  authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-  authorizeUrl.searchParams.set('state', state);
 
-  console.log('[AUTH/REDIRECTING]', {
-    authorize: authorizeUrl.toString(),
-    redirectUri,
-  });
+  const authorize = new URL(`https://${shop}/admin/oauth/authorize`);
+  authorize.searchParams.set('client_id', SHOPIFY_API_KEY);
+  authorize.searchParams.set('scope', SCOPES);
+  authorize.searchParams.set('redirect_uri', redirectUri);
+  authorize.searchParams.set('state', state);
 
-  const res = NextResponse.redirect(authorizeUrl.toString(), { status: 302 });
+  // ★ dry=1 ならリダイレクトせず JSON で中身を返す
+  if (dryRun) {
+    return NextResponse.json({
+      ok: true,
+      mode: 'dry-run',
+      shop,
+      origin,
+      redirectUri,
+      authorize: authorize.toString(),
+      env: {
+        SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || null,
+        APP_URL: process.env.APP_URL || null,
+      }
+    });
+  }
+
+  const res = NextResponse.redirect(authorize.toString(), { status: 302 });
   res.headers.set(
     'Set-Cookie',
-    [
-      `shopify_state=${state}`,
-      'Path=/',
-      'HttpOnly',
-      'Secure',
-      'SameSite=Lax',
-      'Max-Age=600',
-    ].join('; ')
+    ['shopify_state=' + state, 'Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax', 'Max-Age=600'].join('; ')
   );
-  // 5秒だけループガードCookie
-  res.cookies.set('oauth_loop_guard', '1', {
-    path: '/',
-    httpOnly: false,
-    sameSite: 'lax',
-    secure: true,
-    maxAge: 5,
-  });
   return res;
 }
