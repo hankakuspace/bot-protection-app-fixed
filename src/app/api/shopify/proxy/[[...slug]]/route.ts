@@ -11,11 +11,7 @@ function unauthorized(reason: string) {
   );
 }
 
-async function handle(
-  req: Request,
-  method: "GET" | "POST",
-  ctx: { params: { slug: string[] } } // ★ オプショナルを外す
-) {
+async function handle(req: Request, method: "GET" | "POST", slug: string[]) {
   if (!APP_SECRET) {
     return NextResponse.json(
       { ok: false, error: "missing app secret" },
@@ -23,17 +19,15 @@ async function handle(
     );
   }
 
-  // 署名検証（クエリのみが対象）
+  // App Proxy 署名検証（クエリのみ）
   const { ok, reason } = verifyAppProxySignature(new URL(req.url), APP_SECRET);
   if (!ok) return unauthorized(reason || "invalid signature");
-
-  const slug = Array.isArray(ctx.params?.slug) ? ctx.params.slug : [];
 
   if (method === "GET") {
     const query = Object.fromEntries(new URL(req.url).searchParams.entries());
     return NextResponse.json({ ok: true, via: "app-proxy", method, slug, query });
   } else {
-    const bodyText = await req.text(); // 必要に応じて JSON.parse
+    const bodyText = await req.text(); // 必要に応じて JSON.parse(bodyText)
     return NextResponse.json({
       ok: true,
       via: "app-proxy",
@@ -44,16 +38,13 @@ async function handle(
   }
 }
 
-export async function GET(
-  req: Request,
-  ctx: { params: { slug: string[] } } // ★ 型を固定
-) {
-  return handle(req, "GET", ctx);
+// ★ 第2引数の型注釈を外す（Next.js 15 の“invalid GET export”対策）
+export async function GET(req: Request, ctx: any) {
+  const slug = Array.isArray(ctx?.params?.slug) ? ctx.params.slug : [];
+  return handle(req, "GET", slug);
 }
 
-export async function POST(
-  req: Request,
-  ctx: { params: { slug: string[] } } // ★ 型を固定
-) {
-  return handle(req, "POST", ctx);
+export async function POST(req: Request, ctx: any) {
+  const slug = Array.isArray(ctx?.params?.slug) ? ctx.params.slug : [];
+  return handle(req, "POST", slug);
 }
