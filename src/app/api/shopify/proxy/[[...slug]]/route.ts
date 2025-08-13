@@ -9,13 +9,16 @@ function html(body: string, status = 200) {
   });
 }
 
-export async function GET(req: Request, { params }: { params: { slug?: string[] } }) {
+// ★ 第2引数（context）を受け取らない。URL からパスを抽出して可視化。
+export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop') || '(unknown shop)';
-    const path = `/${(params.slug || []).join('/')}`;
 
-    // ここではHMAC検証を行わず、まずは可視化を優先
+    // /api/shopify/proxy の後ろをそのまま表示（[[...slug]] 対応）
+    const after = url.pathname.split('/api/shopify/proxy')[1] || '';
+    const path = after || '/';
+
     const page = `
 <!doctype html>
 <html lang="ja"><meta charset="utf-8">
@@ -28,7 +31,7 @@ export async function GET(req: Request, { params }: { params: { slug?: string[] 
 </style>
 <h1>✅ App Proxy OK</h1>
 <p>Shop: <code>${shop}</code></p>
-<p>Path: <code>${path || '/'}</code></p>
+<p>Path: <code>${path}</code></p>
 <p>Time: <code>${new Date().toISOString()}</code></p>
 <p>このページが表示されれば、Shopify → Vercel のプロキシは疎通しています。</p>
 `;
