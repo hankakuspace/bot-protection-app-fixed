@@ -1,7 +1,4 @@
-// src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-
-type Params = { slug?: string[] };
 
 function pickHeaders(req: NextRequest) {
   const h = req.headers;
@@ -19,12 +16,13 @@ function pickHeaders(req: NextRequest) {
   return out;
 }
 
-async function handle(req: NextRequest, params: Params) {
+async function handle(req: NextRequest, context: any) {
   const url = new URL(req.url);
   const search = Object.fromEntries(url.searchParams.entries());
-  const pathFromSlug = "/" + (params.slug?.join("/") ?? "");
 
-  // extra_path クエリ経由の書き換えにも対応（どちらでもOK）
+  // /api/shopify/proxy/:path* 経由でも /api/shopify/proxy?extra_path=... 経由でも拾えるように
+  const slug = (context?.params?.slug as string[] | undefined) ?? [];
+  const pathFromSlug = "/" + slug.join("/");
   const extraPath = (search["extra_path"] ? "/" + search["extra_path"] : "") || pathFromSlug;
 
   let body: any = null;
@@ -80,11 +78,11 @@ ${body ? `<h2>body</h2><pre>${JSON.stringify(body, null, 2)}</pre>` : ""}
   );
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
-  return handle(req, params);
+export async function GET(req: NextRequest, context: any) {
+  return handle(req, context);
 }
-export async function POST(req: NextRequest, { params }: { params: Params }) {
-  return handle(req, params);
+export async function POST(req: NextRequest, context: any) {
+  return handle(req, context);
 }
 export async function HEAD(_req: NextRequest) {
   return new Response(null, { status: 200 });
