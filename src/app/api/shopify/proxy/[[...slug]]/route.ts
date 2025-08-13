@@ -1,34 +1,59 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 
-const APP_SECRET = process.env.SHOPIFY_API_SECRET || process.env.SHOPIFY_APP_SECRET || "";
+const APP_SECRET =
+  process.env.SHOPIFY_API_SECRET || process.env.SHOPIFY_APP_SECRET || "";
 
 function unauthorized(reason: string) {
-  return NextResponse.json({ ok: false, error: "unauthorized", reason }, { status: 401 });
+  return NextResponse.json(
+    { ok: false, error: "unauthorized", reason },
+    { status: 401 }
+  );
 }
 
-async function handle(req: NextRequest, method: "GET" | "POST", slug: string[]) {
-  if (!APP_SECRET) return NextResponse.json({ ok: false, error: "missing app secret" }, { status: 500 });
+async function handle(
+  req: Request,
+  method: "GET" | "POST",
+  ctx: { params: { slug: string[] } } // ★ オプショナルを外す
+) {
+  if (!APP_SECRET) {
+    return NextResponse.json(
+      { ok: false, error: "missing app secret" },
+      { status: 500 }
+    );
+  }
 
+  // 署名検証（クエリのみが対象）
   const { ok, reason } = verifyAppProxySignature(new URL(req.url), APP_SECRET);
   if (!ok) return unauthorized(reason || "invalid signature");
 
-  // ★ ここから本来の処理
+  const slug = Array.isArray(ctx.params?.slug) ? ctx.params.slug : [];
+
   if (method === "GET") {
     const query = Object.fromEntries(new URL(req.url).searchParams.entries());
     return NextResponse.json({ ok: true, via: "app-proxy", method, slug, query });
   } else {
-    const body = await req.text(); // 必要なら JSON.parse
-    return NextResponse.json({ ok: true, via: "app-proxy", method, slug, bodyLen: body.length });
+    const bodyText = await req.text(); // 必要に応じて JSON.parse
+    return NextResponse.json({
+      ok: true,
+      via: "app-proxy",
+      method,
+      slug,
+      bodyLen: bodyText.length,
+    });
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
-  const slug = params.slug || [];
-  return handle(req, "GET", slug);
+export async function GET(
+  req: Request,
+  ctx: { params: { slug: string[] } } // ★ 型を固定
+) {
+  return handle(req, "GET", ctx);
 }
 
-export async function POST(req: NextRequest, { params }: { params: { slug?: string[] } }) {
-  const slug = params.slug || [];
-  return handle(req, "POST", slug);
+export async function POST(
+  req: Request,
+  ctx: { params: { slug: string[] } } // ★ 型を固定
+) {
+  return handle(req, "POST", ctx);
 }
