@@ -1,23 +1,21 @@
-// src/app/api/get-ip/route.ts
 import { NextResponse } from 'next/server';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { isAdminIp } from '@/lib/admin';
 import { isIpBlocked } from '@/lib/check-ip';
 
-/** クライアントIPを推定（X-Forwarded-For優先） */
+// ★ Node実行を明示（EdgeでFirebase等が落ちるのを予防）
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic'; // 常にSSR
+
 function pickClientIp(req: Request): string {
   const xfwd = req.headers.get('x-forwarded-for');
-  if (xfwd && xfwd.length > 0) {
-    // "client, proxy1, proxy2" の先頭がクライアント
-    return xfwd.split(',')[0].trim().replace(/^::ffff:/, '');
-  }
+  if (xfwd) return xfwd.split(',')[0].trim().replace(/^::ffff:/, '');
   const real = req.headers.get('x-real-ip');
   if (real) return real.replace(/^::ffff:/, '');
-  return '127.0.0.1'; // 取得できない場合はローカル想定
+  return '127.0.0.1';
 }
 
-/** ローカル/プライベートIP かどうか */
 function isLocalOrPrivate(ip: string) {
   if (!ip) return true;
   return (
@@ -29,73 +27,73 @@ function isLocalOrPrivate(ip: string) {
   );
 }
 
-/** ipinfo.ioで国コード取得 */
 async function lookupCountry(ip: string): Promise<string> {
   if (!ip || isLocalOrPrivate(ip)) return 'UNKNOWN';
   try {
     const token = process.env.IPINFO_TOKEN;
-    if (!token) throw new Error('IPINFO_TOKEN is not set');
-    const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`ipinfo.io error: ${res.status}`);
+    if (!token) return 'UNKNOWN';
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 3500); // 3.5sでタイムアウト
+    const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) return 'UNKNOWN';
     const data = await res.json();
     return (data && data.country) || 'UNKNOWN';
-  } catch (err) {
-    console.error('[ipinfo lookup error]', err);
+  } catch {
     return 'UNKNOWN';
   }
 }
 
-/** 許可国判定（ALLOWED_COUNTRIES="JP,US" など。未設定は JP のみ許可） */
 function isAllowedCountry(country: string): boolean {
   const raw = process.env.ALLOWED_COUNTRIES;
-  const allowList = raw
+  const allow = raw
     ? raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
     : ['JP'];
-  return !!country && allowList.includes(country.toUpperCase());
+  return !!country && allow.includes(country.toUpperCase());
 }
 
 export async function GET(req: Request) {
+  const ip = pickClientIp(req);
+  const userAgent = (req.headers.get('user-agent') || '').slice(0, 1024);
+
+  // どこで失敗しても最終レスポンスは200で返す方針
+  let country = 'UNKNOWN';
+  let isAdmin = false;
+  let inBlacklist = false;
+
   try {
-    const ip = pickClientIp(req);
-    const userAgent = (req.headers.get('user-agent') || '').slice(0, 1024);
+    country = await lookupCountry(ip);
+  } catch {}
 
-    // 国コード（ローカル/プライベートは UNKNOWN のまま）
-    const country = await lookupCountry(ip);
+  try {
+    isAdmin = await isAdminIp(ip);
+  } catch {}
 
-    // 管理者判定（admin_ips）
-    const isAdmin = await isAdminIp(ip);
+  try {
+    inBlacklist = await isIpBlocked(ip);
+  } catch {}
 
-    // ブラックリスト判定（blocked_ips）
-    const inBlacklist = await isIpBlocked(ip);
+  const allowedCountry = isLocalOrPrivate(ip) ? true : isAllowedCountry(country);
+  const blocked = !isAdmin && (inBlacklist || !allowedCountry);
 
-    // 国許可（ローカル/プライベートIPは常に許可）
-    const allowedCountry = isLocalOrPrivate(ip) ? true : isAllowedCountry(country);
+  const payload = {
+    status: 'ok' as const,
+    ip,
+    country,
+    isAdmin,
+    allowedCountry,
+    blocked,
+    userAgent,
+    timestamp: Date.now(),
+  };
 
-    // 最終ブロック判定：管理者は常に許可
-    const blocked = !isAdmin && (inBlacklist || !allowedCountry);
+  // Firestore書き込みは失敗してもレスポンスには影響させない
+  try {
+    if (db) await addDoc(collection(db, 'access_logs'), payload);
+  } catch {}
 
-    const now = Date.now();
-
-    const payload = {
-      status: 'ok' as const,
-      ip,
-      country,
-      isAdmin,
-      allowedCountry,
-      blocked,
-      userAgent,
-      timestamp: now,
-    };
-
-    // アクセスログ保存（access_logs）
-    await addDoc(collection(db, 'access_logs'), payload);
-
-    return NextResponse.json(payload, { status: 200 });
-  } catch (e: any) {
-    console.error('[get-ip] error', e);
-    return NextResponse.json(
-      { status: 'error', message: e?.message || 'Internal Server Error' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(payload, { status: 200 });
 }
