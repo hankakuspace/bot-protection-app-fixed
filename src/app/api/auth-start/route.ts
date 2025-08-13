@@ -1,75 +1,62 @@
 // src/app/api/auth-start/route.ts
-// GET: 可視化（JSONを返すだけ）
-// POST: 実際に Shopify の authorize へ 302 リダイレクト
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-const SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || '').trim();
-const SCOPES = (process.env.SHOPIFY_SCOPES || '').trim();
+const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || "";
+const SCOPES = process.env.SHOPIFY_SCOPES || "";
 
-function originOnly(req: NextRequest) {
-  const fromEnv = (process.env.SHOPIFY_APP_URL || process.env.APP_URL || '').trim();
-  if (fromEnv) {
-    try { const u = new URL(fromEnv); return `${u.protocol}//${u.host}`; } catch {}
-  }
+function getOrigin(req: NextRequest) {
   const u = new URL(req.url);
   return `${u.protocol}//${u.host}`;
 }
 
-function buildAuthorizeURL(shop: string, origin: string, state: string) {
-  const redirectUri = `${origin}/api/auth/callback`;
+function buildAuthorizeUrl(shop: string, redirectUri: string, state: string) {
   const u = new URL(`https://${shop}/admin/oauth/authorize`);
-  u.searchParams.set('client_id', SHOPIFY_API_KEY);
-  u.searchParams.set('scope', SCOPES);
-  u.searchParams.set('redirect_uri', redirectUri);
-  u.searchParams.set('state', state);
-  return { authorize: u.toString(), redirectUri };
-}
-
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const shop = (url.searchParams.get('shop') || '').trim();
-
-  console.log('[AUTH-START/GET]', { path: url.pathname, qs: url.search, shop });
-
-  if (!SHOPIFY_API_KEY) return NextResponse.json({ ok:false, error:'missing SHOPIFY_API_KEY' }, { status:500 });
-  if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ ok:false, error:'invalid shop', shop }, { status:400 });
-
-  const origin = originOnly(req);
-  const state = crypto.randomUUID();
-  const { authorize, redirectUri } = buildAuthorizeURL(shop, origin, state);
-
-  // 可視化（※リダイレクトしない）
-  return NextResponse.json({
-    ok: true, mode: 'visible',
-    shop, origin, redirectUri, authorize,
-    env: { SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || null, APP_URL: process.env.APP_URL || null }
-  });
+  u.searchParams.set("client_id", SHOPIFY_API_KEY);
+  if (SCOPES) u.searchParams.set("scope", SCOPES);
+  u.searchParams.set("redirect_uri", redirectUri);
+  u.searchParams.set("state", state);
+  return u.toString();
 }
 
 export async function POST(req: NextRequest) {
-  const url = new URL(req.url);
+  try {
+    const ct = req.headers.get("content-type") || "";
+    const body = ct.includes("application/x-www-form-urlencoded")
+      ? new URLSearchParams(await req.text())
+      : await req.formData().catch(() => null);
 
-  // フォーム body からも受け取れるようにする（/hello から hidden 送信）
-  let shop = (url.searchParams.get('shop') || '').trim();
-  if (!shop) {
-    try {
-      const form = await req.formData();
-      shop = (String(form.get('shop') || '')).trim();
-    } catch {}
+    const shop =
+      body instanceof URLSearchParams
+        ? body.get("shop") || ""
+        : typeof body?.get === "function"
+        ? String(body.get("shop") || "")
+        : "";
+
+    if (!SHOPIFY_API_KEY) {
+      return NextResponse.json({ ok: false, error: "missing SHOPIFY_API_KEY" }, { status: 500 });
+    }
+    if (!shop || !shop.endsWith(".myshopify.com")) {
+      return NextResponse.json({ ok: false, error: "invalid shop" }, { status: 400 });
+    }
+
+    const origin = getOrigin(req);
+    const redirectUri = `${origin}/api/auth/callback`;
+    const state = crypto.randomUUID();
+    const authorize = buildAuthorizeUrl(shop, redirectUri, state);
+
+    const res = NextResponse.redirect(authorize, 302);
+    // state Cookie をここで発行
+    res.headers.append(
+      "Set-Cookie",
+      `shopify_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`
+    );
+    return res;
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
+}
 
-  if (!SHOPIFY_API_KEY) return NextResponse.json({ ok:false, error:'missing SHOPIFY_API_KEY' }, { status:500 });
-  if (!shop.endsWith('.myshopify.com')) return NextResponse.json({ ok:false, error:'invalid shop', shop }, { status:400 });
-
-  const origin = originOnly(req);
-  const state = crypto.randomUUID();
-  const { authorize } = buildAuthorizeURL(shop, origin, state);
-
-  console.log('[AUTH-START/POST -> REDIRECT]', { shop, to: authorize });
-
-  const res = NextResponse.redirect(authorize, { status: 302 });
-  res.headers.set('Set-Cookie', [
-    `shopify_state=${state}`, 'Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax', 'Max-Age=600',
-  ].join('; '));
-  return res;
+// （任意）GET を叩かれてもルート確認できるように 200 を返す
+export async function GET() {
+  return NextResponse.json({ ok: true, note: "POST /api/auth-start to begin OAuth" });
 }
