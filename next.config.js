@@ -37,6 +37,8 @@ const nextConfig = {
 
   async redirects() {
     return [
+       // ★ /api はリダイレクト除外
+    { source: '/api/:path*', destination: '/api/:path*', permanent: false },
       { source: '/auth', destination: '/api/auth', permanent: false },
       { source: '/auth/callback', destination: '/api/auth/callback', permanent: false },
     ];
