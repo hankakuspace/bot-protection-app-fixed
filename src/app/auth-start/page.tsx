@@ -1,24 +1,20 @@
 // src/app/auth-start/page.tsx
 import AuthStartClient from "./AuthStartClient";
 
-// 事前レンダリングさせず毎回動的評価（デバッグ/診断ページのため）
+// 毎回動的評価（診断ページのため）
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-// Next 15 では searchParams が Promise で来る場合があるので両対応
-type SearchParams =
-  | Promise<Record<string, string | string[] | undefined>>
-  | Record<string, string | string[] | undefined>;
-
-export default async function Page(props: { searchParams: SearchParams }) {
-  const sp =
-    typeof (props.searchParams as any)?.then === "function"
-      ? await (props.searchParams as Promise<Record<string, string | string[] | undefined>>)
-      : (props.searchParams as Record<string, string | string[] | undefined>);
-
+export default async function Page({
+  searchParams,
+}: {
+  // Next 15: searchParams は Promise で来る
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   const shop = (sp.shop as string) ?? "";
 
-  // サーバ環境変数（Vercel: SHOPIFY_API_KEY / SHOPIFY_SCOPES）をそのまま読む
+  // サーバ環境変数をここで取得してクライアントに渡す
   const apiKey = process.env.SHOPIFY_API_KEY ?? "";
   const scopes = process.env.SHOPIFY_SCOPES ?? "";
 
