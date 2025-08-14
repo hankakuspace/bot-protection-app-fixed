@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
-import { listIps } from "@/lib/ipStore"; // ← 追加（IPリスト取得）
+import { listIps } from "@/lib/ipStore"; // ← IPリスト取得
 
-// Shopify App Proxy からの署名検証
+// Shopify App Proxy の署名検証（HMAC-SHA256）
 function verifyProxySignature(query: URLSearchParams, secret: string) {
   const signature = query.get("signature") || "";
   const params = new URLSearchParams(query);
@@ -16,21 +16,20 @@ function verifyProxySignature(query: URLSearchParams, secret: string) {
   return crypto.timingSafeEqual(hmac, providedSignature);
 }
 
-// ★ IPブロック判定ヘルパー（x-forwarded-for → cf-connecting-ip → x-real-ip）
+// ★ IPブロック判定（x-forwarded-for → cf-connecting-ip → x-real-ip の順）
 async function enforceIpBlock(req: NextRequest) {
   const xfwd = req.headers.get("x-forwarded-for") || "";
-  const cand = [
+  const candidates = [
     xfwd.split(",")[0]?.trim() || "",
     req.headers.get("cf-connecting-ip") || "",
     req.headers.get("x-real-ip") || "",
   ].filter(Boolean);
-  const clientIp = cand[0] || "";
 
+  const clientIp = candidates[0] || "";
   if (!clientIp) return; // 取れない場合はスキップ
 
-  const blocked = await listIps(); // ["203.0.113.7", ...]
+  const blocked = await listIps(); // 例: ["203.0.113.7", ...]
   if (blocked.includes(clientIp)) {
-    // 403レスポンスを即返す
     throw new Response(
       JSON.stringify({ ok: false, error: "blocked ip", ip: clientIp }),
       { status: 403, headers: { "Content-Type": "application/json" } }
@@ -38,8 +37,11 @@ async function enforceIpBlock(req: NextRequest) {
   }
 }
 
-// GETハンドラ
-export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+// GET
+export async function GET(
+  req: NextRequest,
+  ctx: { params: { slug: string[] } } // ← 必ず string[] 型（? 不可）
+) {
   const url = new URL(req.url);
   const query = url.searchParams;
 
@@ -48,15 +50,15 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  // ★ HMAC検証OK → IPブロック判定
+  // HMAC 検証 OK → IP ブロック判定
   try {
     await enforceIpBlock(req);
   } catch (res) {
-    return res as Response;
+    return res as Response; // 403 をそのまま返す
   }
 
-  // ここから先は既存のGET処理
-  const slug = params.slug || [];
+  // 既存のハンドリング
+  const slug = ctx.params.slug ?? [];
   if (slug[0] === "ping") {
     return NextResponse.json({
       ok: true,
@@ -70,8 +72,11 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
   return NextResponse.json({ ok: true, method: "GET", slug });
 }
 
-// POSTハンドラ
-export async function POST(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+// POST
+export async function POST(
+  req: NextRequest,
+  ctx: { params: { slug: string[] } } // ← 必ず string[] 型
+) {
   const url = new URL(req.url);
   const query = url.searchParams;
 
@@ -80,15 +85,15 @@ export async function POST(req: NextRequest, { params }: { params: { slug?: stri
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  // ★ HMAC検証OK → IPブロック判定
+  // HMAC 検証 OK → IP ブロック判定
   try {
     await enforceIpBlock(req);
   } catch (res) {
     return res as Response;
   }
 
-  // ここから先は既存のPOST処理
-  const slug = params.slug || [];
+  // 既存のハンドリング
+  const slug = ctx.params.slug ?? [];
   if (slug[0] === "ping") {
     const body = await req.json().catch(() => ({}));
     return NextResponse.json({
