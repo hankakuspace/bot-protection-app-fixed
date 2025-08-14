@@ -12,7 +12,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "vercel-build": "next build"
+    "vercel-build": "next build",
+    "test": "vitest run",                        // 追加：テスト（CI向け）
+    "test:watch": "vitest",                      // 追加：ローカル開発
+    "sign:echo:vercel": "node scripts/sign-proxy.cjs \"https://bot-protection-ten.vercel.app/api/shopify/proxy/echo\"",
+    "sign:ip:shopify": "node scripts/sign-proxy.cjs \"https://be-search.biz/apps/bpp-20250814/ip-check\""
   },
   "dependencies": {
     "@vercel/blob": "^1.1.1",
@@ -30,7 +34,8 @@
     "postcss": "^8.5.6",
     "postcss-cli": "^11.0.1",
     "tailwindcss": "^3.4.3",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^2.0.0"                           // 追加：テストランナー
   },
   "engines": {
     "node": ">=20 <21"
