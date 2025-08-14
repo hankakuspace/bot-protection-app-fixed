@@ -4,14 +4,10 @@ import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 
-// Shopifyの「API secret key（Shared secret）」を .env に設定しておく
+// ShopifyのShared secretを.envに
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
 
-/** 署名検証（App Proxy）
- * - クエリから signature を除外
- * - キー昇順で "key=value" を & 連結した文字列
- * - HMAC-SHA256(secret) の hex を signature と timing-safe 比較
- */
+/** 署名検証（App Proxy） */
 function verifyProxySignature(req: NextRequest): boolean {
   if (!SHOPIFY_API_SECRET) return false;
 
@@ -40,18 +36,22 @@ function verifyProxySignature(req: NextRequest): boolean {
 function j(status: number, body: any) {
   return NextResponse.json(body, { status });
 }
-
 function unauthorized(detail: string) {
   return j(401, { ok: false, error: 'invalid signature', detail });
 }
 
-/** 到達確認のため、いまは /ping だけ署名不要で 200 を返す */
+/** 到達確認用：/ping は一時的に署名不要 */
 const ALLOW_UNSIGNED_PING = true;
 
-export async function GET(req: NextRequest, ctx: { params: { slug?: string[] } }) {
-  const path = '/' + (ctx.params?.slug ?? []).join('/');
+// ⬇ 第2引数の型を「slug: string[] 必須」にし、実行時は ?? [] で対処
+export async function GET(
+  req: NextRequest,
+  context: { params: { slug: string[] } }
+) {
+  const slug = context.params?.slug ?? [];
+  const path = '/' + slug.join('/');
 
-  // 1) 健康チェック（到達確認）
+  // 1) 健康チェック
   if (path === '/ping') {
     if (!ALLOW_UNSIGNED_PING) {
       if (!verifyProxySignature(req)) return unauthorized('ping requires valid signature');
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest, ctx: { params: { slug?: string[] } }
   // 2) それ以外は署名必須
   if (!verifyProxySignature(req)) return unauthorized('signature missing or invalid');
 
-  // 3) ここから先は本処理（必要に応じて分岐を追加）
+  // 3) 本処理（サンプル）
   const url = new URL(req.url);
   return j(200, {
     ok: true,
@@ -81,8 +81,12 @@ export async function GET(req: NextRequest, ctx: { params: { slug?: string[] } }
   });
 }
 
-export async function POST(req: NextRequest, ctx: { params: { slug?: string[] } }) {
-  const path = '/' + (ctx.params?.slug ?? []).join('/');
+export async function POST(
+  req: NextRequest,
+  context: { params: { slug: string[] } }
+) {
+  const slug = context.params?.slug ?? [];
+  const path = '/' + slug.join('/');
 
   if (path === '/ping') {
     if (!ALLOW_UNSIGNED_PING) {
