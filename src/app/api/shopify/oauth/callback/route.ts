@@ -2,33 +2,30 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 const API_KEY = process.env.SHOPIFY_API_KEY || "";
-// APP_SECRET は APP or API どちらの名前でも拾う
+// APP or API どちらの名前でも拾えるように
 const APP_SECRET =
   process.env.SHOPIFY_APP_SECRET || process.env.SHOPIFY_API_SECRET || "";
+const APP_URL = process.env.SHOPIFY_APP_URL || "https://bot-protection-ten.vercel.app";
 
+// ── 生クエリ文字列でHMACを検証（再エンコード差を排除）
 function verifyOAuthHmacRaw(url: URL, secret: string) {
   const raw = url.search.startsWith("?") ? url.search.slice(1) : url.search;
-
-  // hmac / signature を除外（デコードしない）
   const pairs = raw
     .split("&")
     .filter((kv) => !/^hmac=/i.test(kv) && !/^signature=/i.test(kv));
-
-  // キーで昇順ソート（key=value の key 部分で比較）
   pairs.sort((a, b) => {
-    const ak = a.split("=")[0];
-    const bk = b.split("=")[0];
-    return ak < bk ? -1 : ak > bk ? 1 : 0;
+    const ak = a.split("=")[0], bk = b.split("=")[0];
+    if (ak < bk) return -1;
+    if (ak > bk) return 1;
+    const av = a.slice(ak.length + 1), bv = b.slice(bk.length + 1);
+    return av < bv ? -1 : av > bv ? 1 : 0;
   });
-
   const message = pairs.join("&");
   const digest = crypto.createHmac("sha256", secret).update(message, "utf8").digest("hex");
-
   const provided = new URLSearchParams(raw).get("hmac") || "";
   const ok =
     provided.length > 0 &&
     crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(digest));
-
   return { ok, provided, digest, message };
 }
 
@@ -46,25 +43,19 @@ export async function GET(req: Request) {
   // state 無い/不一致 → /start に戻す（配布リンク直押しにも対応）
   if (!state || !cookieState || state !== cookieState) {
     if (shop.endsWith(".myshopify.com")) {
-      const u = new URL("https://bot-protection-ten.vercel.app/api/shopify/oauth/start");
+      const u = new URL("/api/shopify/oauth/start", APP_URL);
       u.searchParams.set("shop", shop);
       return NextResponse.redirect(u.toString(), { status: 302 });
     }
     return NextResponse.json({ ok: false, error: "invalid state" }, { status: 400 });
   }
 
-  // ← ここを raw 方式に差し替え
   const { ok, provided, digest, message } = verifyOAuthHmacRaw(url, APP_SECRET);
   if (!ok) {
-    // 失敗内容はログにのみ出す（レスポンスには出さない）
     console.error("OAUTH_HMAC_FAIL", { provided, digest, message });
     return NextResponse.json({ ok: false, error: "invalid hmac" }, { status: 401 });
   }
 
-  const html = `<!doctype html><meta charset="utf-8">
-  <style>body{font:14px/1.6 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto}</style>
-  <h1>bot-protection-proxy: Installation Succeeded ✅</h1>
-  <p>Shop: ${shop}</p>
-  <p><a href="https://${shop}/admin/apps">Back to Apps</a></p>`;
-  return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  // ✅ 成功時はアプリ一覧へリダイレクト
+  return NextResponse.redirect(`https://${shop}/admin/apps`, { status: 302 });
 }
