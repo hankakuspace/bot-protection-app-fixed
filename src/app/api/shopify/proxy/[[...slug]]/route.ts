@@ -18,11 +18,11 @@ function verifyProxySignature(query: URLSearchParams, secret: string) {
   const keys = Array.from(new Set(Array.from(params.keys())));
   const pairs: string[] = [];
   for (const k of keys) {
-    const v = params.getAll(k).join(","); // 同一キーは , で結合
+    const v = params.getAll(k).join(",");
     pairs.push(`${k}=${v}`);
   }
-  pairs.sort(); // key 昇順
-  const message = pairs.join(""); // 区切り無しで連結
+  pairs.sort();
+  const message = pairs.join("");
 
   const calcHex = crypto.createHmac("sha256", secret).update(message).digest("hex");
   try {
@@ -33,9 +33,9 @@ function verifyProxySignature(query: URLSearchParams, secret: string) {
 }
 
 /**
- * IPブロック判定
- * 優先順: x-forwarded-for(先頭) > cf-connecting-ip > x-real-ip
- * ブロック対象なら 403 を throw
+ * IPブロック判定（x-forwarded-for → cf-connecting-ip → x-real-ip）
+ * 403時は Response を throw（呼び出し元でそのまま return）
+ * ↓↓↓ 一時ログあり（検証後に削除してください）
  */
 async function enforceIpBlock(req: Request) {
   const xfwd = req.headers.get("x-forwarded-for") || "";
@@ -46,6 +46,14 @@ async function enforceIpBlock(req: Request) {
   ].filter(Boolean);
 
   const clientIp = candidates[0] || "";
+
+  // ===== ▼▼▼ 一時ログ（検証後に削除）▼▼▼ =====
+  console.log("[proxy] XFWD:", xfwd);
+  console.log("[proxy] CF:", req.headers.get("cf-connecting-ip"));
+  console.log("[proxy] X-REAL-IP:", req.headers.get("x-real-ip"));
+  console.log("[proxy] RESOLVED-IP:", clientIp);
+  // ===== ▲▲▲ 一時ログ（検証後に削除）▲▲▲ =====
+
   if (!clientIp) return;
 
   const blocked = await listIps(); // 例: ["203.0.113.7", ...]
@@ -67,14 +75,12 @@ export async function GET(req: Request, { params }: any) {
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  // HMAC OK → IPブロック判定
   try {
     await enforceIpBlock(req);
   } catch (res) {
-    return res as Response; // 403をそのまま返す
+    return res as Response; // 403 をそのまま返す
   }
 
-  // 以降は既存処理
   const slug: string[] = (params?.slug as string[]) ?? [];
   if (slug[0] === "ping") {
     return NextResponse.json({
@@ -99,14 +105,12 @@ export async function POST(req: Request, { params }: any) {
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  // HMAC OK → IPブロック判定
   try {
     await enforceIpBlock(req);
   } catch (res) {
     return res as Response;
   }
 
-  // 以降は既存処理
   const slug: string[] = (params?.slug as string[]) ?? [];
   if (slug[0] === "ping") {
     const body = await req.json().catch(() => ({}));
