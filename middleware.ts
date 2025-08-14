@@ -1,6 +1,14 @@
-// middleware.ts （完全停止版）
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
-export function middleware(_req: NextRequest) { return NextResponse.next(); }
-// 何にもマッチさせない＝実質無効化
-export const config = { matcher: ['/__noop__'] };
+import { NextRequest, NextResponse } from 'next/server';
+
+export function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  // Shopify Admin 埋め込みに必要（X-Frame-Options は設定しない）
+  if (req.nextUrl.pathname.startsWith('/app')) {
+    res.headers.set(
+      'Content-Security-Policy',
+      "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
+    );
+    res.headers.set('Cache-Control', 'no-store');
+  }
+  return res;
+}
