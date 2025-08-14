@@ -1,12 +1,15 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { paramsToObject, verifyAppProxySignature, extractClientIp, buildCanonicalQuery, hmacHex } from '@/lib/shopifyProxy';
+import {
+  paramsToObject,
+  verifyAppProxySignature,
+  extractClientIp,
+  buildCanonicalQuery,
+  hmacHex,
+} from '@/lib/shopifyProxy';
 
 export const runtime = 'nodejs'; // App Router / Node 実行（Edge不可）
-
-// DEBUG時のみ署名をバイパスできるパス
-const DEBUG_ALLOW = new Set(['debug-params']);
 
 function env(name: string): string | undefined {
   const v = process.env[name];
@@ -17,8 +20,15 @@ function json(data: unknown, init?: number | ResponseInit) {
   return NextResponse.json(data as any, init as any);
 }
 
-export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
-  const slug = (params.slug ?? []).join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params' など
+export async function GET(
+  req: NextRequest,
+  // Next.js 15 の型要件に合わせて「非オプショナル」に統一
+  { params }: { params: { slug: string[] } }
+) {
+  // 未指定時の安全フォールバック
+  const slugParts: string[] = Array.isArray((params as any)?.slug) ? (params as any).slug : [];
+  const slug = slugParts.join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params' など
+
   const url = new URL(req.url);
   const search = url.searchParams;
   const q = paramsToObject(search);
@@ -26,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
   const DEBUG = !!env('DEBUG_PROXY');
   const SECRET = env('SHOPIFY_API_SECRET') || '';
 
-  // /debug-params は DEBUG 時のみ開放（署名不要）
+  // --- DEBUG: /debug-params は DEBUG 時のみ開放（署名不要） ---
   if (slug === 'debug-params') {
     if (!DEBUG) return json({ ok: false, error: 'debug disabled' }, { status: 403 });
 
@@ -51,7 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
     });
   }
 
-  // それ以外は署名必須（/ping /echo /ip-check）
+  // --- 以降は署名必須（/ping /echo /ip-check） ---
   if (!q['signature']) {
     // 署名がない → App Proxy 経由で来ていない可能性
     return json({ ok: false, error: 'signature required' }, { status: 401 });
@@ -74,7 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
     );
   }
 
-  // 署名OK → ルーティング
+  // --- 署名OK → ルーティング ---
   switch (slug) {
     case '':
       return json({ ok: true, route: 'root', message: 'App Proxy OK' });
@@ -110,5 +120,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
   }
 }
 
-// POST も同じ動作にしておく（/echo などで利用する場合の保険）
-export const POST = GET;
+// POST も GET と同じ処理を適用
+export async function POST(
+  req: NextRequest,
+  ctx: { params: { slug: string[] } }
+) {
+  return GET(req, ctx as any);
+}
