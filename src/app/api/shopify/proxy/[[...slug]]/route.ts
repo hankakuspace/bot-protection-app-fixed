@@ -1,34 +1,22 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { listIps } from "@/lib/ipStore";
-import { isIpBlocked, normalizeIp } from "@/lib/ipMatch";
+import { matchIpRule, normalizeIp } from "@/lib/ipMatch";
 
-/** Shopify App Proxy 署名検証（HMAC-SHA256, Shopify仕様） */
+/** Shopify App Proxy 署名検証 */
 function verifyProxySignature(query: URLSearchParams, secret: string) {
   if (!secret) return false;
-
   const params = new URLSearchParams(query);
   const signatureHex = params.get("signature") || "";
   params.delete("signature");
-
-  const keys = Array.from(new Set(Array.from(params.keys())));
-  const pairs: string[] = [];
-  for (const k of keys) {
-    const v = params.getAll(k).join(",");
-    pairs.push(`${k}=${v}`);
-  }
-  pairs.sort();
-  const message = pairs.join("");
-
+  const keys = Array.from(new Set(Array.from(params.keys()))).sort();
+  const message = keys.map(k => `${k}=${params.getAll(k).join(",")}`).join("");
   const calcHex = crypto.createHmac("sha256", secret).update(message).digest("hex");
-  try {
-    return crypto.timingSafeEqual(Buffer.from(signatureHex, "hex"), Buffer.from(calcHex, "hex"));
-  } catch {
-    return false;
-  }
+  try { return crypto.timingSafeEqual(Buffer.from(signatureHex, "hex"), Buffer.from(calcHex, "hex")); }
+  catch { return false; }
 }
 
-/** 実クライアントIP解決（cf-connecting-ip → x-forwarded-for(先頭) → x-real-ip） */
+/** 実クライアントIP（cf-connecting-ip → x-forwarded-for → x-real-ip） */
 function resolveClientIp(req: Request) {
   const cf = req.headers.get("cf-connecting-ip") || "";
   const xfwd = req.headers.get("x-forwarded-for") || "";
@@ -37,20 +25,37 @@ function resolveClientIp(req: Request) {
   return candidates[0] || "";
 }
 
-/** IPブロック判定：一致なら 403 */
-async function enforceIpBlock(req: Request) {
+/** 403 監査ログの最小項目 */
+function auditWarn(payload: Record<string, unknown>) {
+  // Vercel Logs で検索しやすい固定タグにしておく
+  console.warn("[ipblock] deny", JSON.stringify(payload));
+}
+
+/** IPブロック判定：一致なら 403  */
+async function enforceIpBlock(req: Request, ctx: { shop?: string; slug?: string[] }) {
   const raw = resolveClientIp(req);
   if (!raw) return;
 
   let ip = raw;
-  try { ip = normalizeIp(raw); } catch { /* そのまま評価 */ }
+  try { ip = normalizeIp(raw); } catch {}
 
-  const rules = await listIps(); // 単一IPとCIDRが混在OK
-  if (isIpBlocked(ip, rules)) {
-    throw new Response(
-      JSON.stringify({ ok: false, error: "blocked ip", ip }),
-      { status: 403, headers: { "Content-Type": "application/json" } }
-    );
+  const rules = await listIps();
+  const matched = matchIpRule(ip, rules);
+  if (matched) {
+    // 監査ログ（最小）：ip / matched ルール / country / ua / shop / slug
+    auditWarn({
+      ip,
+      matched,
+      shop: ctx.shop || "",
+      slug: (ctx.slug || []).join("/"),
+      country: req.headers.get("cf-ipcountry") || "",
+      ua: req.headers.get("user-agent") || "",
+      at: new Date().toISOString(),
+    });
+    throw new Response(JSON.stringify({ ok: false, error: "blocked ip" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -64,9 +69,10 @@ export async function GET(req: Request, { params }: any) {
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  try { await enforceIpBlock(req); } catch (res) { return res as Response; }
-
   const slug: string[] = (params?.slug as string[]) ?? [];
+  try { await enforceIpBlock(req, { shop: query.get("shop") || "", slug }); }
+  catch (res) { return res as Response; }
+
   if (slug[0] === "ping") {
     return NextResponse.json({
       ok: true,
@@ -89,9 +95,10 @@ export async function POST(req: Request, { params }: any) {
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  try { await enforceIpBlock(req); } catch (res) { return res as Response; }
-
   const slug: string[] = (params?.slug as string[]) ?? [];
+  try { await enforceIpBlock(req, { shop: query.get("shop") || "", slug }); }
+  catch (res) { return res as Response; }
+
   if (slug[0] === "ping") {
     const body = await req.json().catch(() => ({}));
     return NextResponse.json({
