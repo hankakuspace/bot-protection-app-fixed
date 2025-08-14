@@ -1,5 +1,4 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
-import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import {
   paramsToObject,
@@ -20,14 +19,20 @@ function json(data: unknown, init?: number | ResponseInit) {
   return NextResponse.json(data as any, init as any);
 }
 
+/** [[...slug]] を string[] に正規化 */
+function normalizeSlug(params: Record<string, string | string[]> | undefined): string[] {
+  const raw = params?.slug;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.length) return [raw];
+  return [];
+}
+
 export async function GET(
-  req: NextRequest,
-  // Next.js 15 の型要件に合わせて「非オプショナル」に統一
-  { params }: { params: { slug: string[] } }
+  req: Request,
+  ctx: { params: Record<string, string | string[]> }
 ) {
-  // 未指定時の安全フォールバック
-  const slugParts: string[] = Array.isArray((params as any)?.slug) ? (params as any).slug : [];
-  const slug = slugParts.join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params' など
+  const slugParts = normalizeSlug(ctx?.params);
+  const slug = slugParts.join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params'
 
   const url = new URL(req.url);
   const search = url.searchParams;
@@ -122,8 +127,8 @@ export async function GET(
 
 // POST も GET と同じ処理を適用
 export async function POST(
-  req: NextRequest,
-  ctx: { params: { slug: string[] } }
+  req: Request,
+  ctx: { params: Record<string, string | string[]> }
 ) {
-  return GET(req, ctx as any);
+  return GET(req, ctx);
 }
