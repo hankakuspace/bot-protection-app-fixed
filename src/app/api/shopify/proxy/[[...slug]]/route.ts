@@ -1,111 +1,114 @@
+// src/app/api/shopify/proxy/[[...slug]]/route.ts
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { verifyAppProxySignature } from '@/lib/shopifyProxy';
-import crypto from 'crypto';
+import { paramsToObject, verifyAppProxySignature, extractClientIp, buildCanonicalQuery, hmacHex } from '@/lib/shopifyProxy';
 
-export const runtime = 'nodejs';
+export const runtime = 'nodejs'; // App Router / Node 実行（Edge不可）
 
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
-const ENABLE_PROXY_DEBUG = process.env.DEBUG_PROXY === '1';
+// DEBUG時のみ署名をバイパスできるパス
+const DEBUG_ALLOW = new Set(['debug-params']);
 
-function j(status: number, body: any) {
-  return NextResponse.json(body, { status });
-}
-function unauthorized(detail: string) {
-  return j(401, { ok: false, error: 'invalid signature', detail });
-}
-function assertSigned(req: Request): boolean {
-  return verifyAppProxySignature(req.url, SHOPIFY_API_SECRET);
+function env(name: string): string | undefined {
+  const v = process.env[name];
+  return typeof v === 'string' && v.length > 0 ? v : undefined;
 }
 
-export async function GET(req: Request, context: any) {
-  const slug: string[] = context?.params?.slug ?? [];
-  const path = '/' + slug.join('/');
+function json(data: unknown, init?: number | ResponseInit) {
+  return NextResponse.json(data as any, init as any);
+}
+
+export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+  const slug = (params.slug ?? []).join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params' など
   const url = new URL(req.url);
+  const search = url.searchParams;
+  const q = paramsToObject(search);
 
-  // === 強化版 /debug-params（署名バイパスは DEBUG_PROXY=1 の時だけ） ===
-  if (path === '/debug-params' && ENABLE_PROXY_DEBUG) {
-    const q: Record<string, string> = {};
-    url.searchParams.forEach((v, k) => (q[k] = v));
+  const DEBUG = !!env('DEBUG_PROXY');
+  const SECRET = env('SHOPIFY_API_SECRET') || '';
 
-    const entries = [...url.searchParams.entries()]
-      .filter(([k]) => k !== 'signature')
-      .sort(([a], [b]) => a.localeCompare(b));
-    const canonical = entries.map(([k, v]) => `${k}=${v}`).join('&');
+  // /debug-params は DEBUG 時のみ開放（署名不要）
+  if (slug === 'debug-params') {
+    if (!DEBUG) return json({ ok: false, error: 'debug disabled' }, { status: 403 });
 
-    // サーバ側シークレットでの「計算結果」と突き合わせ
-    const provided = url.searchParams.get('signature') || '';
-    const computed = SHOPIFY_API_SECRET
-      ? crypto.createHmac('sha256', SHOPIFY_API_SECRET).update(canonical).digest('hex')
-      : '(no-secret)';
+    const providedSignature = q['signature'];
+    const canonical = buildCanonicalQuery(q);
+    const computed = SECRET ? hmacHex(canonical, SECRET) : undefined;
 
-    const maskedSecret = SHOPIFY_API_SECRET
-      ? `${SHOPIFY_API_SECRET.slice(0, 4)}…${SHOPIFY_API_SECRET.slice(-4)}`
-      : '(empty)';
-
-    return j(200, {
+    return json({
       ok: true,
-      path,
+      route: 'debug-params',
       query: q,
-      hasSignature: 'signature' in q,
+      providedSignature,
       canonicalUsedForSigning: canonical,
-      providedSignature: provided,
       computedSignature: computed,
-      match: provided && computed !== '(no-secret)' ? provided === computed : false,
-      env: { SHOPIFY_API_SECRET: maskedSecret },
-      note: 'DEBUG ONLY: 調査後は DEBUG_PROXY を OFF にしてください'
-    });
-  }
-
-  // 以降、通常フロー（署名必須）
-  if (!assertSigned(req)) return unauthorized('signature missing or invalid');
-
-  if (path === '/ping') {
-    return j(200, { ok: true, ping: 'pong', via: 'app-proxy' });
-  }
-
-  if (path === '/echo') {
-    const q: Record<string, string> = {};
-    url.searchParams.forEach((v, k) => (q[k] = v));
-    return j(200, { ok: true, path, query: q });
-  }
-
-  if (path === '/ip-check') {
-    const xf = req.headers.get('x-forwarded-for') ?? null;
-    const ip =
-      req.headers.get('cf-connecting-ip') ||
-      req.headers.get('x-real-ip') ||
-      (xf ? xf.split(',')[0].trim() : null);
-
-    return j(200, {
-      ok: true,
-      path,
-      ip,
-      forwardedFor: xf,
-      headers: {
-        'cf-connecting-ip': req.headers.get('cf-connecting-ip') ?? null,
-        'x-real-ip': req.headers.get('x-real-ip') ?? null,
+      match: providedSignature && computed ? providedSignature === computed : false,
+      meta: {
+        pathPrefix: q['path_prefix'],
+        shop: q['shop'],
+        timestamp: q['timestamp'],
+        note: 'DEBUG ONLY. Remove DEBUG_PROXY in production.',
       },
     });
   }
 
-  return j(200, { ok: true, path, note: 'signature verified, reached Vercel route' });
-}
-
-export async function POST(req: Request, context: any) {
-  const slug: string[] = context?.params?.slug ?? [];
-  const path = '/' + slug.join('/');
-
-  if (!assertSigned(req)) return unauthorized('signature missing or invalid');
-
-  if (path === '/ping') {
-    const body = await req.json().catch(() => ({}));
-    return j(200, { ok: true, ping: 'pong', method: 'POST', body });
+  // それ以外は署名必須（/ping /echo /ip-check）
+  if (!q['signature']) {
+    // 署名がない → App Proxy 経由で来ていない可能性
+    return json({ ok: false, error: 'signature required' }, { status: 401 });
+  }
+  if (!SECRET) {
+    return json({ ok: false, error: 'server misconfig: SHOPIFY_API_SECRET is empty' }, { status: 500 });
   }
 
-  if (path === '/echo') {
-    const body = await req.json().catch(() => ({}));
-    return j(200, { ok: true, echo: body, method: 'POST' });
+  const result = verifyAppProxySignature(q, SECRET);
+  if (!result.ok) {
+    return json(
+      {
+        ok: false,
+        error: 'invalid signature',
+        detail: DEBUG
+          ? { provided: result.provided, computed: result.computed, canonical: result.canonical }
+          : undefined,
+      },
+      { status: 401 }
+    );
   }
 
-  return j(200, { ok: true, path, method: 'POST' });
+  // 署名OK → ルーティング
+  switch (slug) {
+    case '':
+      return json({ ok: true, route: 'root', message: 'App Proxy OK' });
+
+    case 'ping':
+      return json({ ok: true, route: 'ping', now: Date.now() });
+
+    case 'echo':
+      return json({
+        ok: true,
+        route: 'echo',
+        query: q,
+      });
+
+    case 'ip-check': {
+      const { ip, xff, realIp } = extractClientIp(req.headers);
+      return json({
+        ok: true,
+        route: 'ip-check',
+        ip,
+        xForwardedFor: xff,
+        xRealIp: realIp,
+        headersSample: {
+          cfConnectingIp: req.headers.get('cf-connecting-ip') ?? undefined,
+          forwarded: req.headers.get('forwarded') ?? undefined,
+          userAgent: req.headers.get('user-agent') ?? undefined,
+        },
+      });
+    }
+
+    default:
+      return json({ ok: false, error: 'not found', slug }, { status: 404 });
+  }
 }
+
+// POST も同じ動作にしておく（/echo などで利用する場合の保険）
+export const POST = GET;

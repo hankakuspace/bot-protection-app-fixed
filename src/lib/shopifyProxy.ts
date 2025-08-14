@@ -1,36 +1,66 @@
+// src/lib/shopifyProxy.ts
 import crypto from 'crypto';
 
-/**
- * Shopify App Proxy の署名検証。
- * URLクエリから signature を除いた全キーを昇順に並べ、
- * "key=value&..." で連結した文字列に対して HMAC-SHA256(hex) を計算・比較します。
- */
-export function verifyAppProxySignature(urlString: string, sharedSecret: string): boolean {
-  if (!sharedSecret) return false;
+export type PlainParams = Record<string, string | string[] | undefined>;
 
-  const url = new URL(urlString);
-  const qs = url.searchParams;
-
-  const providedSig = qs.get('signature') || '';
-  if (!providedSig) return false;
-
-  const entries = [...qs.entries()]
-    .filter(([k]) => k !== 'signature')
-    .sort(([a], [b]) => a.localeCompare(b));
-
-  const message = entries.map(([k, v]) => `${k}=${v}`).join('&');
-  const computedHex = crypto.createHmac('sha256', sharedSecret).update(message).digest('hex');
-
-  const a = Buffer.from(computedHex, 'hex');
-  const b = Buffer.from(providedSig, 'hex');
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+/** `URLSearchParams` → 純オブジェクト */
+export function paramsToObject(search: URLSearchParams): Record<string, string> {
+  const obj: Record<string, string> = {};
+  for (const [k, v] of search.entries()) obj[k] = v;
+  return obj;
 }
 
-/** デバッグ用：検証に使う canonical 文字列を生成 */
-export function canonicalizeForSignature(urlString: string): string {
-  const url = new URL(urlString);
-  const entries = [...url.searchParams.entries()]
-    .filter(([k]) => k !== 'signature')
-    .sort(([a], [b]) => a.localeCompare(b));
+/** 署名に使う canonical（signature を除外し、キー昇順で key=value&...） */
+export function buildCanonicalQuery(allParams: PlainParams): string {
+  const entries: [string, string][] = [];
+  for (const key of Object.keys(allParams)) {
+    if (key === 'signature') continue; // Shopify 仕様：signature は除外
+    const raw = allParams[key];
+    if (raw === undefined) continue;
+    if (Array.isArray(raw)) {
+      for (const v of raw) entries.push([key, v]);
+    } else {
+      entries.push([key, raw]);
+    }
+  }
+  entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return entries.map(([k, v]) => `${k}=${v}`).join('&');
+}
+
+/** HMAC-SHA256 → 16進文字列 */
+export function hmacHex(payload: string, secret: string): string {
+  return crypto.createHmac('sha256', secret).update(payload, 'utf8').digest('hex');
+}
+
+/** App Proxy 署名検証（true: OK） */
+export function verifyAppProxySignature(
+  queryParams: PlainParams,
+  secret: string
+): { ok: boolean; provided?: string; computed?: string; canonical?: string } {
+  const provided = typeof queryParams['signature'] === 'string' ? (queryParams['signature'] as string) : undefined;
+  if (!provided) return { ok: false };
+
+  const canonical = buildCanonicalQuery(queryParams);
+  const computed = hmacHex(canonical, secret);
+  return { ok: timingSafeEqualHex(provided, computed), provided, computed, canonical };
+}
+
+/** 16進のタイミング安全比較 */
+function timingSafeEqualHex(a: string, b: string): boolean {
+  try {
+    const ab = Buffer.from(a, 'hex');
+    const bb = Buffer.from(b, 'hex');
+    if (ab.length !== bb.length) return false;
+    return crypto.timingSafeEqual(ab, bb);
+  } catch {
+    return false;
+  }
+}
+
+/** クライアントIP推定（x-forwarded-for 先頭優先） */
+export function extractClientIp(headers: Headers): { ip?: string; xff?: string; realIp?: string } {
+  const xff = headers.get('x-forwarded-for') ?? '';
+  const ip = xff.split(',')[0]?.trim() || undefined;
+  const realIp = headers.get('x-real-ip') ?? undefined;
+  return { ip, xff, realIp };
 }
