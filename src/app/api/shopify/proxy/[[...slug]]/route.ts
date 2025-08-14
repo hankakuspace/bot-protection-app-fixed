@@ -1,35 +1,29 @@
 import { NextResponse } from 'next/server';
 import { verifyAppProxySignature } from '@/lib/shopifyProxy';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 
-// ── 環境変数 ────────────────────────────────────────────
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
-// フラグONの時だけ /debug-params を署名バイパスで有効化
 const ENABLE_PROXY_DEBUG = process.env.DEBUG_PROXY === '1';
 
-// ── ヘルパ ──────────────────────────────────────────────
 function j(status: number, body: any) {
   return NextResponse.json(body, { status });
 }
 function unauthorized(detail: string) {
   return j(401, { ok: false, error: 'invalid signature', detail });
 }
-
-// ── 署名OKチェック（通常は常に必須） ─────────────────────
 function assertSigned(req: Request): boolean {
   return verifyAppProxySignature(req.url, SHOPIFY_API_SECRET);
 }
 
-// ── GET ─────────────────────────────────────────────────
 export async function GET(req: Request, context: any) {
   const slug: string[] = context?.params?.slug ?? [];
   const path = '/' + slug.join('/');
   const url = new URL(req.url);
 
-  // ★ デバッグ専用（署名バイパス）: /debug-params
-  //    DEBUG_PROXY=1 のときのみ有効化。Shopifyが本当に付けてくるqueryを可視化します。
-  if (ENABLE_PROXY_DEBUG && path === '/debug-params') {
+  // === 強化版 /debug-params（署名バイパスは DEBUG_PROXY=1 の時だけ） ===
+  if (path === '/debug-params' && ENABLE_PROXY_DEBUG) {
     const q: Record<string, string> = {};
     url.searchParams.forEach((v, k) => (q[k] = v));
 
@@ -38,33 +32,43 @@ export async function GET(req: Request, context: any) {
       .sort(([a], [b]) => a.localeCompare(b));
     const canonical = entries.map(([k, v]) => `${k}=${v}`).join('&');
 
+    // サーバ側シークレットでの「計算結果」と突き合わせ
+    const provided = url.searchParams.get('signature') || '';
+    const computed = SHOPIFY_API_SECRET
+      ? crypto.createHmac('sha256', SHOPIFY_API_SECRET).update(canonical).digest('hex')
+      : '(no-secret)';
+
+    const maskedSecret = SHOPIFY_API_SECRET
+      ? `${SHOPIFY_API_SECRET.slice(0, 4)}…${SHOPIFY_API_SECRET.slice(-4)}`
+      : '(empty)';
+
     return j(200, {
       ok: true,
       path,
       query: q,
-      hasSignature: Object.prototype.hasOwnProperty.call(q, 'signature'),
+      hasSignature: 'signature' in q,
       canonicalUsedForSigning: canonical,
-      note:
-        'DEBUG ONLY: このエンドポイントは DEBUG_PROXY=1 でのみ有効。調査が終わったら必ず環境変数をOFFにしてください。',
+      providedSignature: provided,
+      computedSignature: computed,
+      match: provided && computed !== '(no-secret)' ? provided === computed : false,
+      env: { SHOPIFY_API_SECRET: maskedSecret },
+      note: 'DEBUG ONLY: 調査後は DEBUG_PROXY を OFF にしてください'
     });
   }
 
-  // 通常フロー（署名必須）
+  // 以降、通常フロー（署名必須）
   if (!assertSigned(req)) return unauthorized('signature missing or invalid');
 
-  // /ping
   if (path === '/ping') {
     return j(200, { ok: true, ping: 'pong', via: 'app-proxy' });
   }
 
-  // /echo
   if (path === '/echo') {
     const q: Record<string, string> = {};
     url.searchParams.forEach((v, k) => (q[k] = v));
     return j(200, { ok: true, path, query: q });
   }
 
-  // /ip-check（軽量版：IP/ヘッダの確認だけ返す）
   if (path === '/ip-check') {
     const xf = req.headers.get('x-forwarded-for') ?? null;
     const ip =
@@ -84,11 +88,9 @@ export async function GET(req: Request, context: any) {
     });
   }
 
-  // 既定
   return j(200, { ok: true, path, note: 'signature verified, reached Vercel route' });
 }
 
-// ── POST ────────────────────────────────────────────────
 export async function POST(req: Request, context: any) {
   const slug: string[] = context?.params?.slug ?? [];
   const path = '/' + slug.join('/');
