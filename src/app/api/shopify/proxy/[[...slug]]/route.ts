@@ -1,113 +1,99 @@
-import { NextResponse } from "next/server";
-import crypto from "crypto";
-import { listIps } from "@/lib/ipStore";
-import { matchIpRule, normalizeIp } from "@/lib/ipMatch";
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 
-/** Shopify App Proxy 署名検証 */
-function verifyProxySignature(query: URLSearchParams, secret: string) {
-  if (!secret) return false;
-  const params = new URLSearchParams(query);
-  const signatureHex = params.get("signature") || "";
-  params.delete("signature");
-  const keys = Array.from(new Set(Array.from(params.keys()))).sort();
-  const message = keys.map(k => `${k}=${params.getAll(k).join(",")}`).join("");
-  const calcHex = crypto.createHmac("sha256", secret).update(message).digest("hex");
-  try { return crypto.timingSafeEqual(Buffer.from(signatureHex, "hex"), Buffer.from(calcHex, "hex")); }
-  catch { return false; }
-}
+export const runtime = 'nodejs';
 
-/** 実クライアントIP（cf-connecting-ip → x-forwarded-for → x-real-ip） */
-function resolveClientIp(req: Request) {
-  const cf = req.headers.get("cf-connecting-ip") || "";
-  const xfwd = req.headers.get("x-forwarded-for") || "";
-  const xri = req.headers.get("x-real-ip") || "";
-  const candidates = [cf, xfwd.split(",")[0]?.trim() || "", xri].filter(Boolean);
-  return candidates[0] || "";
-}
+// Shopifyの「API secret key（Shared secret）」を .env に設定しておく
+const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
 
-/** 403 監査ログの最小項目 */
-function auditWarn(payload: Record<string, unknown>) {
-  // Vercel Logs で検索しやすい固定タグにしておく
-  console.warn("[ipblock] deny", JSON.stringify(payload));
-}
+/** 署名検証（App Proxy）
+ * - クエリから signature を除外
+ * - キー昇順で "key=value" を & 連結した文字列
+ * - HMAC-SHA256(secret) の hex を signature と timing-safe 比較
+ */
+function verifyProxySignature(req: NextRequest): boolean {
+  if (!SHOPIFY_API_SECRET) return false;
 
-/** IPブロック判定：一致なら 403  */
-async function enforceIpBlock(req: Request, ctx: { shop?: string; slug?: string[] }) {
-  const raw = resolveClientIp(req);
-  if (!raw) return;
-
-  let ip = raw;
-  try { ip = normalizeIp(raw); } catch {}
-
-  const rules = await listIps();
-  const matched = matchIpRule(ip, rules);
-  if (matched) {
-    // 監査ログ（最小）：ip / matched ルール / country / ua / shop / slug
-    auditWarn({
-      ip,
-      matched,
-      shop: ctx.shop || "",
-      slug: (ctx.slug || []).join("/"),
-      country: req.headers.get("cf-ipcountry") || "",
-      ua: req.headers.get("user-agent") || "",
-      at: new Date().toISOString(),
-    });
-    throw new Response(JSON.stringify({ ok: false, error: "blocked ip" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
-
-// GET
-export async function GET(req: Request, { params }: any) {
   const url = new URL(req.url);
-  const query = url.searchParams;
+  const qs = url.searchParams;
 
-  const secret = process.env.SHOPIFY_API_SECRET || "";
-  if (!verifyProxySignature(query, secret)) {
-    return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
-  }
+  const signature = qs.get('signature') || '';
+  if (!signature) return false;
 
-  const slug: string[] = (params?.slug as string[]) ?? [];
-  try { await enforceIpBlock(req, { shop: query.get("shop") || "", slug }); }
-  catch (res) { return res as Response; }
+  const entries = [...qs.entries()]
+    .filter(([k]) => k !== 'signature')
+    .sort(([a], [b]) => a.localeCompare(b));
 
-  if (slug[0] === "ping") {
-    return NextResponse.json({
+  const message = entries.map(([k, v]) => `${k}=${v}`).join('&');
+
+  const digestHex = crypto
+    .createHmac('sha256', SHOPIFY_API_SECRET)
+    .update(message)
+    .digest('hex');
+
+  const a = Buffer.from(digestHex, 'hex');
+  const b = Buffer.from(signature, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function j(status: number, body: any) {
+  return NextResponse.json(body, { status });
+}
+
+function unauthorized(detail: string) {
+  return j(401, { ok: false, error: 'invalid signature', detail });
+}
+
+/** 到達確認のため、いまは /ping だけ署名不要で 200 を返す */
+const ALLOW_UNSIGNED_PING = true;
+
+export async function GET(req: NextRequest, ctx: { params: { slug?: string[] } }) {
+  const path = '/' + (ctx.params?.slug ?? []).join('/');
+
+  // 1) 健康チェック（到達確認）
+  if (path === '/ping') {
+    if (!ALLOW_UNSIGNED_PING) {
+      if (!verifyProxySignature(req)) return unauthorized('ping requires valid signature');
+    }
+    const url = new URL(req.url);
+    return j(200, {
       ok: true,
-      via: "app-proxy",
-      method: "GET",
-      slug,
-      query: Object.fromEntries(query.entries()),
+      ping: 'pong',
+      via: 'app-proxy',
+      unsigned: ALLOW_UNSIGNED_PING,
+      echo: url.searchParams.get('echo') ?? null,
     });
   }
-  return NextResponse.json({ ok: true, method: "GET", slug });
+
+  // 2) それ以外は署名必須
+  if (!verifyProxySignature(req)) return unauthorized('signature missing or invalid');
+
+  // 3) ここから先は本処理（必要に応じて分岐を追加）
+  const url = new URL(req.url);
+  return j(200, {
+    ok: true,
+    path,
+    shop: url.searchParams.get('shop') ?? '',
+    path_prefix: url.searchParams.get('path_prefix') ?? '',
+    echo: url.searchParams.get('echo') ?? null,
+    note: 'signature verified, reached Vercel route',
+  });
 }
 
-// POST
-export async function POST(req: Request, { params }: any) {
-  const url = new URL(req.url);
-  const query = url.searchParams;
+export async function POST(req: NextRequest, ctx: { params: { slug?: string[] } }) {
+  const path = '/' + (ctx.params?.slug ?? []).join('/');
 
-  const secret = process.env.SHOPIFY_API_SECRET || "";
-  if (!verifyProxySignature(query, secret)) {
-    return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
-  }
-
-  const slug: string[] = (params?.slug as string[]) ?? [];
-  try { await enforceIpBlock(req, { shop: query.get("shop") || "", slug }); }
-  catch (res) { return res as Response; }
-
-  if (slug[0] === "ping") {
+  if (path === '/ping') {
+    if (!ALLOW_UNSIGNED_PING) {
+      if (!verifyProxySignature(req)) return unauthorized('ping requires valid signature');
+    }
     const body = await req.json().catch(() => ({}));
-    return NextResponse.json({
-      ok: true,
-      via: "app-proxy",
-      method: "POST",
-      slug,
-      body,
-    });
+    return j(200, { ok: true, ping: 'pong', method: 'POST', body, unsigned: ALLOW_UNSIGNED_PING });
   }
-  return NextResponse.json({ ok: true, method: "POST", slug });
+
+  if (!verifyProxySignature(req)) return unauthorized('signature missing or invalid');
+
+  const body = await req.json().catch(() => ({}));
+  return j(200, { ok: true, path, method: 'POST', body, note: 'signature verified (POST)' });
 }
