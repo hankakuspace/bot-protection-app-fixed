@@ -1,56 +1,60 @@
 // scripts/sign-proxy.cjs
 #!/usr/bin/env node
 /**
- * 使い方：
- *   SHOPIFY_API_SECRET='xxx' node scripts/sign-proxy.cjs "https://be-search.biz/apps/bpp-20250814/ping"
- *   SHOPIFY_API_SECRET='xxx' node scripts/sign-proxy.cjs "https://bot-protection-ten.vercel.app/api/shopify/proxy/ip-check?foo=bar"
- *
- * 出力は「1行の curl」→ そのままパイプで sh 実行可：
- *   SHOPIFY_API_SECRET='xxx' node scripts/sign-proxy.cjs "..." | sh
+ * 使い方:
+ *   SHOPIFY_API_SECRET='xxxx' node scripts/sign-proxy.cjs "https://be-search.biz/apps/<subpath>/ping"
+ *   └ 1行の curl を stdout 出力（そのまま | sh 実行OK）
  */
-const crypto = require('crypto');
-const assert = require('assert');
+const crypto = require("crypto");
+const { URL } = require("url");
 
-const SECRET = process.env.SHOPIFY_API_SECRET || '';
-if (!SECRET) {
-  console.error('ERROR: Set SHOPIFY_API_SECRET');
+const secret = process.env.SHOPIFY_API_SECRET;
+if (!secret) {
+  console.error("ERROR: SHOPIFY_API_SECRET is not set");
   process.exit(1);
 }
 
-const raw = process.argv[2];
-if (!raw) {
-  console.error('USAGE: node scripts/sign-proxy.cjs "<URL>"');
+const target = process.argv[2];
+if (!target) {
+  console.error("Usage: sign-proxy.cjs <store-apps-url>");
   process.exit(1);
 }
 
-const url = new URL(raw);
+const u = new URL(target);
+// 既に query が付いていてもOK。足りなければ補完する。
+const params = u.searchParams;
 
-// App Proxy 経由のときは、Shopify が最低限付ける代表値を補助（テスト用）
-const isAppProxy = /\/apps\/[^/]+/.test(url.pathname);
-if (isAppProxy) {
-  // 無ければ追加（実運用では Shopify が付与）
-  if (!url.searchParams.get('shop')) url.searchParams.set('shop', 'ruhra-store.myshopify.com');
-  if (!url.searchParams.get('path_prefix')) {
-    const m = url.pathname.match(/^(\/apps\/[^/]+)/);
-    if (m) url.searchParams.set('path_prefix', m[1]);
-  }
-  if (!url.searchParams.get('logged_in_customer_id')) url.searchParams.set('logged_in_customer_id', '');
-  if (!url.searchParams.get('timestamp')) url.searchParams.set('timestamp', String(Math.floor(Date.now() / 1000)));
+// 既定値（必要に応じて編集）
+if (!params.has("shop")) params.set("shop", "ruhra-store.myshopify.com");
+if (!params.has("logged_in_customer_id")) params.set("logged_in_customer_id", "");
+if (!params.has("timestamp")) params.set("timestamp", String(Math.floor(Date.now() / 1000)));
+
+// path_prefix は /apps/<subpath>
+const m = u.pathname.match(/^\/apps\/([^/]+)/);
+if (!m) {
+  console.error("ERROR: URL path must start with /apps/<subpath>/...");
+  process.exit(1);
 }
+params.set("path_prefix", `/apps/${m[1]}`);
 
-// canonical（signature除外・キー昇順）
-const entries = [];
-url.searchParams.forEach((v, k) => {
-  if (k === 'signature') return;
-  entries.push([k, v]);
+// 署名生成（signature は署名対象から除外）
+const obj = {};
+params.forEach((v, k) => {
+  if (k !== "signature") obj[k] = v;
 });
-entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-const canonical = entries.map(([k, v]) => `${k}=${v}`).join('&');
-const sig = crypto.createHmac('sha256', SECRET).update(canonical, 'utf8').digest('hex');
+const canonical = Object.keys(obj)
+  .sort()
+  .map((k) => `${k}=${obj[k]}`)
+  .join("&");
+const signature = crypto.createHmac("sha256", secret).update(canonical).digest("hex");
 
-// 署名付加
-url.searchParams.set('signature', sig);
+// URL に signature を付与
+params.set("signature", signature);
 
-// 1行 curl を出力
-const curl = `curl -i -H 'Accept: application/json' "${url.toString()}"`;
-process.stdout.write(curl + '\n');
+// 1行の curl を出力
+const curl = [
+  "curl -i -H 'Accept: application/json'",
+  `'${u.toString()}'`,
+].join(" \\\n  ");
+
+console.log(curl);
