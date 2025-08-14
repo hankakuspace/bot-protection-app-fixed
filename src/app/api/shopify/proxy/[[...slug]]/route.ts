@@ -8,7 +8,7 @@ import {
   hmacHex,
 } from '@/lib/shopifyProxy';
 
-export const runtime = 'nodejs'; // App Router / Node 実行（Edge不可）
+export const runtime = 'nodejs'; // Node 実行（Edge不可）
 
 function env(name: string): string | undefined {
   const v = process.env[name];
@@ -19,9 +19,9 @@ function json(data: unknown, init?: number | ResponseInit) {
   return NextResponse.json(data as any, init as any);
 }
 
-/** [[...slug]] を string[] に正規化 */
-function normalizeSlug(params: Record<string, string | string[]> | undefined): string[] {
-  const raw = params?.slug;
+/** ctx.params.slug を安全に string[] 化 */
+function getSlugParts(ctx: any): string[] {
+  const raw = ctx?.params?.slug;
   if (Array.isArray(raw)) return raw;
   if (typeof raw === 'string' && raw.length) return [raw];
   return [];
@@ -29,19 +29,18 @@ function normalizeSlug(params: Record<string, string | string[]> | undefined): s
 
 export async function GET(
   req: Request,
-  ctx: { params: Record<string, string | string[]> }
+  // Next.js 15 の型検証を確実に通すため any を使用（実値は関数内で厳密にガード）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ctx: any
 ) {
-  const slugParts = normalizeSlug(ctx?.params);
-  const slug = slugParts.join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params'
-
+  const slug = getSlugParts(ctx).join('/'); // '', 'ping', 'ip-check', 'echo', 'debug-params'
   const url = new URL(req.url);
-  const search = url.searchParams;
-  const q = paramsToObject(search);
+  const q = paramsToObject(url.searchParams);
 
   const DEBUG = !!env('DEBUG_PROXY');
   const SECRET = env('SHOPIFY_API_SECRET') || '';
 
-  // --- DEBUG: /debug-params は DEBUG 時のみ開放（署名不要） ---
+  // --- DEBUG: 署名不要で内部情報を返す ---
   if (slug === 'debug-params') {
     if (!DEBUG) return json({ ok: false, error: 'debug disabled' }, { status: 403 });
 
@@ -66,9 +65,8 @@ export async function GET(
     });
   }
 
-  // --- 以降は署名必須（/ping /echo /ip-check） ---
+  // --- 以降は署名必須 ---
   if (!q['signature']) {
-    // 署名がない → App Proxy 経由で来ていない可能性
     return json({ ok: false, error: 'signature required' }, { status: 401 });
   }
   if (!SECRET) {
@@ -98,14 +96,10 @@ export async function GET(
       return json({ ok: true, route: 'ping', now: Date.now() });
 
     case 'echo':
-      return json({
-        ok: true,
-        route: 'echo',
-        query: q,
-      });
+      return json({ ok: true, route: 'echo', query: q });
 
     case 'ip-check': {
-      const { ip, xff, realIp } = extractClientIp(req.headers);
+      const { ip, xff, realIp } = extractClientIp(req.headers as unknown as Headers);
       return json({
         ok: true,
         route: 'ip-check',
@@ -113,9 +107,9 @@ export async function GET(
         xForwardedFor: xff,
         xRealIp: realIp,
         headersSample: {
-          cfConnectingIp: req.headers.get('cf-connecting-ip') ?? undefined,
-          forwarded: req.headers.get('forwarded') ?? undefined,
-          userAgent: req.headers.get('user-agent') ?? undefined,
+          cfConnectingIp: (req.headers as any).get?.('cf-connecting-ip') ?? undefined,
+          forwarded: (req.headers as any).get?.('forwarded') ?? undefined,
+          userAgent: (req.headers as any).get?.('user-agent') ?? undefined,
         },
       });
     }
@@ -125,10 +119,8 @@ export async function GET(
   }
 }
 
-// POST も GET と同じ処理を適用
-export async function POST(
-  req: Request,
-  ctx: { params: Record<string, string | string[]> }
-) {
+// POST も GET と同じ処理
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function POST(req: Request, ctx: any) {
   return GET(req, ctx);
 }
