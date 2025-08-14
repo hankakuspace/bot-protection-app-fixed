@@ -1,14 +1,3 @@
-# → 先ほどのコードを貼り付けて保存
-
-# ステージング
-git add src/app/api/debug-secret/route.ts
-
-# コミット
-git commit -m "Add debug endpoint to check SHOPIFY_API_SECRET in production"
-
-# プッシュ（本番デプロイ）
-git push origin main
-
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -19,7 +8,7 @@ export const runtime = "nodejs";
  */
 export async function GET() {
   const secret = process.env.SHOPIFY_API_SECRET || "";
-
+  
   return NextResponse.json({
     ok: !!secret,
     length: secret.length,
