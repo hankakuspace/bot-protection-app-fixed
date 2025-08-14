@@ -1,4 +1,3 @@
-import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -8,7 +7,7 @@ export const runtime = 'nodejs';
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || '';
 
 /** 署名検証（App Proxy） */
-function verifyProxySignature(req: NextRequest): boolean {
+function verifyProxySignature(req: Request): boolean {
   if (!SHOPIFY_API_SECRET) return false;
 
   const url = new URL(req.url);
@@ -43,12 +42,12 @@ function unauthorized(detail: string) {
 /** 到達確認用：/ping は一時的に署名不要 */
 const ALLOW_UNSIGNED_PING = true;
 
-// ⬇ 第2引数の型を「slug: string[] 必須」にし、実行時は ?? [] で対処
+// ✅ Next.js 15 形式：第1引数は Web 標準の Request、第2引数は分割で { params }
 export async function GET(
-  req: NextRequest,
-  context: { params: { slug: string[] } }
+  req: Request,
+  { params }: { params: { slug: string[] } }
 ) {
-  const slug = context.params?.slug ?? [];
+  const slug = params?.slug ?? [];
   const path = '/' + slug.join('/');
 
   // 1) 健康チェック
@@ -82,10 +81,10 @@ export async function GET(
 }
 
 export async function POST(
-  req: NextRequest,
-  context: { params: { slug: string[] } }
+  req: Request,
+  { params }: { params: { slug: string[] } }
 ) {
-  const slug = context.params?.slug ?? [];
+  const slug = params?.slug ?? [];
   const path = '/' + slug.join('/');
 
   if (path === '/ping') {
