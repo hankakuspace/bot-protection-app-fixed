@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { listIps } from "@/lib/ipStore";
+import { isIpBlocked, normalizeIp } from "@/lib/ipMatch";
 
 /** Shopify App Proxy 署名検証（HMAC-SHA256, Shopify仕様） */
 function verifyProxySignature(query: URLSearchParams, secret: string) {
@@ -36,14 +37,18 @@ function resolveClientIp(req: Request) {
   return candidates[0] || "";
 }
 
-/** IPブロック判定：一致したら 403 を返す Response を throw */
+/** IPブロック判定：一致なら 403 */
 async function enforceIpBlock(req: Request) {
-  const clientIp = resolveClientIp(req);
-  if (!clientIp) return;
-  const blocked = await listIps();
-  if (blocked.includes(clientIp)) {
+  const raw = resolveClientIp(req);
+  if (!raw) return;
+
+  let ip = raw;
+  try { ip = normalizeIp(raw); } catch { /* そのまま評価 */ }
+
+  const rules = await listIps(); // 単一IPとCIDRが混在OK
+  if (isIpBlocked(ip, rules)) {
     throw new Response(
-      JSON.stringify({ ok: false, error: "blocked ip", ip: clientIp }),
+      JSON.stringify({ ok: false, error: "blocked ip", ip }),
       { status: 403, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -59,15 +64,10 @@ export async function GET(req: Request, { params }: any) {
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  try {
-    await enforceIpBlock(req);
-  } catch (res) {
-    return res as Response;
-  }
+  try { await enforceIpBlock(req); } catch (res) { return res as Response; }
 
   const slug: string[] = (params?.slug as string[]) ?? [];
   if (slug[0] === "ping") {
-    // ★ 検証用の ip 出力は削除済み（運用クリーン）
     return NextResponse.json({
       ok: true,
       via: "app-proxy",
@@ -76,7 +76,6 @@ export async function GET(req: Request, { params }: any) {
       query: Object.fromEntries(query.entries()),
     });
   }
-
   return NextResponse.json({ ok: true, method: "GET", slug });
 }
 
@@ -90,16 +89,11 @@ export async function POST(req: Request, { params }: any) {
     return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
   }
 
-  try {
-    await enforceIpBlock(req);
-  } catch (res) {
-    return res as Response;
-  }
+  try { await enforceIpBlock(req); } catch (res) { return res as Response; }
 
   const slug: string[] = (params?.slug as string[]) ?? [];
   if (slug[0] === "ping") {
     const body = await req.json().catch(() => ({}));
-    // ★ 検証用の ip 出力は削除済み（運用クリーン）
     return NextResponse.json({
       ok: true,
       via: "app-proxy",
@@ -108,6 +102,5 @@ export async function POST(req: Request, { params }: any) {
       body,
     });
   }
-
   return NextResponse.json({ ok: true, method: "POST", slug });
 }
