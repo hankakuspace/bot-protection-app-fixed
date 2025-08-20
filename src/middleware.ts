@@ -1,19 +1,18 @@
-// src/middleware.ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { checkIp } from '@/lib/check-ip';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { checkIp } from "@/lib/check-ip";
 
 export async function middleware(req: NextRequest) {
-  // 管理画面 (/admin) は常に許可
-  if (req.nextUrl.pathname.startsWith('/admin')) {
+  // 管理画面は常に許可
+  if (req.nextUrl.pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
 
-  // ユーザーIPを取得
+  // IPアドレスを取得（Vercel では x-forwarded-for から取る）
   const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.ip ||
-    '0.0.0.0';
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "0.0.0.0";
 
   // 判定ロジック
   const result = await checkIp(ip);
@@ -23,10 +22,8 @@ export async function middleware(req: NextRequest) {
   }
 
   if (result.blocked) {
-    // ❌ ブロック → /blocked にリダイレクト
-    return NextResponse.rewrite(new URL('/blocked', req.url));
+    return NextResponse.rewrite(new URL("/blocked", req.url));
   }
 
-  // ✅ 許可
   return NextResponse.next();
 }
