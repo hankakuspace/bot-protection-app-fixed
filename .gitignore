@@ -13,3 +13,6 @@ node_modules
 /proxy/dist
 /proxy/.env
 /proxy/serviceAccount.json
+.vercel
+.env
+check-secret-match.sh
