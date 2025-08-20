@@ -38,9 +38,12 @@ export function hmacHex(input: string, secret: string): string {
   return crypto.createHmac("sha256", secret).update(input).digest("hex");
 }
 
-/** App Proxy の署名検証 */
+/**
+ * App Proxy の署名検証
+ * - params: URLSearchParams または Record<string,string>
+ */
 export function verifyAppProxySignature(
-  params: URLSearchParams,
+  params: URLSearchParams | Record<string, string>,
   secret: string
 ): {
   match: boolean;
@@ -48,8 +51,17 @@ export function verifyAppProxySignature(
   calculated?: string;
   canonical: string;
 } {
-  const provided = params.get("signature") || "";
-  const canonical = buildCanonicalQuery(params);
+  let provided = "";
+  let canonical = "";
+
+  if (params instanceof URLSearchParams) {
+    provided = params.get("signature") || "";
+    canonical = buildCanonicalQuery(params);
+  } else {
+    provided = params["signature"] || "";
+    canonical = buildCanonicalQuery(params);
+  }
+
   const calculated = hmacHex(canonical, secret);
   return { match: provided === calculated, provided, calculated, canonical };
 }
