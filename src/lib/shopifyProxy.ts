@@ -3,6 +3,10 @@ import type { NextRequest } from "next/server";
 
 /**
  * canonical query を構築する
+ * - signature パラメータは除外
+ * - キーは昇順ソート
+ * - 値が複数ある場合はカンマ区切りで結合
+ * - 区切り文字（&）は使わず、連続して結合
  */
 export function buildCanonicalQuery(
   params: URLSearchParams | Record<string, string | null | undefined>
@@ -44,7 +48,7 @@ export function verifyAppProxySignature(
   ok: boolean;
   match: boolean;
   provided?: string;
-  computed?: string;     // ← 名前を「computed」に変更
+  computed?: string;
   canonical: string;
 } {
   let provided = "";
@@ -64,16 +68,33 @@ export function verifyAppProxySignature(
   return { ok: match, match, provided, computed, canonical };
 }
 
-/** クライアントIP抽出 */
-export function extractClientIp(req: NextRequest): string {
-  const xff = req.headers.get("x-forwarded-for");
+/**
+ * クライアントIP抽出
+ * - ip: 実際に判定したIP
+ * - xff: X-Forwarded-For ヘッダ値（あれば）
+ * - realIp: X-Real-IP ヘッダ値（あれば）
+ */
+export function extractClientIp(req: NextRequest | { headers: Headers }): {
+  ip: string;
+  xff?: string | null;
+  realIp?: string | null;
+} {
+  const headers = (req as any).headers as Headers;
+
+  const xff = headers?.get?.("x-forwarded-for") ?? null;
+  const realIp = headers?.get?.("x-real-ip") ?? null;
+
+  let ip = "0.0.0.0";
   if (xff) {
     const first = xff.split(",")[0]?.trim();
-    if (first) return first.replace(/^::ffff:/, "");
+    if (first) ip = first.replace(/^::ffff:/, "");
+  } else if (realIp) {
+    ip = realIp.replace(/^::ffff:/, "");
+  } else if ((req as any)?.ip) {
+    ip = (req as any).ip;
   }
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp.replace(/^::ffff:/, "");
-  return (req as any)?.ip ?? "0.0.0.0";
+
+  return { ip, xff, realIp };
 }
 
 /** デバッグモード判定 */
