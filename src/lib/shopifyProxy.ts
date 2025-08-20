@@ -3,10 +3,6 @@ import type { NextRequest } from "next/server";
 
 /**
  * canonical query を構築する
- * - signature パラメータは除外
- * - キーは昇順ソート
- * - 値が複数ある場合はカンマ区切りで結合
- * - 区切り文字（&）は使わず、連続して結合
  */
 export function buildCanonicalQuery(
   params: URLSearchParams | Record<string, string | null | undefined>
@@ -40,16 +36,15 @@ export function hmacHex(input: string, secret: string): string {
 
 /**
  * App Proxy の署名検証
- * - params: URLSearchParams または Record<string,string>
  */
 export function verifyAppProxySignature(
   params: URLSearchParams | Record<string, string>,
   secret: string
 ): {
-  ok: boolean;               // ← 追加
+  ok: boolean;
   match: boolean;
   provided?: string;
-  calculated?: string;
+  computed?: string;     // ← 名前を「computed」に変更
   canonical: string;
 } {
   let provided = "";
@@ -63,13 +58,13 @@ export function verifyAppProxySignature(
     canonical = buildCanonicalQuery(params);
   }
 
-  const calculated = hmacHex(canonical, secret);
-  const match = provided === calculated;
+  const computed = hmacHex(canonical, secret);
+  const match = provided === computed;
 
-  return { ok: match, match, provided, calculated, canonical };
+  return { ok: match, match, provided, computed, canonical };
 }
 
-/** クライアントIP抽出（x-forwarded-for 優先） */
+/** クライアントIP抽出 */
 export function extractClientIp(req: NextRequest): string {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) {
