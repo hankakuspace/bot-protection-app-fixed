@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
  * - signature パラメータは除外
  * - キーは昇順ソート
  * - 値が複数ある場合はカンマ区切りで結合
- * - 区切り文字（&）は使わず、連続して結合するのがポイント
+ * - 区切り文字（&）は使わず、連続して結合
  */
 export function buildCanonicalQuery(
   params: URLSearchParams | Record<string, string | null | undefined>
@@ -69,4 +69,13 @@ export function extractClientIp(req: NextRequest): string {
 /** デバッグモード判定 */
 export function isDebugEnabled(): boolean {
   return (process.env.DEBUG_PROXY ?? "") === "1";
+}
+
+/** URLSearchParams → オブジェクト */
+export function paramsToObject(params: URLSearchParams): Record<string, string> {
+  const obj: Record<string, string> = {};
+  params.forEach((v, k) => {
+    obj[k] = v;
+  });
+  return obj;
 }
