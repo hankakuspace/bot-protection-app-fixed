@@ -18,3 +18,4 @@ node_modules
 check-secret-match.sh
 admin/
 api/
+proxy/
