@@ -19,3 +19,6 @@ check-secret-match.sh
 admin/
 api/
 proxy/
+proxy/
+*_backup_*/
+middleware.ts
