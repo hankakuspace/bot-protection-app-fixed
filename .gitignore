@@ -22,3 +22,6 @@ proxy/
 proxy/
 *_backup_*/
 middleware.ts
+app/
+lib/
+middleware.ts
