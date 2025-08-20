@@ -16,3 +16,5 @@ node_modules
 .vercel
 .env
 check-secret-match.sh
+admin/
+api/
