@@ -46,6 +46,7 @@ export function verifyAppProxySignature(
   params: URLSearchParams | Record<string, string>,
   secret: string
 ): {
+  ok: boolean;               // ← 追加
   match: boolean;
   provided?: string;
   calculated?: string;
@@ -63,7 +64,9 @@ export function verifyAppProxySignature(
   }
 
   const calculated = hmacHex(canonical, secret);
-  return { match: provided === calculated, provided, calculated, canonical };
+  const match = provided === calculated;
+
+  return { ok: match, match, provided, calculated, canonical };
 }
 
 /** クライアントIP抽出（x-forwarded-for 優先） */
