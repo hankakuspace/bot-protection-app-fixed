@@ -4,30 +4,27 @@ node_modules
 
 # 環境変数
 .env
+.env.local
 
 # macOS特有ファイル
 .DS_Store
 
-# Proxy
+# Vercel関連
+.vercel
+
+# Proxy関連（ルート直下のみ）
+/proxy/
 /proxy/node_modules
 /proxy/dist
 /proxy/.env
 /proxy/serviceAccount.json
-.vercel
-.env
-check-secret-match.sh
-admin/
-api/
-proxy/
-proxy/
+
+# バックアップ
 *_backup_*/
-middleware.ts
-app/
-lib/
-middleware.ts
-app/
-lib/
-middleware.ts
-app/
-lib/
-middleware.ts
+
+# ルート直下のみ無視（src 以下は対象外）
+/admin/
+/api/
+/app/
+/lib/
+/middleware.ts
