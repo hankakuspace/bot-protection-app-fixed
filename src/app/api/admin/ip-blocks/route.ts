@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { normalizeIp, normalizeCidr } from "@/lib/ipMatch";
-import { listIps, setIps } from "@/lib/ipStore"; // ← 既存ストアを使用（setIps が無い場合は後述の例を導入）
+import { listIps, setIps } from "@/lib/ipStore";
+
+export const runtime = "nodejs"; // ← 追加
 
 export async function GET() {
   const blocked = await listIps();
