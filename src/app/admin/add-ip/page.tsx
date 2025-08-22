@@ -7,14 +7,32 @@ export default function AddIpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/admin/add-ip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ip }),
-    });
-    const data = await res.json();
-    alert(data.ok ? `登録成功: ${ip}` : `エラー: ${data.error}`);
-    setIp("");
+    console.log("[add-ip] submit called with ip =", ip);
+
+    try {
+      const res = await fetch("/api/admin/add-ip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log("[add-ip] response =", data);
+
+      if (data.ok) {
+        alert(`登録成功: ${ip}`);
+        setIp("");
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch (err) {
+      console.error("[add-ip] fetch error", err);
+      alert("通信に失敗しました");
+    }
   };
 
   return (
