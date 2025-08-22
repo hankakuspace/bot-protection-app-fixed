@@ -22,11 +22,6 @@ node_modules
 # バックアップ
 *_backup_*/
 
-# ルート直下のみ無視（src 以下は対象外）
-/admin/
-/api/
-/app/
-/lib/
-/middleware.ts
-.env.local
-.env.local
+# 秘密情報を含むスクリプト
+check-secret-match.sh
+check-all-secrets.sh
