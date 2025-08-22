@@ -5,9 +5,14 @@ import { useState } from "react";
 export default function AddIpPage() {
   const [ip, setIp] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("[add-ip] submit called with ip =", ip);
+    console.log("[UI] handleSubmit called with ip =", ip);
+
+    if (!ip.trim()) {
+      alert("IPアドレスを入力してください");
+      return;
+    }
 
     try {
       const res = await fetch("/api/admin/add-ip", {
@@ -16,12 +21,8 @@ export default function AddIpPage() {
         body: JSON.stringify({ ip }),
       });
 
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
-      }
-
       const data = await res.json();
-      console.log("[add-ip] response =", data);
+      console.log("[UI] API response:", data);
 
       if (data.ok) {
         alert(`登録成功: ${ip}`);
@@ -30,7 +31,7 @@ export default function AddIpPage() {
         alert(`エラー: ${data.error}`);
       }
     } catch (err) {
-      console.error("[add-ip] fetch error", err);
+      console.error("[UI] fetch error:", err);
       alert("通信に失敗しました");
     }
   };
@@ -47,7 +48,7 @@ export default function AddIpPage() {
           className="border px-3 py-2 rounded w-full"
         />
         <button
-          type="submit"
+          type="submit" // ← ここ重要
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           登録
