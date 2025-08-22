@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { listIps } from "@/lib/ipStore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const blocked = await listIps();
+    const snapshot = await adminDb.collection("blocked_ips").get();
+    const blocked = snapshot.docs.map((doc) => doc.id);
+
     return NextResponse.json({ ok: true, blocked });
   } catch (err) {
+    console.error("[API:list-ip] error:", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

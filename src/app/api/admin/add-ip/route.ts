@@ -1,40 +1,22 @@
 import { NextResponse } from "next/server";
-import { normalizeIp, normalizeCidr } from "@/lib/ipMatch";
-import { listIps, addIp } from "@/lib/ipStore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    console.log("[API:add-ip] called");
-    const body = await req.json().catch(() => ({}));
-    console.log("[API:add-ip] body =", body);
-
-    let rule = String(body.ip ?? "").trim();
-    if (!rule) {
+    const { ip } = await req.json();
+    if (!ip) {
       return NextResponse.json({ ok: false, error: "ip required" }, { status: 400 });
     }
 
-    rule = rule.includes("/") ? normalizeCidr(rule) : normalizeIp(rule);
-    console.log("[API:add-ip] normalized =", rule);
-
-    const cur = await listIps().catch((err) => {
-      console.error("[API:add-ip] listIps error:", err);
-      throw err;
+    await adminDb.collection("blocked_ips").doc(ip).set({
+      createdAt: new Date().toISOString(),
     });
-    console.log("[API:add-ip] current =", cur);
 
-    if (!cur.includes(rule)) {
-      await addIp(rule).catch((err) => {
-        console.error("[API:add-ip] addIp error:", err);
-        throw err;
-      });
-      return NextResponse.json({ ok: true, added: true, blocked: [...cur, rule] });
-    } else {
-      return NextResponse.json({ ok: true, added: false, blocked: cur });
-    }
+    return NextResponse.json({ ok: true, added: true, ip });
   } catch (err) {
-    console.error("[API:add-ip] fatal error", err);
+    console.error("[API:add-ip] error:", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

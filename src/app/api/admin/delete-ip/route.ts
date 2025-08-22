@@ -1,28 +1,20 @@
 import { NextResponse } from "next/server";
-import { normalizeIp, normalizeCidr } from "@/lib/ipMatch";
-import { listIps, removeIp } from "@/lib/ipStore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
 export async function DELETE(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    let rule = String(body.ip ?? "").trim();
-    if (!rule) {
+    const { ip } = await req.json();
+    if (!ip) {
       return NextResponse.json({ ok: false, error: "ip required" }, { status: 400 });
     }
 
-    rule = rule.includes("/") ? normalizeCidr(rule) : normalizeIp(rule);
+    await adminDb.collection("blocked_ips").doc(ip).delete();
 
-    const cur = await listIps();
-    if (cur.includes(rule)) {
-      await removeIp(rule);
-      const next = cur.filter((r) => r !== rule);
-      return NextResponse.json({ ok: true, removed: true, blocked: next });
-    } else {
-      return NextResponse.json({ ok: true, removed: false, blocked: cur });
-    }
+    return NextResponse.json({ ok: true, removed: true, ip });
   } catch (err) {
+    console.error("[API:delete-ip] error:", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }
