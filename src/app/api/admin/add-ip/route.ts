@@ -1,11 +1,19 @@
+import { NextResponse } from "next/server";
+import { normalizeIp, normalizeCidr } from "@/lib/ipMatch";
+import { listIps, setIps } from "@/lib/ipStore";
+
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   try {
-    console.log("[add-ip] API called"); // デバッグログ
+    console.log("[add-ip] API called");
     const body = await req.json().catch(() => ({}));
     console.log("[add-ip] body =", body);
 
     let rule = String(body.ip ?? "").trim();
-    if (!rule) return NextResponse.json({ ok: false, error: "ip required" }, { status: 400 });
+    if (!rule) {
+      return NextResponse.json({ ok: false, error: "ip required" }, { status: 400 });
+    }
 
     rule = rule.includes("/") ? normalizeCidr(rule) : normalizeIp(rule);
 
