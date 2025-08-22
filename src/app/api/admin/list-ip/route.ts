@@ -5,12 +5,9 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    console.log("[list-ip] API called");
     const blocked = await listIps();
-    console.log("[list-ip] blocked =", blocked);
     return NextResponse.json({ ok: true, blocked });
   } catch (err) {
-    console.error("[list-ip] error", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

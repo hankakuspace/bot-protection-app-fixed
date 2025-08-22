@@ -1,30 +1,45 @@
-// Blob バックエンド版 ipStore
-import { list, put } from "@vercel/blob";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
 
-const PATH = "config/blocked-ips.json";
+const BLOCKED_COLLECTION = "blocked_ips";
 
-// Blob 上の JSON を取得（なければ空配列）
+/**
+ * IP一覧を取得
+ */
 export async function listIps(): Promise<string[]> {
-  // ファイルの存在確認＆URL取得
-  const { blobs } = await list({ prefix: PATH });
-  const blob = blobs.find(b => b.pathname === PATH);
-  if (!blob) return [];
-  try {
-    const res = await fetch(blob.url, { cache: "no-store" });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return Array.isArray(json) ? (json as string[]) : [];
-  } catch {
-    return [];
-  }
+  const snapshot = await getDocs(collection(db, BLOCKED_COLLECTION));
+  return snapshot.docs.map((doc) => doc.id);
 }
 
-// 配列まるごと保存（上書き）
-export async function setIps(rules: string[]): Promise<void> {
-  await put(PATH, JSON.stringify(rules), {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: false,    // 固定パスで管理
-    allowOverwrite: true,      // 上書き保存を許可
+/**
+ * IPを追加
+ */
+export async function addIp(ip: string): Promise<void> {
+  await setDoc(doc(db, BLOCKED_COLLECTION, ip), {
+    createdAt: new Date().toISOString(),
   });
+}
+
+/**
+ * IPを削除
+ */
+export async function removeIp(ip: string): Promise<void> {
+  await deleteDoc(doc(db, BLOCKED_COLLECTION, ip));
+}
+
+/**
+ * 複数IPをセット（全上書き）
+ */
+export async function setIps(ips: string[]): Promise<void> {
+  // 既存を全削除 → 新しいリストを追加
+  const snapshot = await getDocs(collection(db, BLOCKED_COLLECTION));
+  await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+
+  await Promise.all(
+    ips.map((ip) =>
+      setDoc(doc(db, BLOCKED_COLLECTION, ip), {
+        createdAt: new Date().toISOString(),
+      })
+    )
+  );
 }
