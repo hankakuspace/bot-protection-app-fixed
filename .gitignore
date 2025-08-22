@@ -28,3 +28,5 @@ node_modules
 /app/
 /lib/
 /middleware.ts
+.env.local
+.env.local
