@@ -1,4 +1,4 @@
-"use client";
+"use client"; // ← クライアントコンポーネント宣言
 
 import { useState } from "react";
 
@@ -31,7 +31,7 @@ export default function AddIpPage() {
         alert(`エラー: ${data.error}`);
       }
     } catch (err) {
-      console.error("[UI] fetch error:", err);
+      console.error("[UI] fetch error", err);
       alert("通信に失敗しました");
     }
   };
@@ -47,8 +47,9 @@ export default function AddIpPage() {
           onChange={(e) => setIp(e.target.value)}
           className="border px-3 py-2 rounded w-full"
         />
+        {/* submit ボタンであることを明示 */}
         <button
-          type="submit" // ← ここ重要
+          type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           登録
