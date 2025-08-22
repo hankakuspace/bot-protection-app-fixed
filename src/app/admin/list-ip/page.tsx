@@ -6,22 +6,35 @@ export default function ListIpPage() {
   const [blocked, setBlocked] = useState<string[]>([]);
 
   const fetchIps = async () => {
-    const res = await fetch("/api/admin/list-ip");
-    const data = await res.json();
-    setBlocked(data.blocked || []);
+    try {
+      const res = await fetch("/api/admin/list-ip");
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      const data = await res.json();
+      setBlocked(data.blocked || []);
+    } catch (err) {
+      console.error("list-ip fetch error:", err);
+      alert("リスト取得に失敗しました");
+    }
   };
 
   const handleDelete = async (ip: string) => {
-    const res = await fetch("/api/admin/delete-ip", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ip }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      setBlocked(data.blocked || []);
-    } else {
-      alert(`削除失敗: ${data.error}`);
+    try {
+      const res = await fetch("/api/admin/delete-ip", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setBlocked(data.blocked || []);
+      } else {
+        alert(`削除失敗: ${data.error}`);
+      }
+    } catch (err) {
+      console.error("delete-ip error:", err);
+      alert("削除に失敗しました");
     }
   };
 
