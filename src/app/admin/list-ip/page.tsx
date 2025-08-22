@@ -3,64 +3,65 @@
 import { useEffect, useState } from "react";
 
 export default function ListIpPage() {
-  const [blocked, setBlocked] = useState<any[]>([]);
-  const [admins, setAdmins] = useState<any[]>([]);
+  const [blocked, setBlocked] = useState<string[]>([]);
+
+  const fetchIps = async () => {
+    const res = await fetch("/api/admin/list-ip");
+    const data = await res.json();
+    setBlocked(data.blocked || []);
+  };
+
+  const handleDelete = async (ip: string) => {
+    const res = await fetch("/api/admin/delete-ip", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setBlocked(data.blocked || []);
+    } else {
+      alert(`削除失敗: ${data.error}`);
+    }
+  };
 
   useEffect(() => {
-    const fetchIps = async () => {
-      const res = await fetch("/api/admin/list-ip");
-      const data = await res.json();
-      setBlocked(data.blocked || []);
-      setAdmins(data.admins || []);
-    };
     fetchIps();
   }, []);
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">IPリスト</h1>
-
-      {/* 管理者リスト */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">管理者リスト</h2>
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 text-left">IPアドレス</th>
-              <th className="border px-4 py-2">登録日時</th>
+      <h1 className="text-2xl font-bold mb-6">ブロックリスト</h1>
+      <table className="w-full border">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border px-4 py-2 text-left">IPアドレス</th>
+            <th className="border px-4 py-2">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blocked.map((ip) => (
+            <tr key={ip}>
+              <td className="border px-4 py-2">{ip}</td>
+              <td className="border px-4 py-2 text-center">
+                <button
+                  onClick={() => handleDelete(ip)}
+                  className="bg-red-500 text-white px-3 py-1 rounded"
+                >
+                  削除
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {admins.map((a, i) => (
-              <tr key={i}>
-                <td className="border px-4 py-2">{a.ip}</td>
-                <td className="border px-4 py-2">{a.createdAt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ブロックリスト */}
-      <div>
-        <h2 className="text-xl font-semibold mb-2">ブロックリスト</h2>
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-4 py-2 text-left">IPアドレス</th>
-              <th className="border px-4 py-2">登録日時</th>
+          ))}
+          {blocked.length === 0 && (
+            <tr>
+              <td colSpan={2} className="text-center py-4 text-gray-500">
+                登録されたIPはありません
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {blocked.map((b, i) => (
-              <tr key={i}>
-                <td className="border px-4 py-2">{b.ip}</td>
-                <td className="border px-4 py-2">{b.createdAt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
