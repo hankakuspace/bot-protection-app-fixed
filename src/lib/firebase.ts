@@ -8,10 +8,11 @@ const firebaseApp =
         credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          // 前後のダブルクォートを削除し、\n を改行に変換
+          // 環境変数の前後の " を削除し、\n を改行に戻し、余計な空白を除去
           privateKey: process.env.FIREBASE_PRIVATE_KEY
             ?.replace(/^"|"$/g, "")
-            .replace(/\\n/g, "\n"),
+            .replace(/\\n/g, "\n")
+            .trim(),
         }),
       })
     : getApps()[0];
