@@ -1,29 +1,23 @@
+// src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { checkIp } from "@/lib/check-ip";
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "unknown";
 
-  // 管理画面と API は常に許可
-  if (pathname.startsWith("/admin") || pathname.startsWith("/api")) {
-    return NextResponse.next();
-  }
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/check-ip`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ip }),
+    });
+    const data = await res.json();
 
-  // ユーザーIPを取得
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "0.0.0.0";
-
-  const result = await checkIp(ip);
-
-  if (result.isAdmin) {
-    return NextResponse.next();
-  }
-
-  if (result.blocked) {
-    return NextResponse.rewrite(new URL("/blocked", req.url));
+    if (data.blocked) {
+      return new NextResponse("Access denied: your IP is blocked.", { status: 403 });
+    }
+  } catch (err) {
+    console.error("Middleware error:", err);
   }
 
   return NextResponse.next();
