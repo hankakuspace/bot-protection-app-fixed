@@ -35,6 +35,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   const params = url.searchParams;
   const secret = getSecret();
 
+  // --- 署名検証 ---
   const result = verifyAppProxySignature(params, secret);
   if (!result.ok) {
     return json(
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     );
   }
 
+  // --- ルーティング ---
   switch (route) {
     case "ping": {
       const shop = params.get("shop") ?? undefined;
@@ -62,17 +64,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
     case "ip-check": {
       const { ip, xff, realIp } = extractClientIp(req);
-      return json(
-        {
-          ok: true,
-          route: "ip-check",
-          match: result.match,
-          ip,
-          xff,
-          realIp,
-        },
-        200
-      );
+      return json({ ok: true, route: "ip-check", match: result.match, ip, xff, realIp }, 200);
     }
 
     case "echo": {
@@ -83,21 +75,13 @@ export async function GET(req: NextRequest): Promise<Response> {
         ])
       );
       return json(
-        {
-          ok: true,
-          route: "echo",
-          match: result.match,
-          query: Object.fromEntries(params.entries()),
-          headers: headersPick,
-        },
+        { ok: true, route: "echo", match: result.match, query: Object.fromEntries(params.entries()), headers: headersPick },
         200
       );
     }
 
     case "debug-params": {
-      if (!isDebugEnabled()) {
-        return json({ ok: false, route, reason: "forbidden" }, 403);
-      }
+      if (!isDebugEnabled()) return json({ ok: false, route, reason: "forbidden" }, 403);
       return json(
         {
           ok: true,
@@ -114,19 +98,16 @@ export async function GET(req: NextRequest): Promise<Response> {
     }
 
     case "admin-logs": {
-      // Shopify経由でもUIにリダイレクト
-      return NextResponse.redirect("https://bot-protection-ten.vercel.app/admin/logs");
+      // ✅ 内部リライト: Shopify Proxy → Vercel /admin/logs
+      return NextResponse.rewrite(new URL("/admin/logs", req.url));
     }
 
     default: {
-      // /apps/bpp-xxxx-final01/proxy や /apps/.../logs 直アクセスも全部UIに飛ばす
+      // ✅ Proxy 直下アクセス時も /admin/logs に rewrite
       if (!route || route === "proxy") {
-        return NextResponse.redirect("https://bot-protection-ten.vercel.app/admin/logs");
+        return NextResponse.rewrite(new URL("/admin/logs", req.url));
       }
-      return json(
-        { ok: true, route, match: result.match, query: paramsToObject(params) },
-        200
-      );
+      return json({ ok: true, route, match: result.match, query: paramsToObject(params) }, 200);
     }
   }
 }
