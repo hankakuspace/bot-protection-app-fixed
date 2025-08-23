@@ -57,12 +57,25 @@ export async function GET(req: NextRequest): Promise<Response> {
     case "ping": {
       const shop = params.get("shop") ?? undefined;
       const { ip } = extractClientIp(req);
-      return json({ ok: true, route: "ping", match: result.match, shop, ip }, 200);
+      return json(
+        { ok: true, route: "ping", match: result.match, shop, ip },
+        200
+      );
     }
 
     case "ip-check": {
       const { ip, xff, realIp } = extractClientIp(req);
-      return json({ ok: true, route: "ip-check", match: result.match, ip, xff, realIp }, 200);
+      return json(
+        {
+          ok: true,
+          route: "ip-check",
+          match: result.match,
+          ip,
+          xff,
+          realIp,
+        },
+        200
+      );
     }
 
     case "echo": {
@@ -72,11 +85,22 @@ export async function GET(req: NextRequest): Promise<Response> {
           req.headers.get(h),
         ])
       );
-      return json({ ok: true, route: "echo", match: result.match, query: Object.fromEntries(params.entries()), headers: headersPick }, 200);
+      return json(
+        {
+          ok: true,
+          route: "echo",
+          match: result.match,
+          query: Object.fromEntries(params.entries()),
+          headers: headersPick,
+        },
+        200
+      );
     }
 
     case "debug-params": {
-      if (!isDebugEnabled()) return json({ ok: false, route, reason: "forbidden" }, 403);
+      if (!isDebugEnabled()) {
+        return json({ ok: false, route, reason: "forbidden" }, 403);
+      }
       return json(
         {
           ok: true,
@@ -92,13 +116,16 @@ export async function GET(req: NextRequest): Promise<Response> {
       );
     }
 
-    /** ⭐ ここで /admin/logs にリダイレクト */
     case "admin-logs": {
-      return NextResponse.redirect(new URL("/admin/logs", process.env.NEXT_PUBLIC_BASE_URL));
+      // Shopify App Proxy からのアクセスを /admin/logs にリダイレクト
+      return NextResponse.redirect(new URL("/admin/logs", req.url));
     }
 
     default: {
-      return json({ ok: true, route, match: result.match, query: paramsToObject(params) }, 200);
+      return json(
+        { ok: true, route, match: result.match, query: paramsToObject(params) },
+        200
+      );
     }
   }
 }
