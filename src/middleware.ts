@@ -6,10 +6,9 @@ import requestIp from "request-ip";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 1) API や Next 静的配信は除外（App Proxy は /api/shopify/proxy/ 配下で来る想定）
+  // 1) API や Next 静的配信は除外
   if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
     const res = NextResponse.next();
-    // iframe 埋め込み用CSPを常に付与
     res.headers.set(
       "Content-Security-Policy",
       "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
@@ -27,7 +26,7 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // 3) ここから通常ページの IP チェック（従来ロジックを維持）
+  // 3) ここから通常ページの IP チェック
   const ip =
     requestIp.getClientIp(req as any) ??
     req.headers.get("x-forwarded-for") ??
@@ -42,7 +41,6 @@ export async function middleware(req: NextRequest) {
     const data = await resCheck.json();
 
     if (data.blocked) {
-      // ブロック応答
       const denied = new NextResponse("Access denied: your IP is blocked.", {
         status: 403,
       });
@@ -54,8 +52,19 @@ export async function middleware(req: NextRequest) {
     }
   } catch (err) {
     console.error("Middleware error:", err);
-    // エラー時も通常どおり通し（UI優先）
+    // エラー時も通常どおり通す
   }
 
+  // 4) 通常通す場合も CSP を付与
   const res = NextResponse.next();
-  // すべてのページで Shopify
+  res.headers.set(
+    "Content-Security-Policy",
+    "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
+  );
+  return res;
+}
+
+// matcher を明確化
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
