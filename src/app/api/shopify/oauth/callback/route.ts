@@ -1,3 +1,5 @@
+// src/app/api/shopify/oauth/callback/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -16,31 +18,24 @@ export async function GET(req: NextRequest) {
   const secret = process.env.SHOPIFY_API_SECRET || "";
   const params = Object.fromEntries(searchParams.entries());
 
-  // 🔍 デバッグログ
-  console.log("📩 Incoming params:", JSON.stringify(params, null, 2));
-
-  // HMAC検証: hmac 以外はすべて含める（state, timestamp なども）
+  // HMAC 検証
   const { hmac: _h, ...rest } = params;
-  const keys = Object.keys(rest).sort();
-  const msg = keys.map((k) => `${k}=${rest[k]}`).join("&");
+  const msg = Object.keys(rest)
+    .sort()
+    .map((k) => `${k}=${rest[k]}`)
+    .join("&");
 
-  const digest = crypto
-    .createHmac("sha256", secret)
-    .update(msg)
-    .digest("hex");
-
-  console.log("🧮 Canonical string:", msg);
-  console.log("🧮 Calculated digest:", digest);
-  console.log("📩 Provided hmac:", hmac);
+  const digest = crypto.createHmac("sha256", secret).update(msg).digest("hex");
 
   if (digest !== hmac.toLowerCase()) {
+    console.error("❌ Invalid HMAC", { msg, digest, provided: hmac });
     return NextResponse.json(
       { ok: false, error: "Invalid HMAC", digest, provided: hmac, canonical: msg },
       { status: 400 }
     );
   }
 
-  // トークン取得
+  // アクセストークン取得
   const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
