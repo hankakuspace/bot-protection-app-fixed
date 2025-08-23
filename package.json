@@ -19,6 +19,9 @@
     "sign:ip:shopify": "node scripts/sign-proxy.cjs \"https://be-search.biz/apps/bpp-20250814/ip-check\""
   },
   "dependencies": {
+    "@shopify/app-bridge": "^3.7.10",
+    "@shopify/app-bridge-react": "^4.2.1",
+    "@shopify/polaris": "^13.9.5",
     "@vercel/blob": "^1.1.1",
     "firebase": "^10.14.1",
     "firebase-admin": "^12.6.0",
