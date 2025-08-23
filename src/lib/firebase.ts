@@ -4,9 +4,12 @@ import { getFirestore } from "firebase-admin/firestore";
 
 const rawKey = process.env.FIREBASE_PRIVATE_KEY || "";
 
-// 🔥 デバッグ: デプロイ時に値を確認する
-console.log("🔥 FIREBASE_PRIVATE_KEY (raw head):", rawKey.slice(0, 100));
-console.log("🔥 FIREBASE_PRIVATE_KEY (raw tail):", rawKey.slice(-50));
+// 🔥 デバッグ出力（本番ログで確認する）
+console.log("🔥 FIREBASE_PRIVATE_KEY head:", rawKey.slice(0, 100));
+console.log("🔥 FIREBASE_PRIVATE_KEY tail:", rawKey.slice(-50));
+console.log("🔥 containsRealNewline:", rawKey.includes("\n"));
+console.log("🔥 containsEscapedNewline:", rawKey.includes("\\n"));
+console.log("🔥 length:", rawKey.length);
 
 const firebaseApp =
   getApps().length === 0
@@ -15,8 +18,8 @@ const firebaseApp =
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: rawKey
-            .replace(/^"|"$/g, "") // 前後の " を削除
-            .replace(/\\n/g, "\n") // \n を改行に変換
+            .replace(/^"|"$/g, "")
+            .replace(/\\n/g, "\n")
             .trim(),
         }),
       })
