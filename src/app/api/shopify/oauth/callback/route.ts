@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const rawQuery = url.search.slice(1); // "?..." を除いた生クエリ文字列
+  const rawQuery = url.search.slice(1);
 
   const queryParams = rawQuery.split("&");
   const providedHmac = queryParams.find((p) => p.startsWith("hmac="))?.split("=")[1] || "";
@@ -19,6 +19,10 @@ export async function GET(req: NextRequest) {
   }
 
   const secret = process.env.SHOPIFY_API_SECRET || "";
+
+  // 🔑 デバッグ出力（キーの確認用）
+  console.log("🔑 SHOPIFY_API_SECRET length:", secret.length);
+  console.log("🔑 SHOPIFY_API_SECRET preview:", secret.substring(0, 6) + "...");
 
   // hmac を除外 → key=value に分解 → key でソート
   const canonical = queryParams
