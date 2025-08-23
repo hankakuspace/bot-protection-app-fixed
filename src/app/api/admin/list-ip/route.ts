@@ -1,16 +1,18 @@
+// src/app/api/admin/list-ip/route.ts
 import { NextResponse } from "next/server";
-import adminDb from "@/lib/firebase-admin";
-
-export const runtime = "nodejs";
+import { db } from "@/lib/firebase";
 
 export async function GET() {
   try {
-    const snapshot = await adminDb.collection("blocked_ips").get();
-    const blocked = snapshot.docs.map((doc) => doc.id);
+    const snapshot = await db.collection("ip_blocks").get();
+    const blocked: string[] = snapshot.docs.map((doc) => doc.data().ip);
 
     return NextResponse.json({ ok: true, blocked });
-  } catch (err: any) {
-    console.error("[API:list-ip] error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  } catch (error) {
+    console.error("Error fetching blocked IPs:", error);
+    return NextResponse.json(
+      { ok: false, error: "Failed to fetch blocked IPs" },
+      { status: 500 }
+    );
   }
 }
