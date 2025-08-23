@@ -1,10 +1,13 @@
-// src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import requestIp from "request-ip";
 
 export async function middleware(req: NextRequest) {
-  // request-ip を使ってクライアントIPを取得
+  // API や静的ファイルは除外
+  if (req.nextUrl.pathname.startsWith("/api/") || req.nextUrl.pathname.startsWith("/_next/")) {
+    return NextResponse.next();
+  }
+
   const ip =
     requestIp.getClientIp(req as any) ??
     req.headers.get("x-forwarded-for") ??
@@ -31,7 +34,7 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// この設定により Next.js の静的ファイル等は除外
+// matcher を明確化
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
