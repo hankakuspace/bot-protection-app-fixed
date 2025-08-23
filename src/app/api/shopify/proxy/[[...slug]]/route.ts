@@ -7,9 +7,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   console.log("App Proxy HIT (slug):", req.url);
-  return NextResponse.redirect(new URL("/admin/logs", req.url), 302);
+
+  // 🔑 /admin/logs に正しくリダイレクト（サイトルート基準）
+  return NextResponse.redirect("/admin/logs", 302);
 }
 
 export async function HEAD(req: NextRequest) {
-  return NextResponse.redirect(new URL("/admin/logs", req.url), 302);
+  return NextResponse.redirect("/admin/logs", 302);
 }
