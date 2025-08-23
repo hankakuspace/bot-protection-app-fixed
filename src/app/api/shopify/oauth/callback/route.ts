@@ -17,8 +17,11 @@ export async function GET(req: NextRequest) {
     const secret = process.env.SHOPIFY_API_SECRET || "";
     const params = Object.fromEntries(searchParams.entries());
 
-    // HMAC検証（Shopifyドキュメント準拠）
-    const { hmac: _h, signature, ...rest } = params;
+    // 🔍 デバッグログ
+    console.log("📩 Incoming params:", params);
+
+    // HMAC検証
+    const { hmac: _h, ...rest } = params;
     const msg = Object.keys(rest)
       .sort()
       .map((k) => `${k}=${rest[k]}`)
@@ -29,8 +32,15 @@ export async function GET(req: NextRequest) {
       .update(msg)
       .digest("hex");
 
-    if (digest !== hmac) {
-      return NextResponse.json({ ok: false, error: "Invalid HMAC" }, { status: 400 });
+    console.log("🧮 Canonical string:", msg);
+    console.log("🧮 Calculated digest:", digest);
+    console.log("📩 Provided hmac:", hmac);
+
+    if (digest !== hmac.toLowerCase()) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid HMAC", digest, hmac },
+        { status: 400 }
+      );
     }
 
     // アクセストークン取得
@@ -44,18 +54,11 @@ export async function GET(req: NextRequest) {
       }),
     });
 
-    if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      return NextResponse.json({ ok: false, error: "Failed to get token", detail: text }, { status: 500 });
-    }
-
     const tokenData = await tokenRes.json();
-    console.log("✅ Access token stored for shop:", shop, tokenData.access_token ? "OK" : "MISSING");
+    console.log("✅ Access token response:", tokenData);
 
-    // 🔑 Shopify管理画面アプリURLへリダイレクト
     const redirectUrl = `https://${shop}/admin/apps/bpp-20250814-final01`;
     return NextResponse.redirect(redirectUrl);
-
   } catch (err: any) {
     console.error("OAuth callback error:", err);
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
