@@ -2,9 +2,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppProvider as PolarisProvider, Page, Card, Text, Link } from "@shopify/polaris";
+import {
+  AppProvider as PolarisProvider,
+  Page,
+  Card,
+  Text,
+  Link,
+} from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
-import { AppProvider, TitleBar } from "@shopify/app-bridge-react";
+import { Provider, TitleBar } from "@shopify/app-bridge-react";
 
 export default function Home() {
   const [host, setHost] = useState<string | null>(null);
@@ -23,9 +29,9 @@ export default function Home() {
   }
 
   return (
-    <AppProvider
+    <Provider
       config={{
-        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!, // 環境変数から公開キーを使用
+        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
         host: host,
         forceRedirect: true,
       }}
@@ -58,6 +64,6 @@ export default function Home() {
           </Card>
         </Page>
       </PolarisProvider>
-    </AppProvider>
+    </Provider>
   );
 }
