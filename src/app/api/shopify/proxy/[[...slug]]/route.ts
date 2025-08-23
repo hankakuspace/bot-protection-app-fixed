@@ -1,4 +1,4 @@
-// FILE: src/app/api/shopify/proxy/[[...slug]]/route.ts
+// src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -6,8 +6,6 @@ export const runtime = "nodejs"; // Firestoreや検証でNode.jsランタイム�
 
 /**
  * Shopify App Proxy リクエスト検証
- * @param req
- * @returns {boolean}
  */
 function verifyProxySignature(req: NextRequest): boolean {
   const url = new URL(req.url);
@@ -28,7 +26,6 @@ function verifyProxySignature(req: NextRequest): boolean {
 
 export async function GET(req: NextRequest) {
   const valid = verifyProxySignature(req);
-
   if (!valid) {
     return NextResponse.json(
       { ok: false, match: false, error: "Invalid signature" },
@@ -36,17 +33,16 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({
-    ok: true,
-    route: "proxy",
-    match: true,
-    shop: req.nextUrl.searchParams.get("shop"),
-  });
+  // App Proxy 経由では /admin/* のUIをそのまま返す
+  const url = new URL(req.url);
+  const slugPath = url.pathname.replace(/^.*\/proxy/, ""); // /proxy 以降を取り出す
+  const target = slugPath || "/admin/list-ip"; // デフォルトは /admin/list-ip に飛ばす
+
+  return NextResponse.redirect(new URL(target, req.nextUrl.origin));
 }
 
 export async function POST(req: NextRequest) {
   const valid = verifyProxySignature(req);
-
   if (!valid) {
     return NextResponse.json(
       { ok: false, match: false, error: "Invalid signature" },
