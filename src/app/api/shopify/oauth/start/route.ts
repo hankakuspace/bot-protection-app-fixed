@@ -1,3 +1,4 @@
+// FILE: src/app/api/shopify/oauth/start/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
     console.log("➡️ Redirecting to:", installUrl);
 
     return NextResponse.redirect(installUrl);
-  } catch (err) {
+  } catch (err: any) {
     console.error("❌ OAuth start error:", err);
     return NextResponse.json({ error: "OAuth start failed", detail: String(err) }, { status: 500 });
   }
