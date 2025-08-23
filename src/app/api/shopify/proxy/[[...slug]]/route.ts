@@ -23,40 +23,17 @@ function verifyProxySignature(req: NextRequest): boolean {
 
 export async function GET(req: NextRequest) {
   const valid = verifyProxySignature(req);
-
   if (!valid) {
-    return NextResponse.json(
-      { ok: false, match: false, error: "Invalid signature" },
-      { status: 403 }
-    );
+    return NextResponse.json({ ok: false, error: "Invalid signature" }, { status: 403 });
   }
 
-  // Proxy経由では管理画面UIへリダイレクト
-  return NextResponse.redirect(new URL("/admin/list-ip", req.nextUrl.origin));
-}
+  // ✅ /admin/list-ip のページを内部フェッチしてHTMLを返す
+  const res = await fetch(new URL("/admin/list-ip", req.nextUrl.origin), {
+    headers: { "Content-Type": "text/html" },
+  });
+  const html = await res.text();
 
-export async function POST(req: NextRequest) {
-  const valid = verifyProxySignature(req);
-
-  if (!valid) {
-    return NextResponse.json(
-      { ok: false, match: false, error: "Invalid signature" },
-      { status: 403 }
-    );
-  }
-
-  try {
-    const body = await req.json();
-    return NextResponse.json({
-      ok: true,
-      route: "proxy",
-      match: true,
-      data: body,
-    });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e.message },
-      { status: 500 }
-    );
-  }
+  return new NextResponse(html, {
+    headers: { "Content-Type": "text/html" },
+  });
 }
