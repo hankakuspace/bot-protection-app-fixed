@@ -8,39 +8,32 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
 
-  // ❗ raw query を使う（decode された値を使わない）
-  const rawQuery = url.search.slice(1);
+  const search = url.search.slice(1); // hmac=...&shop=... の部分
+  const providedHmac = url.searchParams.get("hmac") || "";
+  const shop = url.searchParams.get("shop");
+  const code = url.searchParams.get("code");
 
-  const params = Object.fromEntries(url.searchParams.entries());
-  const shop = params["shop"];
-  const code = params["code"];
-  const hmac = params["hmac"];
-
-  if (!shop || !code || !hmac) {
+  if (!shop || !code || !providedHmac) {
     return NextResponse.json({ ok: false, error: "Missing params" }, { status: 400 });
   }
 
   const secret = process.env.SHOPIFY_API_SECRET || "";
 
-  // hmac を除外して canonical string を生成
-  const queryObj = { ...params };
-  delete queryObj["hmac"];
-
-  const canonical = Object.keys(queryObj)
-    .sort()
-    .map((k) => `${k}=${queryObj[k]}`)
+  // ❗ hmac パラメータだけを取り除いた raw query を使う
+  const message = search
+    .split("&")
+    .filter((p) => !p.startsWith("hmac="))
     .join("&");
 
-  const digest = crypto.createHmac("sha256", secret).update(canonical).digest("hex");
+  const digest = crypto.createHmac("sha256", secret).update(message).digest("hex");
 
-  console.log("🧮 Raw query:", rawQuery);
-  console.log("🧮 Canonical string:", canonical);
+  console.log("🧮 Raw message:", message);
   console.log("🧮 Digest:", digest);
-  console.log("📩 Provided hmac:", hmac);
+  console.log("📩 Provided hmac:", providedHmac);
 
-  if (digest !== hmac.toLowerCase()) {
+  if (digest !== providedHmac.toLowerCase()) {
     return NextResponse.json(
-      { ok: false, error: "Invalid HMAC", digest, provided: hmac, canonical },
+      { ok: false, error: "Invalid HMAC", digest, provided: providedHmac, message },
       { status: 400 }
     );
   }
