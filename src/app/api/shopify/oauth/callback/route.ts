@@ -55,17 +55,17 @@ export async function GET(req: NextRequest) {
 
   // TODO: FirestoreやDBに保存する処理をここに追加する
 
-  // --- Shopify iframe対応: HTML + JSで /installed にリダイレクト ---
+  // --- Shopify埋め込みアプリ対応: Admin apps ページにリダイレクト ---
   return new NextResponse(
     `
     <html>
       <head>
         <script type="text/javascript">
-          window.top.location.href = "/installed";
+          window.top.location.href = "https://${shop}/admin/apps/bpp-20250814-final01";
         </script>
       </head>
       <body>
-        <p>Redirecting to app...</p>
+        <p>アプリにリダイレクトしています...</p>
       </body>
     </html>
     `,
