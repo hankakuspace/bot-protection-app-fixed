@@ -35,7 +35,6 @@ export async function GET(req: NextRequest): Promise<Response> {
   const params = url.searchParams;
   const secret = getSecret();
 
-  // 署名検証
   const result = verifyAppProxySignature(params, secret);
   if (!result.ok) {
     return json(
@@ -54,12 +53,6 @@ export async function GET(req: NextRequest): Promise<Response> {
     );
   }
 
-  // ✅ logs ページを返す
-  if (route === "logs") {
-    return NextResponse.redirect(new URL("/admin/logs", req.url));
-  }
-
-  // 既存のテスト用ルート
   switch (route) {
     case "ping": {
       const shop = params.get("shop") ?? undefined;
@@ -69,10 +62,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
     case "ip-check": {
       const { ip, xff, realIp } = extractClientIp(req);
-      return json(
-        { ok: true, route: "ip-check", match: result.match, ip, xff, realIp },
-        200
-      );
+      return json({ ok: true, route: "ip-check", match: result.match, ip, xff, realIp }, 200);
     }
 
     case "echo": {
@@ -82,22 +72,11 @@ export async function GET(req: NextRequest): Promise<Response> {
           req.headers.get(h),
         ])
       );
-      return json(
-        {
-          ok: true,
-          route: "echo",
-          match: result.match,
-          query: Object.fromEntries(params.entries()),
-          headers: headersPick,
-        },
-        200
-      );
+      return json({ ok: true, route: "echo", match: result.match, query: Object.fromEntries(params.entries()), headers: headersPick }, 200);
     }
 
     case "debug-params": {
-      if (!isDebugEnabled()) {
-        return json({ ok: false, route, reason: "forbidden" }, 403);
-      }
+      if (!isDebugEnabled()) return json({ ok: false, route, reason: "forbidden" }, 403);
       return json(
         {
           ok: true,
@@ -113,11 +92,13 @@ export async function GET(req: NextRequest): Promise<Response> {
       );
     }
 
+    /** ⭐ ここで /admin/logs にリダイレクト */
+    case "admin-logs": {
+      return NextResponse.redirect(new URL("/admin/logs", process.env.NEXT_PUBLIC_BASE_URL));
+    }
+
     default: {
-      return json(
-        { ok: true, route, match: result.match, query: paramsToObject(params) },
-        200
-      );
+      return json({ ok: true, route, match: result.match, query: paramsToObject(params) }, 200);
     }
   }
 }
