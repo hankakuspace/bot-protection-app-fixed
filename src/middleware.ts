@@ -8,11 +8,6 @@ export async function middleware(req: NextRequest) {
 
   console.log("🔍 Middleware hit:", pathname);
 
-  // ✅ API 全体は除外（App Proxy含む）
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
-  }
-
   // ✅ /admin/* は常に許可
   if (pathname.startsWith("/admin")) {
     const res = NextResponse.next();
@@ -59,7 +54,7 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-// ✅ matcher を修正して /api は最初から除外
+// ✅ matcher で /api/* は最初から除外
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
