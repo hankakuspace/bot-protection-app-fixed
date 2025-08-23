@@ -9,6 +9,17 @@ export async function middleware(req: NextRequest) {
   // デバッグログ
   console.log("🔍 Middleware hit:", pathname);
 
+  // ✅ App Proxy はスキップ
+  if (pathname.startsWith("/api/shopify/proxy")) {
+    console.log("⚡ Skip middleware for App Proxy:", pathname);
+    return NextResponse.next();
+  }
+
+  // ✅ 自分自身への /api/check-ip はスキップ（再帰防止）
+  if (pathname.startsWith("/api/check-ip")) {
+    return NextResponse.next();
+  }
+
   // 1) API や Next 静的配信は除外
   if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
     const res = NextResponse.next();
@@ -67,5 +78,5 @@ export async function middleware(req: NextRequest) {
 
 // matcher を明確化
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
