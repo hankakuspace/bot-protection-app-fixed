@@ -44,7 +44,10 @@ export async function GET(req: NextRequest) {
   if (!tokenRes.ok) {
     const errText = await tokenRes.text();
     console.error("❌ Token exchange failed:", errText);
-    return NextResponse.json({ error: "Token exchange failed", detail: errText }, { status: 500 });
+    return NextResponse.json(
+      { error: "Token exchange failed", detail: errText },
+      { status: 500 }
+    );
   }
 
   const tokenData = await tokenRes.json();
@@ -53,5 +56,5 @@ export async function GET(req: NextRequest) {
   console.log("✅ Access token issued:", tokenData);
 
   // --- インストール完了ページにリダイレクト ---
-  return NextResponse.redirect(`${process.env.SHOPIFY_APP_URL}/installed`);
+  return NextResponse.redirect(new URL("/installed", req.url));
 }
