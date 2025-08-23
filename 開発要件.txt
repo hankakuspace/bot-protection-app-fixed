@@ -68,6 +68,31 @@ return keys.map((k) => `${k}=${obj[k]}`).join("\\n");
 - 修正箇所は必ず「どこをどう直したか」を明示して管理
 
 
+## Shopify OAuth 署名検証エラー事象と解決方法
+
+### 事象
+- Shopify OAuth コールバックで HMAC 検証に失敗し、常に `Invalid HMAC` となる状態が発生。
+- Client Secret の誤設定を疑ったが、実際には **URL デコード済み値を使って canonical string を生成していたこと** が原因。
+
+### 原因
+- `URLSearchParams` を利用すると、自動で decode された値になる。
+- Shopify は **未 decode の raw query 値** をもとに digest を計算するため、食い違いが発生。
+
+### 対応
+- `new URL(req.url).search.slice(1)` を使って **raw query** を取得。
+- `hmac` を除外し、残りをアルファベット順にソート。
+- `&` 区切りで canonical string を生成。
+- `crypto.createHmac("sha256", secret).update(canonical).digest("hex")` で生成した digest と比較。
+- 修正後、正常にリダイレクトまで到達することを確認。
+
+### 再発防止
+- **Proxy / OAuth / Webhook で HMAC の計算方法が異なる**ため、用途別に共通関数化する。  
+  - Proxy → `\n` 区切り, hex  
+  - OAuth → `&` 区切り, hex, raw query 使用  
+  - Webhook → body, base64  
+
+
+
 
 
 Firebase Admin SDK 初期化ルールと再発防止策
