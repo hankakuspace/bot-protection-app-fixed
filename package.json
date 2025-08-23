@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@vercel/blob": "^1.1.1",
-    "firebase-admin": "^12.6.0",
+    "firebase": "^10.14.1",          // ✅ 戻した（フロント管理UI用）
+    "firebase-admin": "^12.6.0",     // サーバー側 API 用
     "geoip-lite": "^1.4.10",
     "ipaddr.js": "^2.2.0",
     "next": "^15.4.6",
