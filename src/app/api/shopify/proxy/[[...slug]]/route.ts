@@ -32,12 +32,15 @@ export async function GET(req: NextRequest): Promise<Response> {
     );
   }
 
-  // --- admin-logs を UI ページに rewrite ---
-  if (pathname.includes("/admin-logs")) {
+  // --- App Proxy のルートアクセス時は /admin/logs を返す ---
+  if (
+    pathname.endsWith("/apps/bpp-20250814-final01") ||
+    pathname.endsWith("/apps/bpp-20250814-final01/")
+  ) {
     return NextResponse.rewrite(new URL("/admin/logs", req.url));
   }
 
-  // --- 動作確認用 ---
+  // --- ping テスト用 ---
   if (pathname.includes("/ping")) {
     return NextResponse.json(
       { ok: true, route: "ping", match: result.match },
@@ -45,7 +48,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     );
   }
 
-  // --- fallback ---
+  // fallback
   return NextResponse.json(
     { ok: true, route: "default", match: result.match },
     { status: 200 }
