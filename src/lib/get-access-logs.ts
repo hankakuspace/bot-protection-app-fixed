@@ -1,13 +1,14 @@
-// src/lib/get-access-logs.ts
+import { db } from "@/lib/admin";
 
-import { collection, getDocs, getFirestore, query, orderBy } from 'firebase/firestore';
-import { app } from './firebase';
-
+/**
+ * Firestore のアクセスログを取得
+ * - timestamp の降順
+ */
 export async function getAccessLogs() {
-  const db = getFirestore(app);
-  const logsRef = collection(db, 'access_logs');
-  const q = query(logsRef, orderBy('timestamp', 'desc'));
-  const snapshot = await getDocs(q);
+  const snapshot = await db
+    .collection("access_logs")
+    .orderBy("timestamp", "desc")
+    .get();
 
   return snapshot.docs.map((doc) => ({
     id: doc.id,

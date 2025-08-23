@@ -66,3 +66,44 @@ return keys.map((k) => `${k}=${obj[k]}`).join("\\n");
 - **署名検証ロジックは絶対に改変せず流用する**  
 - 検証は専用の `/debug-params` を一時追加して行い、完了後は必ず削除  
 - 修正箇所は必ず「どこをどう直したか」を明示して管理
+
+
+
+
+Firebase Admin SDK 初期化ルールと再発防止策
+事象
+Service account object must contain a string "project_id" property.
+Invalid PEM formatted message
+Unterminated string in JSON
+ビルドやデプロイで Firebase Admin SDK 初期化エラーが頻発した。
+原因
+.env.local の FIREBASE_PRIVATE_KEY の改行扱いが壊れた
+JSON丸ごと方式を .env に入れたため、dotenv の解釈で失敗した
+正しい対応（分割3変数方式に固定）
+.env.local に必ず以下を設定する：
+FIREBASE_PROJECT_ID=bot-protection-xxxx
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@bot-protection-xxxx.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nXXXXX...\n-----END PRIVATE KEY-----\n"
+FIREBASE_PRIVATE_KEY は必ず ダブルクォートで囲む
+改行は \n 文字列で表現（実際の改行を入れない）
+src/lib/firebase.ts は以下に固定する：
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+
+const firebaseApp =
+  getApps().length === 0
+    ? initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+        }),
+      })
+    : getApps()[0];
+
+export const db = getFirestore(firebaseApp);
+再発防止ルール
+JSON丸ごと (FIREBASE_SERVICE_ACCOUNT_KEY={...}) 方式は禁止
+Firebase Admin SDK は必ず 分割3変数方式で管理
+デプロイ前に npm run build をローカルで必ず実行して確認する
+このルールを README / 開発要件に明記し、全員が統一設定する

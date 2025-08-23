@@ -1,5 +1,4 @@
-import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { db } from "@/lib/admin";
 
 const BLOCKED_COLLECTION = "blocked_ips";
 
@@ -7,16 +6,18 @@ const BLOCKED_COLLECTION = "blocked_ips";
  * IP一覧を取得
  */
 export async function listIps(): Promise<string[]> {
-  const snapshot = await getDocs(collection(db, BLOCKED_COLLECTION));
+  const snapshot = await db.collection(BLOCKED_COLLECTION).get();
   return snapshot.docs.map((doc) => doc.id);
 }
 
 /**
  * IPを追加
  */
-export async function addIp(ip: string): Promise<void> {
-  await setDoc(doc(db, BLOCKED_COLLECTION, ip), {
+export async function addIp(ip: string, source: string = "manual"): Promise<void> {
+  if (!ip) return;
+  await db.collection(BLOCKED_COLLECTION).doc(ip).set({
     createdAt: new Date().toISOString(),
+    source,
   });
 }
 
@@ -24,22 +25,27 @@ export async function addIp(ip: string): Promise<void> {
  * IPを削除
  */
 export async function removeIp(ip: string): Promise<void> {
-  await deleteDoc(doc(db, BLOCKED_COLLECTION, ip));
+  if (!ip) return;
+  await db.collection(BLOCKED_COLLECTION).doc(ip).delete();
 }
 
 /**
  * 複数IPをセット（全上書き）
  */
-export async function setIps(ips: string[]): Promise<void> {
+export async function setIps(ips: string[], source: string = "manual"): Promise<void> {
   // 既存を全削除 → 新しいリストを追加
-  const snapshot = await getDocs(collection(db, BLOCKED_COLLECTION));
-  await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+  const snapshot = await db.collection(BLOCKED_COLLECTION).get();
+  const batch = db.batch();
+  snapshot.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
 
-  await Promise.all(
-    ips.map((ip) =>
-      setDoc(doc(db, BLOCKED_COLLECTION, ip), {
-        createdAt: new Date().toISOString(),
-      })
-    )
-  );
+  const newBatch = db.batch();
+  ips.forEach((ip) => {
+    const ref = db.collection(BLOCKED_COLLECTION).doc(ip);
+    newBatch.set(ref, {
+      createdAt: new Date().toISOString(),
+      source,
+    });
+  });
+  await newBatch.commit();
 }

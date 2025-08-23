@@ -1,43 +1,48 @@
 // src/lib/admin.ts
-import { db } from '@/lib/firebase';
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  getDocs,
-  query,
-  where,
-} from 'firebase/firestore';
+import admin from "firebase-admin";
 
-const COLL = 'admin_ips';
-
-/** このIPが管理者か？（Firestore直クエリ） */
-export async function isAdminIp(ip: string): Promise<boolean> {
-  if (!ip) return false;
-  const qSnap = await getDocs(query(collection(db, COLL), where('ip', '==', ip)));
-  return !qSnap.empty;
-}
-
-/** 管理者IPを追加（重複はスキップ） */
-export async function addAdminIp(ip: string, note: string = 'manual'): Promise<void> {
-  if (!ip) return;
-  if (await isAdminIp(ip)) return;
-  await addDoc(collection(db, COLL), {
-    ip,
-    note,
-    createdAt: Date.now(),
+// Firebase Admin SDK 初期化
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
   });
 }
 
-/** 管理者IPを削除（同一IPが複数あれば全削除） */
-export async function removeAdminIp(ip: string): Promise<void> {
-  if (!ip) return;
-  const qSnap = await getDocs(query(collection(db, COLL), where('ip', '==', ip)));
-  await Promise.all(qSnap.docs.map((d) => deleteDoc(d.ref)));
+export const db = admin.firestore();
+const COLL = "admin_ips";
+
+/**
+ * 指定されたIPが管理者として登録されているか判定
+ */
+export async function isAdminIp(ip: string): Promise<boolean> {
+  if (!ip) return false;
+  const qSnap = await db.collection(COLL).where("ip", "==", ip).get();
+  return !qSnap.empty;
 }
 
-/** 管理者IP一覧を返す（必要ならUI用） */
+/**
+ * 管理者IPを追加
+ */
+export async function addAdminIp(ip: string, source: string = "manual"): Promise<void> {
+  if (!ip) return;
+  await db.collection(COLL).add({ ip, source });
+}
+
+/**
+ * 管理者IP一覧を取得
+ */
 export async function listAdminIps(): Promise<string[]> {
-  const snap = await getDocs(collection(db, COLL));
-  return snap.docs.map((d) => (d.data() as any).ip).filter(Boolean);
+  const snapshot = await db.collection(COLL).get();
+  return snapshot.docs.map((doc) => doc.data().ip as string);
+}
+
+/**
+ * 管理者IPを削除
+ */
+export async function removeAdminIp(ip: string): Promise<void> {
+  if (!ip) return;
+  const snapshot = await db.collection(COLL).where("ip", "==", ip).get();
+  const batch = db.batch();
+  snapshot.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
 }
