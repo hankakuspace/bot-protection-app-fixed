@@ -6,31 +6,14 @@ import requestIp from "request-ip";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // デバッグログ
   console.log("🔍 Middleware hit:", pathname);
 
-  // ✅ App Proxy はスキップ
-  if (pathname.startsWith("/api/shopify/proxy")) {
-    console.log("⚡ Skip middleware for App Proxy:", pathname);
+  // ✅ API 全体は除外（App Proxy含む）
+  if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
-  // ✅ 自分自身への /api/check-ip はスキップ（再帰防止）
-  if (pathname.startsWith("/api/check-ip")) {
-    return NextResponse.next();
-  }
-
-  // 1) API や Next 静的配信は除外
-  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
-    const res = NextResponse.next();
-    res.headers.set(
-      "Content-Security-Policy",
-      "frame-ancestors https://admin.shopify.com https://*.myshopify.com;"
-    );
-    return res;
-  }
-
-  // 2) /admin/* は常に許可
+  // ✅ /admin/* は常に許可
   if (pathname.startsWith("/admin")) {
     const res = NextResponse.next();
     res.headers.set(
@@ -40,7 +23,7 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // 3) 通常ページのIPチェック
+  // 🔽 通常ページの IP チェック
   const ip =
     requestIp.getClientIp(req as any) ??
     req.headers.get("x-forwarded-for") ??
@@ -76,7 +59,7 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-// matcher を明確化
+// ✅ matcher を修正して /api は最初から除外
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
