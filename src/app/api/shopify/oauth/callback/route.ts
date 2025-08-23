@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
 
-  // HMAC 検証
+  // --- HMAC 検証 ---
   const params = [...url.searchParams.entries()]
     .filter(([key]) => key !== "hmac")
     .map(([key, value]) => `${key}=${value}`)
@@ -30,6 +30,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid HMAC" }, { status: 400 });
   }
 
-  // TODO: アクセストークン取得処理
-  return NextResponse.json({ ok: true, shop, code });
+  // --- アクセストークン取得 ---
+  const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: process.env.SHOPIFY_API_KEY,
+      client_secret: process.env.SHOPIFY_API_SECRET,
+      code,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    const errText = await tokenRes.text();
+    console.error("❌ Token exchange failed:", errText);
+    return NextResponse.json({ error: "Token exchange failed", detail: errText }, { status: 500 });
+  }
+
+  const tokenData = await tokenRes.json();
+
+  // TODO: FirestoreやDBに保存する処理をここに追加する
+  console.log("✅ Access token issued:", tokenData);
+
+  // --- インストール完了ページにリダイレクト ---
+  return NextResponse.redirect(`${process.env.SHOPIFY_APP_URL}/installed`);
 }
