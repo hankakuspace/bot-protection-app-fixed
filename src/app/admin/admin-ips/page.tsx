@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client'; // ← 修正ポイント
 import {
   addDoc,
   collection,
@@ -115,7 +115,6 @@ export default function AdminIpsPage() {
           >
             Add
           </button>
-          {/* 戻るリンク */}
           <Link
             href="/admin/logs"
             className="border rounded px-3 py-1 text-sm inline-flex items-center"
