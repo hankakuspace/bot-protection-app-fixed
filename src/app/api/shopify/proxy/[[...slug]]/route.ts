@@ -35,6 +35,7 @@ export async function GET(req: NextRequest): Promise<Response> {
   const params = url.searchParams;
   const secret = getSecret();
 
+  // 署名検証
   const result = verifyAppProxySignature(params, secret);
   if (!result.ok) {
     return json(
@@ -53,6 +54,12 @@ export async function GET(req: NextRequest): Promise<Response> {
     );
   }
 
+  // ✅ logs ページを返す
+  if (route === "logs") {
+    return NextResponse.redirect(new URL("/admin/logs", req.url));
+  }
+
+  // 既存のテスト用ルート
   switch (route) {
     case "ping": {
       const shop = params.get("shop") ?? undefined;
@@ -63,14 +70,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     case "ip-check": {
       const { ip, xff, realIp } = extractClientIp(req);
       return json(
-        {
-          ok: true,
-          route: "ip-check",
-          match: result.match,
-          ip,
-          xff,
-          realIp,
-        },
+        { ok: true, route: "ip-check", match: result.match, ip, xff, realIp },
         200
       );
     }
