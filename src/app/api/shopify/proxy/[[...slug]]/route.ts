@@ -2,11 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
-export const runtime = "nodejs"; // Firestoreや検証でNode.jsランタイム必須
+export const runtime = "nodejs";
 
-/**
- * Shopify App Proxy リクエスト検証
- */
 function verifyProxySignature(req: NextRequest): boolean {
   const url = new URL(req.url);
   const params = Object.fromEntries(url.searchParams.entries());
@@ -14,7 +11,7 @@ function verifyProxySignature(req: NextRequest): boolean {
   delete params.signature;
 
   const keys = Object.keys(params).sort();
-  const canonicalQuery = keys.map((k) => `${k}=${params[k]}`).join("\n"); // ✅ \n 区切り
+  const canonicalQuery = keys.map((k) => `${k}=${params[k]}`).join("\n");
 
   const expected = crypto
     .createHmac("sha256", process.env.SHOPIFY_API_SECRET || "")
@@ -26,6 +23,7 @@ function verifyProxySignature(req: NextRequest): boolean {
 
 export async function GET(req: NextRequest) {
   const valid = verifyProxySignature(req);
+
   if (!valid) {
     return NextResponse.json(
       { ok: false, match: false, error: "Invalid signature" },
@@ -33,16 +31,13 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // App Proxy 経由では /admin/* のUIをそのまま返す
-  const url = new URL(req.url);
-  const slugPath = url.pathname.replace(/^.*\/proxy/, ""); // /proxy 以降を取り出す
-  const target = slugPath || "/admin/list-ip"; // デフォルトは /admin/list-ip に飛ばす
-
-  return NextResponse.redirect(new URL(target, req.nextUrl.origin));
+  // Proxy経由では管理画面UIへリダイレクト
+  return NextResponse.redirect(new URL("/admin/list-ip", req.nextUrl.origin));
 }
 
 export async function POST(req: NextRequest) {
   const valid = verifyProxySignature(req);
+
   if (!valid) {
     return NextResponse.json(
       { ok: false, match: false, error: "Invalid signature" },
