@@ -7,7 +7,6 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const rawQuery = url.search.slice(1); // 先頭の "?" を除いた部分
   const searchParams = new URLSearchParams(url.search);
 
   const shop = searchParams.get("shop");
@@ -20,29 +19,30 @@ export async function GET(req: NextRequest) {
 
   const secret = process.env.SHOPIFY_API_SECRET || "";
 
-  // rawQuery を直接 split → hmac を除外 → key=value をソート
-  const canonical = rawQuery
-    .split("&")
-    .filter((p) => !p.startsWith("hmac="))
-    .sort((a, b) => a.localeCompare(b))
+  // hmac を除外したペアを key でソート
+  const pairs: string[] = [];
+  for (const [key, value] of searchParams.entries()) {
+    if (key === "hmac") continue;
+    pairs.push(`${key}=${value}`);
+  }
+
+  const canonical = pairs
+    .sort((a, b) => {
+      const ka = a.split("=")[0];
+      const kb = b.split("=")[0];
+      return ka.localeCompare(kb);
+    })
     .join("&");
 
   const digest = crypto.createHmac("sha256", secret).update(canonical).digest("hex");
 
-  console.log("📩 Raw query:", rawQuery);
   console.log("🧮 Canonical:", canonical);
   console.log("🧮 Digest:", digest);
   console.log("📩 Provided HMAC:", providedHmac);
 
   if (digest !== providedHmac.toLowerCase()) {
     return NextResponse.json(
-      {
-        ok: false,
-        error: "Invalid HMAC",
-        digest,
-        provided: providedHmac,
-        canonical,
-      },
+      { ok: false, error: "Invalid HMAC", digest, provided: providedHmac, canonical },
       { status: 400 }
     );
   }
