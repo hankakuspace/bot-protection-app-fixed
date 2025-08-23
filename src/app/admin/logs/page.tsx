@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { db } from '@/lib/firebase-client'; // © firebase-client ‚É•ÏX
+import { db } from '@/lib/firebase-client'; // â† firebase-client ã«å¤‰æ›´
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
 type LogRow = {
@@ -29,7 +29,7 @@ export default function LogsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold">ƒAƒNƒZƒXƒƒO</h1>
+      <h1 className="text-2xl font-bold">ã‚¢ã‚¯ã‚»ã‚¹ãƒ­ã‚°</h1>
       <table className="mt-4 w-full text-sm border">
         <thead>
           <tr className="bg-gray-100 text-left">
@@ -46,8 +46,8 @@ export default function LogsPage() {
             <tr key={log.id} className="odd:bg-white even:bg-gray-50">
               <td className="p-2 border font-mono">{log.ip}</td>
               <td className="p-2 border">{log.country || '-'}</td>
-              <td className="p-2 border">{log.isAdmin ? '?' : ''}</td>
-              <td className="p-2 border">{log.blocked ? '?' : ''}</td>
+              <td className="p-2 border">{log.isAdmin ? 'âœ…' : ''}</td>
+              <td className="p-2 border">{log.blocked ? 'ğŸš«' : ''}</td>
               <td className="p-2 border truncate max-w-xs">{log.userAgent || '-'}</td>
               <td className="p-2 border">
                 {log.timestamp?.toDate
