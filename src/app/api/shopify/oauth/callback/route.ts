@@ -16,10 +16,10 @@ export async function GET(req: NextRequest) {
   const secret = process.env.SHOPIFY_API_SECRET || "";
   const params = Object.fromEntries(searchParams.entries());
 
-  // 🔍 デバッグ用ログ
+  // 🔍 デバッグログ
   console.log("📩 Incoming params:", JSON.stringify(params, null, 2));
 
-  // HMAC検証
+  // HMAC検証: hmac 以外はすべて含める（state, timestamp なども）
   const { hmac: _h, ...rest } = params;
   const keys = Object.keys(rest).sort();
   const msg = keys.map((k) => `${k}=${rest[k]}`).join("&");
@@ -29,7 +29,6 @@ export async function GET(req: NextRequest) {
     .update(msg)
     .digest("hex");
 
-  console.log("🧮 Canonical keys:", keys);
   console.log("🧮 Canonical string:", msg);
   console.log("🧮 Calculated digest:", digest);
   console.log("📩 Provided hmac:", hmac);
@@ -40,6 +39,19 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  // トークン取得
+  const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: process.env.SHOPIFY_API_KEY,
+      client_secret: process.env.SHOPIFY_API_SECRET,
+      code,
+    }),
+  });
+  const tokenData = await tokenRes.json();
+  console.log("✅ Access token response:", tokenData);
 
   const redirectUrl = `https://${shop}/admin/apps/bpp-20250814-final01`;
   return NextResponse.redirect(redirectUrl);
