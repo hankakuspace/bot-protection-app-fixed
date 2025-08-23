@@ -51,10 +51,8 @@ export async function GET(req: NextRequest) {
   }
 
   const tokenData = await tokenRes.json();
-
-  // TODO: FirestoreやDBに保存する処理をここに追加する
   console.log("✅ Access token issued:", tokenData);
 
-  // --- インストール完了ページにリダイレクト ---
-  return NextResponse.redirect(new URL("/installed", req.url));
+  // --- インストール完了ページにリダイレクト (302) ---
+  return NextResponse.redirect(new URL("/installed", req.url), 302);
 }
