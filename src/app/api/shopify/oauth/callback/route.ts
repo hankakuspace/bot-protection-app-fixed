@@ -6,15 +6,19 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const shop = searchParams.get("shop")!;
-    const code = searchParams.get("code")!;
-    const hmac = searchParams.get("hmac")!;
+    const shop = searchParams.get("shop");
+    const code = searchParams.get("code");
+    const hmac = searchParams.get("hmac");
+
+    if (!shop || !code || !hmac) {
+      return NextResponse.json({ ok: false, error: "Missing params" }, { status: 400 });
+    }
 
     const secret = process.env.SHOPIFY_API_SECRET || "";
     const params = Object.fromEntries(searchParams.entries());
 
-    // HMAC検証
-    const { hmac: _, signature, ...rest } = params;
+    // HMAC検証（Shopifyドキュメント準拠）
+    const { hmac: _h, signature, ...rest } = params;
     const msg = Object.keys(rest)
       .sort()
       .map((k) => `${k}=${rest[k]}`)
@@ -40,13 +44,18 @@ export async function GET(req: NextRequest) {
       }),
     });
 
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      return NextResponse.json({ ok: false, error: "Failed to get token", detail: text }, { status: 500 });
+    }
+
     const tokenData = await tokenRes.json();
-    console.log("✅ Access token stored for shop:", shop);
+    console.log("✅ Access token stored for shop:", shop, tokenData.access_token ? "OK" : "MISSING");
 
-    // 🔑 最後は Shopify 管理画面の App Proxy サブパスへリダイレクト
+    // 🔑 Shopify管理画面アプリURLへリダイレクト
     const redirectUrl = `https://${shop}/admin/apps/bpp-20250814-final01`;
-
     return NextResponse.redirect(redirectUrl);
+
   } catch (err: any) {
     console.error("OAuth callback error:", err);
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
