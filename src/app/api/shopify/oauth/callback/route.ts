@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
   }
 
-  // --- HMAC 検証 ---
+  // --- HMAC検証 ---
   const params = [...url.searchParams.entries()]
     .filter(([key]) => key !== "hmac")
     .map(([key, value]) => `${key}=${value}`)
@@ -30,32 +30,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid HMAC" }, { status: 400 });
   }
 
-  // --- アクセストークン取得 ---
-  const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: process.env.SHOPIFY_API_KEY,
-      client_secret: process.env.SHOPIFY_API_SECRET,
-      code,
-    }),
-  });
+  // --- アクセストークン交換 ---
+  try {
+    const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: process.env.SHOPIFY_API_KEY,
+        client_secret: process.env.SHOPIFY_API_SECRET,
+        code,
+      }),
+    });
 
-  if (!tokenRes.ok) {
-    const errText = await tokenRes.text();
-    console.error("❌ Token exchange failed:", errText);
-    return NextResponse.json(
-      { error: "Token exchange failed", detail: errText },
-      { status: 500 }
-    );
+    const tokenData = await tokenRes.json();
+    console.log("✅ Access token issued:", tokenData);
+  } catch (err) {
+    console.error("❌ Token exchange failed:", err);
   }
 
-  const tokenData = await tokenRes.json();
-  console.log("✅ Access token issued:", tokenData);
-
-  // TODO: FirestoreやDBに保存する処理をここに追加する
-
-  // --- Shopify埋め込み対応: 管理画面のアプリURLに移動 ---
+  // --- 強制的に App Proxy URL に飛ばす ---
   return new NextResponse(
     `
     <html>
@@ -65,15 +58,13 @@ export async function GET(req: NextRequest) {
         </script>
       </head>
       <body>
-        <p>アプリにリダイレクトしています...</p>
+        <p>インストール完了。アプリに移動しています...</p>
       </body>
     </html>
     `,
     {
       status: 200,
-      headers: {
-        "Content-Type": "text/html",
-      },
+      headers: { "Content-Type": "text/html" },
     }
   );
 }
