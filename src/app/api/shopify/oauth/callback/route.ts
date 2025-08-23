@@ -7,7 +7,6 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const rawQuery = url.search.slice(1);
   const params = Object.fromEntries(url.searchParams.entries());
 
   const shop = params["shop"];
@@ -20,16 +19,16 @@ export async function GET(req: NextRequest) {
 
   const secret = process.env.SHOPIFY_API_SECRET || "";
 
-  // ❗ hmac を除外して、順序そのままで canonical string を構築
-  const message = rawQuery
-    .split("&")
-    .filter((p) => !p.startsWith("hmac="))
+  // hmac を除外してアルファベット順にソート
+  const { hmac: _h, ...rest } = params;
+  const message = Object.keys(rest)
+    .sort()
+    .map((k) => `${k}=${rest[k]}`)
     .join("&");
 
   const digest = crypto.createHmac("sha256", secret).update(message).digest("hex");
 
-  console.log("📩 Raw query:", rawQuery);
-  console.log("🧮 Message used for HMAC:", message);
+  console.log("🧮 Canonical string:", message);
   console.log("🧮 Digest:", digest);
   console.log("📩 Provided HMAC:", providedHmac);
 
