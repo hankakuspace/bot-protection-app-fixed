@@ -55,13 +55,13 @@ export async function GET(req: NextRequest) {
 
   // TODO: FirestoreやDBに保存する処理をここに追加する
 
-  // --- Shopify埋め込みアプリ対応: Admin apps ページにリダイレクト ---
+  // --- Shopify埋め込みアプリ対応: アプリのトップにリダイレクト ---
   return new NextResponse(
     `
     <html>
       <head>
         <script type="text/javascript">
-          window.top.location.href = "https://${shop}/admin/apps/bpp-20250814-final01";
+          window.top.location.href = "/";
         </script>
       </head>
       <body>
