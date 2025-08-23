@@ -25,3 +25,5 @@ node_modules
 # 秘密情報を含むスクリプト
 check-secret-match.sh
 check-all-secrets.sh
+.env*.local
+key.*
