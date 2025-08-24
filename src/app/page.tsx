@@ -9,6 +9,7 @@ import {
   Text,
   Link,
 } from "@shopify/polaris";
+import enTranslations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 import { TitleBar } from "@shopify/app-bridge-react";
 import AppBridgeProvider from "@/components/AppBridgeProvider";
@@ -31,7 +32,8 @@ export default function Home() {
 
   return (
     <AppBridgeProvider host={host}>
-      <PolarisProvider>
+      {/* PolarisProvider には必ず i18n を渡す */}
+      <PolarisProvider i18n={enTranslations}>
         <Page title="Bot Protection App">
           <TitleBar title="Bot Protection App" />
           <Card sectioned>
