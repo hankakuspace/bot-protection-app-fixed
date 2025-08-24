@@ -2,14 +2,19 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-const rawKey = process.env.FIREBASE_PRIVATE_KEY || "";
+// Vercelの環境変数は `\n` が文字列として保存されている前提
+// → ここで本物の改行に変換
+const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
-// 🔥 デバッグ出力（本番ログで確認する）
-console.log("🔥 FIREBASE_PRIVATE_KEY head:", rawKey.slice(0, 100));
-console.log("🔥 FIREBASE_PRIVATE_KEY tail:", rawKey.slice(-50));
-console.log("🔥 containsRealNewline:", rawKey.includes("\n"));
-console.log("🔥 containsEscapedNewline:", rawKey.includes("\\n"));
-console.log("🔥 length:", rawKey.length);
+if (!process.env.FIREBASE_PROJECT_ID) {
+  throw new Error("FIREBASE_PROJECT_ID is not set");
+}
+if (!process.env.FIREBASE_CLIENT_EMAIL) {
+  throw new Error("FIREBASE_CLIENT_EMAIL is not set");
+}
+if (!privateKey) {
+  throw new Error("FIREBASE_PRIVATE_KEY is not set or invalid");
+}
 
 const firebaseApp =
   getApps().length === 0
@@ -17,10 +22,7 @@ const firebaseApp =
         credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: rawKey
-            .replace(/^"|"$/g, "")
-            .replace(/\\n/g, "\n")
-            .trim(),
+          privateKey,
         }),
       })
     : getApps()[0];
