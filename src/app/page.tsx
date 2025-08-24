@@ -27,8 +27,9 @@ export default function Home() {
     }
   }, []);
 
+  // host がなくても最低限 UI を出す
   if (!host) {
-    return <div>Loading...</div>;
+    return <div>アプリを読み込み中... (host パラメータ未検出)</div>;
   }
 
   return (
@@ -39,26 +40,20 @@ export default function Home() {
           <Card>
             <BlockStack gap="400">
               <Text as="h2" variant="headingMd">
-                IP管理ツール
+                Bot Protection 管理アプリ
               </Text>
               <Text as="p">
-                このアプリからIPブロックの管理が行えます。
+                下記のリンクから各機能ページに移動できます。
               </Text>
               <ul style={{ marginTop: "1rem" }}>
                 <li>
-                  <Link url="/admin/list-ip" external>
-                    ブロックリスト一覧
-                  </Link>
+                  <Link url="/admin/list-ip">ブロックリスト一覧</Link>
                 </li>
                 <li>
-                  <Link url="/admin/add-ip" external>
-                    IP追加
-                  </Link>
+                  <Link url="/admin/add-ip">IP追加</Link>
                 </li>
                 <li>
-                  <Link url="/admin/logs" external>
-                    アクセスログ
-                  </Link>
+                  <Link url="/admin/logs">アクセスログ</Link>
                 </li>
               </ul>
             </BlockStack>
