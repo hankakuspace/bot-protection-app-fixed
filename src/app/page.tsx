@@ -8,6 +8,7 @@ import {
   Card,
   Text,
   Link,
+  BlockStack,
 } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
@@ -36,7 +37,7 @@ export default function Home() {
         <Page title="Bot Protection App">
           <TitleBar title="Bot Protection App" />
           <Card>
-            <Card.Section>
+            <BlockStack gap="400">
               <Text as="h2" variant="headingMd">
                 IP管理ツール
               </Text>
@@ -58,7 +59,7 @@ export default function Home() {
                   </Link>
                 </li>
               </ul>
-            </Card.Section>
+            </BlockStack>
           </Card>
         </Page>
       </PolarisProvider>
