@@ -41,7 +41,9 @@ export default function Home() {
               <Text as="h2" variant="headingMd">
                 IP管理ツール
               </Text>
-              <Text>このアプリからIPブロックの管理が行えます。</Text>
+              <Text as="p">
+                このアプリからIPブロックの管理が行えます。
+              </Text>
               <ul style={{ marginTop: "1rem" }}>
                 <li>
                   <Link url="/admin/list-ip" external>
