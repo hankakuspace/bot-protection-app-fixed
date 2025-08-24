@@ -4,7 +4,10 @@ import { getFirestore } from "firebase-admin/firestore";
 
 let privateKey = process.env.FIREBASE_PRIVATE_KEY || "";
 
-// Vercelの環境変数が「\n文字列」なら → 実際の改行に変換
+// 前後のダブルクォートを削除
+privateKey = privateKey.replace(/^"|"$/g, "");
+
+// \n文字列 → 実際の改行に変換
 if (privateKey.includes("\\n")) {
   privateKey = privateKey.replace(/\\n/g, "\n");
 }
