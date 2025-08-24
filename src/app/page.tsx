@@ -10,7 +10,8 @@ import {
   Link,
 } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
-import { Provider, TitleBar } from "@shopify/app-bridge-react";
+import { TitleBar } from "@shopify/app-bridge-react";
+import AppBridgeProvider from "@/components/AppBridgeProvider";
 
 export default function Home() {
   const [host, setHost] = useState<string | null>(null);
@@ -29,13 +30,7 @@ export default function Home() {
   }
 
   return (
-    <Provider
-      config={{
-        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
-        host: host,
-        forceRedirect: true,
-      }}
-    >
+    <AppBridgeProvider host={host}>
       <PolarisProvider>
         <Page title="Bot Protection App">
           <TitleBar title="Bot Protection App" />
@@ -64,6 +59,6 @@ export default function Home() {
           </Card>
         </Page>
       </PolarisProvider>
-    </Provider>
+    </AppBridgeProvider>
   );
 }
