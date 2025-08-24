@@ -2,7 +2,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { Provider } from "@shopify/app-bridge-react/context";
+import { Provider } from "@shopify/app-bridge-react";
 
 interface Props {
   children: ReactNode;
