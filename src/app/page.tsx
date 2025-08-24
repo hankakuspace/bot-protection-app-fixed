@@ -32,32 +32,33 @@ export default function Home() {
 
   return (
     <AppBridgeProvider host={host}>
-      {/* PolarisProvider には必ず i18n を渡す */}
       <PolarisProvider i18n={enTranslations}>
         <Page title="Bot Protection App">
           <TitleBar title="Bot Protection App" />
-          <Card sectioned>
-            <Text as="h2" variant="headingMd">
-              IP管理ツール
-            </Text>
-            <Text>このアプリからIPブロックの管理が行えます。</Text>
-            <ul style={{ marginTop: "1rem" }}>
-              <li>
-                <Link url="/admin/list-ip" external>
-                  ブロックリスト一覧
-                </Link>
-              </li>
-              <li>
-                <Link url="/admin/add-ip" external>
-                  IP追加
-                </Link>
-              </li>
-              <li>
-                <Link url="/admin/logs" external>
-                  アクセスログ
-                </Link>
-              </li>
-            </ul>
+          <Card>
+            <Card.Section>
+              <Text as="h2" variant="headingMd">
+                IP管理ツール
+              </Text>
+              <Text>このアプリからIPブロックの管理が行えます。</Text>
+              <ul style={{ marginTop: "1rem" }}>
+                <li>
+                  <Link url="/admin/list-ip" external>
+                    ブロックリスト一覧
+                  </Link>
+                </li>
+                <li>
+                  <Link url="/admin/add-ip" external>
+                    IP追加
+                  </Link>
+                </li>
+                <li>
+                  <Link url="/admin/logs" external>
+                    アクセスログ
+                  </Link>
+                </li>
+              </ul>
+            </Card.Section>
           </Card>
         </Page>
       </PolarisProvider>
