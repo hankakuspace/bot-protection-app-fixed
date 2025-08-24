@@ -2,18 +2,11 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-// Vercelの環境変数は `\n` が文字列として保存されている前提
-// → ここで本物の改行に変換
-const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+let privateKey = process.env.FIREBASE_PRIVATE_KEY || "";
 
-if (!process.env.FIREBASE_PROJECT_ID) {
-  throw new Error("FIREBASE_PROJECT_ID is not set");
-}
-if (!process.env.FIREBASE_CLIENT_EMAIL) {
-  throw new Error("FIREBASE_CLIENT_EMAIL is not set");
-}
-if (!privateKey) {
-  throw new Error("FIREBASE_PRIVATE_KEY is not set or invalid");
+// Vercelの環境変数が「\n文字列」なら → 実際の改行に変換
+if (privateKey.includes("\\n")) {
+  privateKey = privateKey.replace(/\\n/g, "\n");
 }
 
 const firebaseApp =
