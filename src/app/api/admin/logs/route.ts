@@ -15,13 +15,10 @@ export async function GET() {
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
 
-      // ✅ サーバー時刻 or createdAt を必ず返す
-      let ts: string | null = null;
-      if (data.timestamp?.toDate) {
-        ts = data.timestamp.toDate().toISOString();
-      } else if (data.createdAt) {
-        ts = data.createdAt;
-      }
+      // ✅ サーバー時刻優先、なければ createdAt を利用
+      const ts = data.timestamp?.toDate
+        ? data.timestamp.toDate().toISOString()
+        : (typeof data.createdAt === "string" ? data.createdAt : null);
 
       return {
         id: doc.id,
@@ -31,9 +28,10 @@ export async function GET() {
         blocked: data.blocked ?? false,
         isAdmin: data.isAdmin ?? false,
         userAgent: data.userAgent || "UNKNOWN",
-        timestamp: ts,                // ✅ 表示用
-        rawTimestamp: data.timestamp || null, // デバッグ用に残す
-        createdAt: data.createdAt || null,    // クライアント保存時刻
+        timestamp: ts,                                // ✅ 表示用
+        createdAt: typeof data.createdAt === "string" // ✅ 文字列ならそのまま返す
+          ? data.createdAt
+          : null,
       };
     });
 
