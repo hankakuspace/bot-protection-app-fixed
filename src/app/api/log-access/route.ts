@@ -5,12 +5,15 @@ import { FieldValue } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
 
+// ipinfo.io を使って国コードを取得する関数
 async function getCountryFromIp(ip: string): Promise<string> {
   if (!ip || ip === "unknown") return "UNKNOWN";
+
   try {
     const token = process.env.IPINFO_TOKEN;
     const resp = await fetch(`https://ipinfo.io/${ip}/json?token=${token}`);
     if (!resp.ok) return "UNKNOWN";
+
     const data = await resp.json();
     return data.country || "UNKNOWN";
   } catch (e) {
@@ -23,12 +26,10 @@ export async function POST(req: NextRequest) {
   try {
     const { ip, isAdmin } = await req.json();
 
-    // ✅ Middleware から渡された本当のUAをヘッダで受け取る
-    const userAgent =
-      req.headers.get("x-forwarded-user-agent") ||
-      req.headers.get("user-agent") ||
-      "UNKNOWN";
+    // ✅ 本物のブラウザ UA をここで直接取得
+    const userAgent = req.headers.get("user-agent") || "UNKNOWN";
 
+    // ✅ favicon / screenshot 系はログ保存しない
     if (
       userAgent.includes("vercel-favicon") ||
       userAgent.includes("vercel-screenshot")
@@ -36,17 +37,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
+    // ✅ 国判定 (ipinfo.io)
     const country = await getCountryFromIp(ip);
+
+    // ✅ 許可国かどうか（例: 日本のみ許可）
     const allowedCountry = country === "JP";
+
+    // ✅ ブロック判定
     const blocked = !allowedCountry;
 
+    // ✅ Firestore に保存
     await db.collection("access_logs").add({
       ip: ip || "UNKNOWN",
       country,
       allowedCountry,
       blocked,
       isAdmin: !!isAdmin,
-      userAgent, // ✅ 正しいUAを保存
+      userAgent, // ✅ ここで取得した本物のUAを保存
       timestamp: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
       clientTime: new Date().toISOString(),
