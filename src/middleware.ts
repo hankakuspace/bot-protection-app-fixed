@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 🚫 /admin 以下は除外（Shopify管理画面へのリダイレクト用）
+  // 🚫 /admin 以下は除外
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
     return NextResponse.next();
   }
