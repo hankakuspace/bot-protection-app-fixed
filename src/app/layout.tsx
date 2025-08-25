@@ -1,11 +1,11 @@
 // src/app/layout.tsx
 import { headers } from "next/headers";
 import "./globals.css";
+import { useEffect } from "react";
 
-// ⬇️ layout.tsx 内で Client Component を定義
+// ⬇️ Client Component をトップレベルで定義
 function LogAccessClient({ ip }: { ip: string }) {
   "use client";
-  import { useEffect } from "react";
 
   useEffect(() => {
     const logAccess = async () => {
