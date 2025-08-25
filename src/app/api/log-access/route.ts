@@ -1,7 +1,7 @@
 // src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { serverTimestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import geoip from "geoip-lite";
 
 export const runtime = "nodejs";
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       blocked,
       isAdmin: !!isAdmin,
       userAgent,
-      timestamp: serverTimestamp(), // ✅ Firestore サーバー時間を保存
+      timestamp: FieldValue.serverTimestamp(), // ✅ 正しい書き方
     });
 
     return NextResponse.json({
@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("log-access error:", err);
-    return NextResponse.json({ ok: false, error: "failed to log access" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "failed to log access" },
+      { status: 500 }
+    );
   }
 }
