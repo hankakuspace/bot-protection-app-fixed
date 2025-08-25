@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import geoip from "geoip-lite";
 
-export const runtime = "nodejs"; // ← Node.js runtimeで実行する
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
