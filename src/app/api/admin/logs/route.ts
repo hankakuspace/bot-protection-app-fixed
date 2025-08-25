@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const snapshot = await db
       .collection("access_logs")
-      .orderBy("timestamp", "desc")
+      // ✅ 一旦 orderBy を外して全件取得
       .limit(100)
       .get();
 
@@ -16,10 +16,11 @@ export async function GET() {
       const data = doc.data();
 
       return {
-        id: doc.id, // ✅ ドキュメントIDを追加
+        id: doc.id,
         ...data,
-        // ✅ Timestamp を ISO 文字列に変換
-        timestamp: data.timestamp?.toDate().toISOString() || null,
+        timestamp: data.timestamp?.toDate
+          ? data.timestamp.toDate().toISOString()
+          : null,
       };
     });
 
