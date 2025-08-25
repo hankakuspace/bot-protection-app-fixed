@@ -15,12 +15,12 @@ export async function GET() {
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
 
-      // ✅ サーバー時刻があれば優先、なければ createdAt を使用
+      // ✅ Firestore Timestamp か string を優先して返す
       let ts: string | null = null;
       if (data.timestamp?.toDate) {
         ts = data.timestamp.toDate().toISOString();
-      } else if (typeof data.createdAt === "string") {
-        ts = data.createdAt;
+      } else if (data.createdAt) {
+        ts = String(data.createdAt); // 強制的に文字列化
       }
 
       return {
@@ -31,8 +31,8 @@ export async function GET() {
         blocked: data.blocked ?? false,
         isAdmin: data.isAdmin ?? false,
         userAgent: data.userAgent || "UNKNOWN",
-        timestamp: ts, // ✅ 表示用
-        createdAt: typeof data.createdAt === "string" ? data.createdAt : null,
+        timestamp: ts,
+        createdAt: data.createdAt ? String(data.createdAt) : null, // ✅ ここも強制文字列化
       };
     });
 
