@@ -1,4 +1,6 @@
 import './globals.css';
+import "@shopify/polaris/build/esm/styles.css";
+
 
 export const metadata = {
   title: 'Tailwind Check',
