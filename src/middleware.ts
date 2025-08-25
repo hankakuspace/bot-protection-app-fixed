@@ -6,7 +6,6 @@ import requestIp from "request-ip";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 🚫 faviconリクエストは除外
   if (pathname === "/favicon.ico") {
     return NextResponse.next();
   }
@@ -19,7 +18,6 @@ export async function middleware(req: NextRequest) {
   const isAdmin = pathname.startsWith("/admin");
 
   try {
-    // ✅ UA は送らず、API 側で直接取得させる
     fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -33,5 +31,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image).*)"], // favicon.ico は除外済み
+  matcher: ["/((?!api|_next/static|_next/image).*)"],
 };

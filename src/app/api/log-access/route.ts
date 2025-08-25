@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
+import requestIp from "request-ip";
 
 export const runtime = "nodejs";
 
@@ -21,9 +22,16 @@ async function getCountryFromIp(ip: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { ip, isAdmin, userAgent: clientUA } = await req.json();
+    const { ip: ipFromBody, isAdmin, userAgent: clientUA } = await req.json();
 
-    // ✅ UA はクライアント送信があればそれを優先、なければリクエストヘッダ
+    // ✅ IP は middleware の値優先、なければヘッダ解析
+    let ip =
+      ipFromBody ||
+      requestIp.getClientIp(req as any) ||
+      req.headers.get("x-forwarded-for") ||
+      "unknown";
+
+    // ✅ UA はクライアント送信があればそれを優先
     const userAgent = clientUA || req.headers.get("user-agent") || "UNKNOWN";
 
     if (
@@ -38,12 +46,12 @@ export async function POST(req: NextRequest) {
     const blocked = !allowedCountry;
 
     await db.collection("access_logs").add({
-      ip: ip || "UNKNOWN",
+      ip,
       country,
       allowedCountry,
       blocked,
       isAdmin: !!isAdmin,
-      userAgent, // ✅ ブラウザ由来のUAが優先
+      userAgent,
       timestamp: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
       clientTime: new Date().toISOString(),
