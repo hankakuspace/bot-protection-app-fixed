@@ -1,3 +1,4 @@
+// src/app/admin/logs/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,7 +11,7 @@ interface AccessLog {
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
-  timestamp: any;
+  timestamp: string | null; // ✅ ISO文字列 or null
 }
 
 export default function LogsPage() {
@@ -49,17 +50,24 @@ export default function LogsPage() {
 
   // ページネーション処理
   const totalPages = Math.ceil(filteredLogs.length / pageSize);
-  const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedLogs = filteredLogs.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   // CSV Export
   const handleCsvExport = () => {
-    const header = ["Timestamp", "IP", "Country", "Allowed", "Blocked", "Admin", "UserAgent"];
+    const header = [
+      "Timestamp",
+      "IP",
+      "Country",
+      "Allowed",
+      "Blocked",
+      "Admin",
+      "UserAgent",
+    ];
     const rows = filteredLogs.map((log) => [
-      log.timestamp?._seconds
-        ? new Date(log.timestamp._seconds * 1000).toLocaleString()
-        : typeof log.timestamp === "number"
-        ? new Date(log.timestamp).toLocaleString()
-        : "",
+      log.timestamp ? new Date(log.timestamp).toLocaleString() : "",
       log.ip,
       log.country,
       String(log.allowedCountry),
@@ -79,7 +87,9 @@ export default function LogsPage() {
 
   // JSON Export
   const handleJsonExport = () => {
-    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -163,18 +173,18 @@ export default function LogsPage() {
           </tr>
         </thead>
         <tbody>
-          {paginatedLogs.map((log) => (
-            <tr key={log.id}>
+          {paginatedLogs.map((log, idx) => (
+            <tr key={idx}>
               <td className="border px-2 py-1">
-                {log.timestamp?._seconds
-                  ? new Date(log.timestamp._seconds * 1000).toLocaleString()
-                  : typeof log.timestamp === "number"
+                {log.timestamp
                   ? new Date(log.timestamp).toLocaleString()
                   : ""}
               </td>
               <td className="border px-2 py-1">{log.ip}</td>
               <td className="border px-2 py-1">{log.country}</td>
-              <td className="border px-2 py-1">{String(log.allowedCountry)}</td>
+              <td className="border px-2 py-1">
+                {String(log.allowedCountry)}
+              </td>
               <td className="border px-2 py-1">{String(log.blocked)}</td>
               <td className="border px-2 py-1">{String(log.isAdmin)}</td>
               <td className="border px-2 py-1 truncate max-w-xs">
