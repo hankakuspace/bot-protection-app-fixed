@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
       blocked,
       isAdmin: !!isAdmin,
       userAgent,
-      timestamp: FieldValue.serverTimestamp(), // サーバー時刻（確定まで遅延あり）
-      createdAt: new Date().toISOString(),     // クライアント時刻（即時表示用）
+      timestamp: FieldValue.serverTimestamp(), // サーバー時刻
+      createdAt: FieldValue.serverTimestamp(), // サーバー時刻 (duplicate, fallback)
+      clientTime: new Date().toISOString(),    // クライアント即時時刻
     });
 
     return NextResponse.json({
