@@ -11,7 +11,8 @@ interface AccessLog {
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
-  timestamp: string | null; // ✅ ISO文字列 or null
+  timestamp: string | null;   // ISO文字列 or null
+  createdAt?: string | null;  // クライアント保存時刻
 }
 
 export default function LogsPage() {
@@ -67,7 +68,11 @@ export default function LogsPage() {
       "UserAgent",
     ];
     const rows = filteredLogs.map((log) => [
-      log.timestamp ? new Date(log.timestamp).toLocaleString() : "",
+      log.timestamp
+        ? new Date(log.timestamp).toLocaleString()
+        : log.createdAt
+        ? new Date(log.createdAt).toLocaleString()
+        : "pending...",
       log.ip,
       log.country,
       String(log.allowedCountry),
@@ -178,7 +183,9 @@ export default function LogsPage() {
               <td className="border px-2 py-1">
                 {log.timestamp
                   ? new Date(log.timestamp).toLocaleString()
-                  : ""}
+                  : log.createdAt
+                  ? new Date(log.createdAt).toLocaleString()
+                  : "pending..."}
               </td>
               <td className="border px-2 py-1">{log.ip}</td>
               <td className="border px-2 py-1">{log.country}</td>
