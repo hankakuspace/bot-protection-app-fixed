@@ -4,7 +4,14 @@ import "./globals.css";
 import LogAccessClient from "@/components/LogAccessClient";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const ip = headers().get("x-client-ip") || "UNKNOWN";
+  // headers() が Promise 扱いされる場合に対応
+  let ip = "UNKNOWN";
+  try {
+    const h = (headers() as any);
+    ip = h.get?.("x-client-ip") || "UNKNOWN";
+  } catch {
+    ip = "UNKNOWN";
+  }
 
   return (
     <html lang="ja">
@@ -12,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="x-client-ip" content={ip} />
       </head>
       <body>
-        {/* クライアント側でアクセスログ送信 */}
         <LogAccessClient ip={ip} />
         {children}
       </body>
