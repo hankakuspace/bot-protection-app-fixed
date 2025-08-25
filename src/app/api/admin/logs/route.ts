@@ -14,13 +14,17 @@ export async function GET() {
 
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
+
+      // ✅ サーバー時刻が優先、無ければ createdAt を使用
+      const ts = data.timestamp?.toDate
+        ? data.timestamp.toDate().toISOString()
+        : data.createdAt || null;
+
       return {
         id: doc.id,
         ...data,
-        // ✅ サーバー時刻があれば優先、なければ createdAt を使う
-        timestamp: data.timestamp?.toDate
-          ? data.timestamp.toDate().toISOString()
-          : data.createdAt || null,
+        timestamp: ts,   // 表示用 timestamp
+        createdAt: data.createdAt || null, // 念のため raw createdAt も返す
       };
     });
 
