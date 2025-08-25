@@ -20,5 +20,5 @@ const firebaseApp =
       })
     : getApps()[0];
 
-// ? export �𖾎�
+// ✅ export を明示
 export const db = getFirestore(firebaseApp);
