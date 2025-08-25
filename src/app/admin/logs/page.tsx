@@ -24,20 +24,23 @@ export default function LogsPage() {
 
   // ページネーション
   const [page, setPage] = useState(1);
-  const pageSize = 100; // ✅ デフォルト表示件数を 10 → 100 に変更
+  const pageSize = 100; // ✅ デフォルト表示件数を100件に設定
+
+  // ✅ fetchLogs を外出しにする（再利用できるように）
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/logs");
+      const data = await res.json();
+      setLogs(data.logs || []);
+    } catch (err) {
+      console.error("Failed to fetch logs", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const res = await fetch("/api/admin/logs");
-        const data = await res.json();
-        setLogs(data.logs || []);
-      } catch (err) {
-        console.error("Failed to fetch logs", err);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchLogs();
   }, []);
 
@@ -109,7 +112,7 @@ export default function LogsPage() {
     <div className="p-6">
       <h1 className="text-xl font-bold mb-4">Access Logs</h1>
 
-      {/* フィルタ */}
+      {/* フィルタ & リロード */}
       <div className="flex items-center gap-2 mb-4">
         <input
           type="text"
@@ -137,10 +140,13 @@ export default function LogsPage() {
           blocked
         </label>
         <button
-          onClick={() => setPage(1)}
-          className="bg-blue-500 text-white px-3 py-1 rounded"
+          onClick={() => {
+            setPage(1);
+            fetchLogs(); // ✅ 再読み込み
+          }}
+          className="bg-gray-500 text-white px-3 py-1 rounded"
         >
-          フィルタ適用
+          再読み込み
         </button>
       </div>
 
