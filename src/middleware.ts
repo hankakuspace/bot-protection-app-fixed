@@ -17,20 +17,21 @@ export async function middleware(req: NextRequest) {
     "unknown";
 
   const userAgent = req.headers.get("user-agent") ?? "unknown";
+  const isAdmin = pathname.startsWith("/admin");
 
   try {
-    // 🔽 アクセスログ保存 API を常に呼ぶ
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`, {
+    // 🔽 アクセスログ保存 API を呼ぶ（fire-and-forget）
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ip, userAgent }),
-    });
+      body: JSON.stringify({ ip, userAgent, isAdmin }),
+    }).catch((err) => console.error("log-access error:", err));
   } catch (err) {
     console.error("log-access error:", err);
   }
 
   // ✅ /admin/* は常に許可
-  if (pathname.startsWith("/admin")) {
+  if (isAdmin) {
     return NextResponse.next();
   }
 
