@@ -1,9 +1,8 @@
 // src/components/AppBridgeProvider.tsx
 "use client";
 
-import React, { ReactNode } from "react";
-import { Provider } from "@shopify/app-bridge-react";
-import { AppConfig } from "@shopify/app-bridge";
+import React, { ReactNode, useMemo } from "react";
+import createApp, { AppConfig } from "@shopify/app-bridge";
 
 interface Props {
   children: ReactNode;
@@ -13,11 +12,16 @@ interface Props {
 export default function AppBridgeProvider({ children, host }: Props) {
   if (typeof window === "undefined") return <>{children}</>;
 
-  const config: AppConfig = {
+  const appConfig: AppConfig = {
     apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
     host: host || new URLSearchParams(window.location.search).get("host") || "",
     forceRedirect: true,
   };
 
-  return <Provider config={config}>{children}</Provider>;
+  // AppBridge を初期化（必要なら Context 経由で子に渡せるよう拡張可能）
+  useMemo(() => {
+    createApp(appConfig);
+  }, [appConfig.host]);
+
+  return <>{children}</>;
 }
