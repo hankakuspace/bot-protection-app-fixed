@@ -1,29 +1,58 @@
+// src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { getCountry } from "@/lib/geoip";
+import { serverTimestamp } from "firebase-admin/firestore";
+import geoip from "geoip-lite";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { ip, userAgent } = await req.json();
-    const country = await getCountry(ip);
+    const { ip, isAdmin } = await req.json();
 
-    const log = {
+    // ✅ User-Agent を取得
+    const userAgent = req.headers.get("user-agent") || "UNKNOWN";
+
+    // ✅ favicon / screenshot 系はログ保存しない
+    if (
+      userAgent.includes("vercel-favicon") ||
+      userAgent.includes("vercel-screenshot")
+    ) {
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+
+    // ✅ 国判定
+    const geo = ip && ip !== "unknown" ? geoip.lookup(ip) : null;
+    const country = geo?.country || "UNKNOWN";
+
+    // ✅ 許可国かどうか（例: 日本のみ許可）
+    const allowedCountry = country === "JP";
+
+    // ✅ ブロック判定
+    const blocked = !allowedCountry;
+
+    // ✅ Firestore に保存
+    await db.collection("access_logs").add({
+      ip: ip || "UNKNOWN",
+      country,
+      allowedCountry,
+      blocked,
+      isAdmin: !!isAdmin,
+      userAgent,
+      timestamp: serverTimestamp(), // ✅ Firestore サーバー時間を保存
+    });
+
+    return NextResponse.json({
+      ok: true,
       ip,
       country,
-      allowedCountry: country === "JP",
-      blocked: false,
-      isAdmin: false,
+      allowedCountry,
+      blocked,
+      isAdmin,
       userAgent,
-      timestamp: new Date().toISOString(),
-    };
-
-    await db.collection("access_logs").add(log);
-
-    return NextResponse.json({ ok: true });
+    });
   } catch (err) {
-    console.error("❌ Failed to save access log:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    console.error("log-access error:", err);
+    return NextResponse.json({ ok: false, error: "failed to log access" }, { status: 500 });
   }
 }
