@@ -15,17 +15,19 @@ export async function GET() {
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
 
-      // サーバー時刻 or createdAt を返す
+      // サーバー側 timestamp
       let ts: string | null = null;
       if (data.timestamp?.toDate) {
         ts = data.timestamp.toDate().toISOString();
       }
 
-      // createdAt は必ず文字列化
-      const createdAt =
-        data.createdAt !== undefined && data.createdAt !== null
-          ? String(data.createdAt)
-          : null;
+      // createdAt が Timestamp 型か文字列かを判定
+      let createdAt: string | null = null;
+      if (data.createdAt?.toDate) {
+        createdAt = data.createdAt.toDate().toISOString();
+      } else if (typeof data.createdAt === "string") {
+        createdAt = data.createdAt;
+      }
 
       if (!ts && createdAt) {
         ts = createdAt;
