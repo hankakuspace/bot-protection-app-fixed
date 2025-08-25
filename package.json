@@ -1,3 +1,4 @@
+// package.json
 {
   "name": "bot-protection-app",
   "version": "1.0.0",
@@ -10,6 +11,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "next dev",
+    "dev:ngrok": "concurrently \"next dev\" \"ngrok http 3000 --domain=hankaku-app.ngrok.io\"",
     "build": "next build",
     "start": "next start",
     "vercel-build": "next build",
@@ -42,7 +44,8 @@
     "postcss-cli": "^11.0.1",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.9.2",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=20 <21"
