@@ -16,6 +16,7 @@ export async function GET() {
       const data = doc.data();
 
       return {
+        id: doc.id, // ✅ ドキュメントIDを追加
         ...data,
         // ✅ Timestamp を ISO 文字列に変換
         timestamp: data.timestamp?.toDate().toISOString() || null,
