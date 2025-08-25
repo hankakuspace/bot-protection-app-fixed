@@ -9,19 +9,20 @@ export async function GET() {
     const snapshot = await db
       .collection("access_logs")
       .orderBy("timestamp", "desc")
-      .limit(100)
+      .limit(5) // 最新5件だけ
       .get();
 
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
 
-      // サーバー側 timestamp
+      // 🔍 デバッグログ出力
+      console.log("DEBUG log document:", doc.id, data);
+
       let ts: string | null = null;
       if (data.timestamp?.toDate) {
         ts = data.timestamp.toDate().toISOString();
       }
 
-      // createdAt が Timestamp 型か文字列かを判定
       let createdAt: string | null = null;
       if (data.createdAt?.toDate) {
         createdAt = data.createdAt.toDate().toISOString();
@@ -35,12 +36,7 @@ export async function GET() {
 
       return {
         id: doc.id,
-        ip: data.ip || "UNKNOWN",
-        country: data.country || "UNKNOWN",
-        allowedCountry: data.allowedCountry ?? false,
-        blocked: data.blocked ?? false,
-        isAdmin: data.isAdmin ?? false,
-        userAgent: data.userAgent || "UNKNOWN",
+        ...data,
         timestamp: ts,
         createdAt,
       };
