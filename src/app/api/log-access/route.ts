@@ -2,9 +2,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import geoip from "geoip-lite";
 
 export const runtime = "nodejs";
+
+// ipinfo.io を使って国コードを取得する関数
+async function getCountryFromIp(ip: string): Promise<string> {
+  if (!ip || ip === "unknown") return "UNKNOWN";
+
+  try {
+    const token = process.env.IPINFO_TOKEN;
+    const resp = await fetch(`https://ipinfo.io/${ip}/json?token=${token}`);
+    if (!resp.ok) return "UNKNOWN";
+
+    const data = await resp.json();
+    return data.country || "UNKNOWN";
+  } catch (e) {
+    console.error("IP lookup failed:", e);
+    return "UNKNOWN";
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,9 +37,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    // ✅ 国判定
-    const geo = ip && ip !== "unknown" ? geoip.lookup(ip) : null;
-    const country = geo?.country || "UNKNOWN";
+    // ✅ 国判定 (ipinfo.io)
+    const country = await getCountryFromIp(ip);
 
     // ✅ 許可国かどうか（例: 日本のみ許可）
     const allowedCountry = country === "JP";
@@ -39,7 +54,7 @@ export async function POST(req: NextRequest) {
       blocked,
       isAdmin: !!isAdmin,
       userAgent,
-      timestamp: FieldValue.serverTimestamp(), // ✅ 正しい書き方
+      timestamp: FieldValue.serverTimestamp(),
     });
 
     return NextResponse.json({
