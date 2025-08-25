@@ -24,7 +24,7 @@ export default function LogsPage() {
 
   // ページネーション
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 100; // ✅ デフォルト表示件数を 10 → 100 に変更
 
   useEffect(() => {
     async function fetchLogs() {
