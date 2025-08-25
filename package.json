@@ -45,3 +45,8 @@
     "typescript": "^5.9.2",
     "vitest": "^2.0.0",
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20 <21"
+  }
+}
