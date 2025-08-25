@@ -6,7 +6,6 @@ import requestIp from "request-ip";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 🚫 faviconリクエストは除外
   if (pathname === "/favicon.ico") {
     return NextResponse.next();
   }
@@ -20,24 +19,21 @@ export async function middleware(req: NextRequest) {
   const isAdmin = pathname.startsWith("/admin");
 
   try {
-    // 🔽 アクセスログ保存 API を呼ぶ（fire-and-forget）
     fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ip, userAgent, isAdmin }),
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-user-agent": userAgent, // ✅ 本当のUAをカスタムヘッダで送る
+      },
+      body: JSON.stringify({ ip, isAdmin }),
     }).catch((err) => console.error("log-access error:", err));
   } catch (err) {
     console.error("log-access error:", err);
-  }
-
-  // ✅ /admin/* は常に許可
-  if (isAdmin) {
-    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image).*)"], // favicon.ico は除外済み
+  matcher: ["/((?!api|_next/static|_next/image).*)"],
 };

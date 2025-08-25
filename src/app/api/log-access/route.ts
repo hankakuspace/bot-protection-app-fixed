@@ -21,13 +21,14 @@ async function getCountryFromIp(ip: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { ip, isAdmin, userAgent: forwardedUA } = await req.json();
+    const { ip, isAdmin } = await req.json();
 
-    // ✅ Middleware から送られた userAgent を優先
+    // ✅ Middleware から渡された本当のUAをヘッダで受け取る
     const userAgent =
-      forwardedUA || req.headers.get("user-agent") || "UNKNOWN";
+      req.headers.get("x-forwarded-user-agent") ||
+      req.headers.get("user-agent") ||
+      "UNKNOWN";
 
-    // favicon / screenshot 系は保存しない
     if (
       userAgent.includes("vercel-favicon") ||
       userAgent.includes("vercel-screenshot")
