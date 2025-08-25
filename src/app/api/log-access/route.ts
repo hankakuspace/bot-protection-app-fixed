@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
       isAdmin: !!isAdmin,
       userAgent,
       timestamp: FieldValue.serverTimestamp(), // サーバー時刻
-      createdAt: FieldValue.serverTimestamp(), // サーバー時刻 (duplicate, fallback)
-      clientTime: new Date().toISOString(),    // クライアント即時時刻
+      createdAt: FieldValue.serverTimestamp(), // サーバー時刻（置換まで null）
+      clientTime: new Date().toISOString(),    // 即時表示用
     });
 
     return NextResponse.json({

@@ -9,25 +9,28 @@ export async function GET() {
     const snapshot = await db
       .collection("access_logs")
       .orderBy("timestamp", "desc")
-      .limit(5) // 最新5件だけ
+      .limit(100)
       .get();
 
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
 
-      // 🔍 デバッグログ出力
-      console.log("DEBUG log document:", doc.id, data);
-
+      // timestamp
       let ts: string | null = null;
       if (data.timestamp?.toDate) {
         ts = data.timestamp.toDate().toISOString();
+      } else if (typeof data.timestamp === "string") {
+        ts = data.timestamp;
       }
 
+      // createdAt fallback
       let createdAt: string | null = null;
       if (data.createdAt?.toDate) {
         createdAt = data.createdAt.toDate().toISOString();
       } else if (typeof data.createdAt === "string") {
         createdAt = data.createdAt;
+      } else if (data.clientTime) {
+        createdAt = String(data.clientTime);
       }
 
       if (!ts && createdAt) {
@@ -36,7 +39,12 @@ export async function GET() {
 
       return {
         id: doc.id,
-        ...data,
+        ip: data.ip || "UNKNOWN",
+        country: data.country || "UNKNOWN",
+        allowedCountry: data.allowedCountry ?? false,
+        blocked: data.blocked ?? false,
+        isAdmin: data.isAdmin ?? false,
+        userAgent: data.userAgent || "UNKNOWN",
         timestamp: ts,
         createdAt,
       };
