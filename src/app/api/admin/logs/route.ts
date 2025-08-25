@@ -8,13 +8,13 @@ export async function GET() {
   try {
     const snapshot = await db
       .collection("access_logs")
-      // ✅ 一旦 orderBy を外して全件取得
+      .where("timestamp", "!=", null) // ✅ timestamp が null のログは除外
+      .orderBy("timestamp", "desc")  // ✅ 最新順にソート
       .limit(100)
       .get();
 
     const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
-
       return {
         id: doc.id,
         ...data,
