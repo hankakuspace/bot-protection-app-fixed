@@ -1,15 +1,13 @@
-// src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import geoip from "geoip-lite";
+import { getCountry } from "@/lib/geoip";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
     const { ip, userAgent } = await req.json();
-    const geo = geoip.lookup(ip);
-    const country = geo ? geo.country : "UNKNOWN";
+    const country = await getCountry(ip);
 
     const log = {
       ip,
