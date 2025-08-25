@@ -2,17 +2,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 
+export const runtime = "nodejs"; // ←追加
+
 export async function GET() {
   try {
-    const snapshot = await db.collection("ip_blocks").get();
-    const blocked: string[] = snapshot.docs.map((doc) => doc.data().ip);
+    const snapshot = await db.collection("blocked_ips").get();
+    const ips = snapshot.docs.map((doc) => doc.data().ip);
 
-    return NextResponse.json({ ok: true, blocked });
+    return NextResponse.json({ ok: true, ips });
   } catch (error) {
-    console.error("Error fetching blocked IPs:", error);
-    return NextResponse.json(
-      { ok: false, error: "Failed to fetch blocked IPs" },
-      { status: 500 }
-    );
+    console.error("Error in list-ip:", error);
+    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }

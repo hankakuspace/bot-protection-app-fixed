@@ -2,26 +2,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 
+export const runtime = "nodejs"; // ←追加
+
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-
-  // 🔥 デバッグ: 環境変数の内容をログ
-  const rawKey = process.env.FIREBASE_PRIVATE_KEY || "";
-  console.log("🔥 FIREBASE_PRIVATE_KEY head:", rawKey.slice(0, 100));
-  console.log("🔥 FIREBASE_PRIVATE_KEY tail:", rawKey.slice(-50));
-  console.log("🔥 containsRealNewline:", rawKey.includes("\n"));
-  console.log("🔥 containsEscapedNewline:", rawKey.includes("\\n"));
-  console.log("🔥 length:", rawKey.length);
-
-  // ここから本来の処理
   try {
-    await db.collection("ip_blocks").add({
-      ip: body.ip,
-      createdAt: new Date(),
-    });
-    return NextResponse.json({ ok: true });
+    const body = await req.json();
+    const { ip } = body;
+
+    await db.collection("blocked_ips").doc(ip).set({ ip, createdAt: Date.now() });
+
+    return NextResponse.json({ ok: true, added: ip });
   } catch (error) {
     console.error("Error in add-ip:", error);
-    return NextResponse.json({ ok: false, error }, { status: 500 });
+    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }
