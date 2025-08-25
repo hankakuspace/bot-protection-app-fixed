@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import requestIp from "request-ip";
 
 export const runtime = "nodejs";
 
@@ -22,55 +21,27 @@ async function getCountryFromIp(ip: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { ip: ipFromBody, isAdmin, userAgent: clientUA } = await req.json();
-
-    // ✅ IP は middleware の値優先、なければヘッダ解析
-    let ip =
-      ipFromBody ||
-      requestIp.getClientIp(req as any) ||
-      req.headers.get("x-forwarded-for") ||
-      "unknown";
-
-    // ✅ UA はクライアント送信があればそれを優先
-    const userAgent = clientUA || req.headers.get("user-agent") || "UNKNOWN";
-
-    if (
-      userAgent.includes("vercel-favicon") ||
-      userAgent.includes("vercel-screenshot")
-    ) {
-      return NextResponse.json({ ok: true, skipped: true });
-    }
+    const { ip, isAdmin, userAgent } = await req.json();
 
     const country = await getCountryFromIp(ip);
     const allowedCountry = country === "JP";
     const blocked = !allowedCountry;
 
     await db.collection("access_logs").add({
-      ip,
+      ip: ip || "UNKNOWN",
       country,
       allowedCountry,
       blocked,
       isAdmin: !!isAdmin,
-      userAgent,
+      userAgent: userAgent || "UNKNOWN",
       timestamp: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
       clientTime: new Date().toISOString(),
     });
 
-    return NextResponse.json({
-      ok: true,
-      ip,
-      country,
-      allowedCountry,
-      blocked,
-      isAdmin,
-      userAgent,
-    });
+    return NextResponse.json({ ok: true, ip, country, allowedCountry, blocked, isAdmin, userAgent });
   } catch (err) {
     console.error("log-access error:", err);
-    return NextResponse.json(
-      { ok: false, error: "failed to log access" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "failed to log access" }, { status: 500 });
   }
 }

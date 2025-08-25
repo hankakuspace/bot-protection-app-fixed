@@ -1,24 +1,22 @@
 // src/app/layout.tsx
 "use client";
-
 import { useEffect } from "react";
 import "./globals.css";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const sendUserAgent = async () => {
+    const logAccess = async () => {
       try {
+        const res = await fetch("/", { method: "HEAD" }); // middleware が動く
+        const ip = res.headers.get("x-client-ip") || "unknown";
+
         await fetch("/api/log-access", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ip: "unknown", // IP は middleware 側で取得済み
+            ip,
             isAdmin: false,
-            userAgent: navigator.userAgent, // ✅ 本物のブラウザUAを送信
+            userAgent: navigator.userAgent, // ✅ 本物のUA
           }),
         });
       } catch (err) {
@@ -26,7 +24,7 @@ export default function RootLayout({
       }
     };
 
-    sendUserAgent();
+    logAccess();
   }, []);
 
   return (

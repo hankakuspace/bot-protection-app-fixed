@@ -10,24 +10,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // ✅ IP を取得
   const ip =
     requestIp.getClientIp(req as any) ??
     req.headers.get("x-forwarded-for") ??
     "unknown";
 
-  const isAdmin = pathname.startsWith("/admin");
+  const res = NextResponse.next();
+  res.headers.set("x-client-ip", ip); // ✅ ヘッダに渡す
 
-  try {
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ip, isAdmin }),
-    }).catch((err) => console.error("log-access error:", err));
-  } catch (err) {
-    console.error("log-access error:", err);
-  }
-
-  return NextResponse.next();
+  return res;
 }
 
 export const config = {
