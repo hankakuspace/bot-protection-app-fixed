@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
   try {
     const { ip, isAdmin, userAgent: clientUA } = await req.json();
 
-    // ✅ UA はクライアントから送られてきたものを信頼
-    const userAgent = clientUA || "UNKNOWN";
+    // ✅ UA はクライアント送信があればそれを優先、なければリクエストヘッダ
+    const userAgent = clientUA || req.headers.get("user-agent") || "UNKNOWN";
 
     if (
       userAgent.includes("vercel-favicon") ||
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       allowedCountry,
       blocked,
       isAdmin: !!isAdmin,
-      userAgent, // ✅ 本物のブラウザUAが保存される
+      userAgent, // ✅ ブラウザ由来のUAが優先
       timestamp: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
       clientTime: new Date().toISOString(),
