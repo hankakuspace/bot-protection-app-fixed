@@ -4,7 +4,11 @@ import { getFirestore } from "firebase-admin/firestore";
 
 function normalizePrivateKey(key?: string): string {
   if (!key) throw new Error("FIREBASE_PRIVATE_KEY is not set");
-  return key.trim().replace(/^"+|"+$/g, "").replace(/\\n/g, "\n");
+
+  return key
+    .trim()
+    .replace(/^"+|"+$/g, "")  // 前後のダブルクォートを削除
+    .replace(/\\n/g, "\n");   // \n を改行に変換
 }
 
 const privateKey = normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
@@ -20,8 +24,4 @@ const firebaseApp =
       })
     : getApps()[0];
 
-// ✅ ここが重要: 必ず export
 export const db = getFirestore(firebaseApp);
-
-// ✅ ダミーでもいいから export があることで "is not a module" は消える
-export default db;
