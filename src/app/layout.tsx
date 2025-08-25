@@ -1,15 +1,15 @@
 // src/app/layout.tsx
-"use client";
+import { headers } from "next/headers";
 import { useEffect } from "react";
 import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // middleware でセットされた x-client-ip を取得
+  const ip = headers().get("x-client-ip") || "UNKNOWN";
+
   useEffect(() => {
     const logAccess = async () => {
       try {
-        const res = await fetch("/", { method: "HEAD" }); // middleware が動く
-        const ip = res.headers.get("x-client-ip") || "unknown";
-
         await fetch("/api/log-access", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -17,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ip,
             isAdmin: false,
             userAgent: navigator.userAgent, // ✅ 本物のUA
+            clientTime: new Date().toISOString(),
           }),
         });
       } catch (err) {
@@ -25,10 +26,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     };
 
     logAccess();
-  }, []);
+  }, [ip]);
 
   return (
     <html lang="ja">
+      <head>
+        <meta name="x-client-ip" content={ip} />
+      </head>
       <body>{children}</body>
     </html>
   );

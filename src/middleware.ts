@@ -21,11 +21,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ クライアントIPを取得
-  const ip =
-    requestIp.getClientIp(req as any) ??
-    req.headers.get("x-forwarded-for") ??
-    "unknown";
+  // ✅ クライアントIPを多段階で取得
+  let ip =
+    req.headers.get("cf-connecting-ip") || // Cloudflare/CDN経由の実IP
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+    req.headers.get("x-real-ip") ||
+    requestIp.getClientIp(req as any) ||
+    "UNKNOWN";
+
+  // IPv6の ::ffff: を除去
+  ip = ip.replace(/^::ffff:/, "");
 
   // ✅ レスポンスにヘッダとして渡す
   const res = NextResponse.next();
