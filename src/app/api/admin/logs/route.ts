@@ -8,8 +8,7 @@ export async function GET() {
   try {
     const snapshot = await db
       .collection("access_logs")
-      .where("timestamp", "!=", null) // ✅ timestamp が null のログは除外
-      .orderBy("timestamp", "desc")  // ✅ 最新順にソート
+      .orderBy("timestamp", "desc")
       .limit(100)
       .get();
 
@@ -18,9 +17,10 @@ export async function GET() {
       return {
         id: doc.id,
         ...data,
+        // ✅ サーバー時刻があれば優先、なければ createdAt を使う
         timestamp: data.timestamp?.toDate
           ? data.timestamp.toDate().toISOString()
-          : null,
+          : data.createdAt || null,
       };
     });
 
