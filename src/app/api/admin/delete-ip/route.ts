@@ -1,21 +1,19 @@
-import { NextResponse } from "next/server";
-import adminDb from "@/lib/firebase-admin";
+// src/app/api/admin/delete-ip/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/firebase";
 
-export const runtime = "nodejs";
+export const runtime = "nodejs"; // ←追加
 
-export async function DELETE(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const ip = String(body.ip ?? "").trim();
-    if (!ip) {
-      return NextResponse.json({ ok: false, error: "IP required" }, { status: 400 });
-    }
+    const { ip } = body;
 
-    await adminDb.collection("blocked_ips").doc(ip).delete();
+    await db.collection("blocked_ips").doc(ip).delete();
 
-    return NextResponse.json({ ok: true, removed: ip });
-  } catch (err: any) {
-    console.error("[API:delete-ip] error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: true, deleted: ip });
+  } catch (error) {
+    console.error("Error in delete-ip:", error);
+    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
   }
 }
