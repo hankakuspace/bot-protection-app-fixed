@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 // 共通フォワード処理
 async function forwardToInternal(req: NextRequest, slugParts: string[]) {
   // ✅ /log-access を内部APIに転送
-  if (slugParts.length === 1 && slugParts[0] === "log-access") {
+  if (slugParts.at(-1) === "log-access") {
     const url = req.nextUrl;
     const queryString = url.searchParams.toString();
     const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access${
@@ -28,6 +28,7 @@ async function forwardToInternal(req: NextRequest, slugParts: string[]) {
     return new NextResponse(text, { status: resp.status });
   }
 
+  // その他は 404
   return NextResponse.json(
     { ok: false, error: "Not found", slugParts },
     { status: 404 }
