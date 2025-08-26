@@ -18,21 +18,27 @@ export default function AppNavigationMenu() {
       return;
     }
 
-    const app = createApp({
-      apiKey,
-      host,
-      forceRedirect: true,
-    });
+    try {
+      const app = createApp({
+        apiKey,
+        host,
+        forceRedirect: true,
+      });
 
-    NavigationMenu.create(app, {
-      items: [
-        { label: "Add IP", destination: `/apps/bpp-20250814-final01/admin/add-ip` },
-        { label: "Admin IPs", destination: `/apps/bpp-20250814-final01/admin/admin-ips` },
-        { label: "Blocklist", destination: `/apps/bpp-20250814-final01/admin/blocklist` },
-        { label: "List IP", destination: `/apps/bpp-20250814-final01/admin/list-ip` },
-        { label: "Logs", destination: `/apps/bpp-20250814-final01/admin/logs` },
-      ] as any,
-    });
+      // ✅ NavigationMenu 設定（active を明示）
+      NavigationMenu.create(app, {
+        items: [
+          { label: "Add IP", destination: "/apps/bpp-20250814-final01/admin/add-ip" },
+          { label: "Admin IPs", destination: "/apps/bpp-20250814-final01/admin/admin-ips" },
+          { label: "Blocklist", destination: "/apps/bpp-20250814-final01/admin/blocklist" },
+          { label: "List IP", destination: "/apps/bpp-20250814-final01/admin/list-ip" },
+          { label: "Logs", destination: "/apps/bpp-20250814-final01/admin/logs" },
+        ] as any,
+        active: "/apps/bpp-20250814-final01/admin/logs",
+      });
+    } catch (err) {
+      console.error("NavigationMenu init error", err);
+    }
   }, []);
 
   return null;
