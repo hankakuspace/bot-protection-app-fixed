@@ -1,5 +1,5 @@
-// src/lib/check-ip.ts
 import type { NextRequest } from "next/server";
+import { db } from "@/lib/firebase";
 
 /**
  * クライアントIPを正規化して取得
@@ -37,4 +37,42 @@ export function getClientIp(req: NextRequest): string {
   if (normalized.length > 0) return normalized[0];
 
   return "UNKNOWN";
+}
+
+/**
+ * 指定されたIPがブロックされているかどうかを判定
+ */
+export async function isIpBlocked(ip: string): Promise<boolean> {
+  try {
+    const doc = await db.collection("blocked_ips").doc(ip).get();
+    return doc.exists;
+  } catch (e) {
+    console.error("Error checking if IP is blocked:", e);
+    return false;
+  }
+}
+
+/**
+ * IPをブロックリストに追加
+ */
+export async function blockIp(ip: string): Promise<void> {
+  try {
+    await db.collection("blocked_ips").doc(ip).set({
+      blocked: true,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Error blocking IP:", e);
+  }
+}
+
+/**
+ * IPをブロックリストから解除
+ */
+export async function unblockIp(ip: string): Promise<void> {
+  try {
+    await db.collection("blocked_ips").doc(ip).delete();
+  } catch (e) {
+    console.error("Error unblocking IP:", e);
+  }
 }
