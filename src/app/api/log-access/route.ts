@@ -26,6 +26,17 @@ export async function POST(req: NextRequest) {
   try {
     const { ip: clientIpFromBody, isAdmin, userAgent, clientTime } = await req.json();
 
+    // ✅ host を取得
+    const host = req.headers.get("host") || "";
+
+    // 🚫 本番環境では be-search.biz 以外はログ拒否
+    if (process.env.NODE_ENV === "production" && host !== "be-search.biz") {
+      return NextResponse.json(
+        { ok: false, error: "invalid host", host },
+        { status: 400 }
+      );
+    }
+
     // ✅ サーバー側を優先、クライアント送信は補助
     let clientIp = getClientIp(req) || clientIpFromBody || "UNKNOWN";
 
@@ -42,9 +53,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ✅ Firestoreに統一的に保存するフィールド
     const ip = ip_v4 !== "UNKNOWN" ? ip_v4 : ip_v6;
-
     const country = await getCountryFromIp(ip);
     const allowedCountry = country === "JP";
     const blocked = !allowedCountry;
@@ -58,6 +67,7 @@ export async function POST(req: NextRequest) {
       blocked,
       isAdmin: !!isAdmin,
       userAgent: userAgent || req.headers.get("user-agent") || "UNKNOWN",
+      host, // ✅ 保存
       createdAt: FieldValue.serverTimestamp(),
       clientTime: clientTime || new Date().toISOString(),
     });
@@ -71,6 +81,7 @@ export async function POST(req: NextRequest) {
       allowedCountry,
       blocked,
       isAdmin,
+      host, // ✅ レスポンスにも含める
     });
   } catch (err) {
     console.error("log-access error:", err);
