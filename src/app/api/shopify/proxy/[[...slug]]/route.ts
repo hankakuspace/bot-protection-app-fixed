@@ -4,7 +4,7 @@ import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const result = verifyAppProxySignature(
     url,
@@ -18,7 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
     );
   }
 
-  const slugParts = params.slug || [];
+  // slugParts を pathname から抽出
+  const pathname = url.pathname;
+  const slugParts = pathname.split("/").filter(Boolean).slice(3); 
+  // /api/shopify/proxy/... の3階層を除外して残りを slugParts に
 
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
@@ -48,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug?: strin
   );
 }
 
-export async function POST(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function POST(req: NextRequest) {
   const url = req.nextUrl;
   const result = verifyAppProxySignature(
     url,
@@ -62,7 +65,9 @@ export async function POST(req: NextRequest, { params }: { params: { slug?: stri
     );
   }
 
-  const slugParts = params.slug || [];
+  // slugParts を pathname から抽出
+  const pathname = url.pathname;
+  const slugParts = pathname.split("/").filter(Boolean).slice(3);
 
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
