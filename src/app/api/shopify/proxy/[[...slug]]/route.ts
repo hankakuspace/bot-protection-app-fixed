@@ -4,7 +4,7 @@ import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { slug?: string[] } }) {
   const url = req.nextUrl;
   const result = verifyAppProxySignature(
     url,
@@ -18,9 +18,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const pathPrefix = `/apps/${process.env.SHOPIFY_PROXY_SUBPATH}`;
-  const internalPath = url.pathname.replace(pathPrefix, "");
-  const slugParts = internalPath.split("/").filter(Boolean);
+  const slugParts = params.slug || [];
 
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
@@ -44,24 +42,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ✅ デバッグ情報を返す
   return NextResponse.json(
-    {
-      ok: false,
-      error: "Not found",
-      debug: {
-        pathname: url.pathname,
-        pathPrefix,
-        internalPath,
-        slugParts,
-        envProxy: process.env.SHOPIFY_PROXY_SUBPATH,
-      },
-    },
+    { ok: false, error: "Not found", slugParts },
     { status: 404 }
   );
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { slug?: string[] } }) {
   const url = req.nextUrl;
   const result = verifyAppProxySignature(
     url,
@@ -75,9 +62,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const pathPrefix = `/apps/${process.env.SHOPIFY_PROXY_SUBPATH}`;
-  const internalPath = url.pathname.replace(pathPrefix, "");
-  const slugParts = internalPath.split("/").filter(Boolean);
+  const slugParts = params.slug || [];
 
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
@@ -100,19 +85,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ✅ デバッグ情報を返す
   return NextResponse.json(
-    {
-      ok: false,
-      error: "Not found",
-      debug: {
-        pathname: url.pathname,
-        pathPrefix,
-        internalPath,
-        slugParts,
-        envProxy: process.env.SHOPIFY_PROXY_SUBPATH,
-      },
-    },
+    { ok: false, error: "Not found", slugParts },
     { status: 404 }
   );
 }
