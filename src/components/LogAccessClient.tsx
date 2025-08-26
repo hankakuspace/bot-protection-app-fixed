@@ -13,7 +13,7 @@ export default function LogAccessClient({ ip }: { ip: string }) {
           body: JSON.stringify({
             ip,
             isAdmin: false,
-            userAgent: navigator.userAgent,
+            userAgent: navigator.userAgent, // ✅ 実際のブラウザUA
             clientTime: new Date().toISOString(),
           }),
         });
@@ -24,5 +24,5 @@ export default function LogAccessClient({ ip }: { ip: string }) {
     logAccess();
   }, [ip]);
 
-  return null; // UI不要
+  return null; // UIは不要
 }

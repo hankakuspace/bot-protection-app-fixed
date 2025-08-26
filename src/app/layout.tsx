@@ -8,7 +8,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // ✅ 非同期でヘッダーを取得
   let ip = "UNKNOWN";
   try {
     const h = await headers();

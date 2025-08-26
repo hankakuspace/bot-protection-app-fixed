@@ -12,7 +12,7 @@ export async function middleware(req: NextRequest) {
   // 🚫 API 完全除外
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
-  // 🚫 /admin は素通り（hmac検証は API で行う）
+  // 🚫 /admin は素通り
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return NextResponse.next();
 
   // 🚫 host チェックは本番のみ
@@ -36,5 +36,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"], // /api は完全に除外済み
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

@@ -24,8 +24,8 @@ async function getCountryFromIp(ip: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { isAdmin, userAgent, clientTime } = await req.json();
-    let clientIp = getClientIp(req) || "UNKNOWN";
+    const { ip: clientIpFromBody, isAdmin, userAgent, clientTime } = await req.json();
+    let clientIp = clientIpFromBody || getClientIp(req) || "UNKNOWN";
 
     let ip_v4 = "UNKNOWN";
     let ip_v6 = "UNKNOWN";
@@ -40,15 +40,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ✅ Firestoreに統一的に保存するフィールド
     const ip = ip_v4 !== "UNKNOWN" ? ip_v4 : ip_v6;
-
     const country = await getCountryFromIp(ip);
     const allowedCountry = country === "JP";
     const blocked = !allowedCountry;
 
     await db.collection("access_logs").add({
-      ip,        // ← これを追加
+      ip,
       ip_v4,
       ip_v6,
       country,
@@ -62,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      ip,   // ← レスポンスにも含める
+      ip,
       ip_v4,
       ip_v6,
       country,
