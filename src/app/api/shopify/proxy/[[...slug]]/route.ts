@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
   const internalPath = url.pathname.replace(pathPrefix, "");
   const slugParts = internalPath.split("/").filter(Boolean);
 
-  // ✅ /log-access は内部APIに転送
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
       const queryString = url.searchParams.toString();
@@ -45,8 +44,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ✅ デバッグ情報を返す
   return NextResponse.json(
-    { ok: false, error: "Not found", path: internalPath, slugParts },
+    {
+      ok: false,
+      error: "Not found",
+      debug: {
+        pathname: url.pathname,
+        pathPrefix,
+        internalPath,
+        slugParts,
+        envProxy: process.env.SHOPIFY_PROXY_SUBPATH,
+      },
+    },
     { status: 404 }
   );
 }
@@ -69,7 +79,6 @@ export async function POST(req: NextRequest) {
   const internalPath = url.pathname.replace(pathPrefix, "");
   const slugParts = internalPath.split("/").filter(Boolean);
 
-  // ✅ /log-access は内部APIに転送
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
       const body = await req.text();
@@ -91,8 +100,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ✅ デバッグ情報を返す
   return NextResponse.json(
-    { ok: false, error: "Not found", path: internalPath, slugParts },
+    {
+      ok: false,
+      error: "Not found",
+      debug: {
+        pathname: url.pathname,
+        pathPrefix,
+        internalPath,
+        slugParts,
+        envProxy: process.env.SHOPIFY_PROXY_SUBPATH,
+      },
+    },
     { status: 404 }
   );
 }
