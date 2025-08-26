@@ -11,31 +11,23 @@ export default function AppNavigationMenu() {
     const host = params.get("host") || "";
     const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "";
 
-    // ✅ host や apiKey が無ければ初期化しない
-    if (!host || !apiKey) {
-      console.warn("Skip AppBridge init: missing host or apiKey");
-      return;
-    }
+    if (!host || !apiKey) return;
 
-    try {
-      const app = createApp({
-        apiKey,
-        host,
-        forceRedirect: true,
-      });
+    const app = createApp({
+      apiKey,
+      host,
+      forceRedirect: true,
+    });
 
-      NavigationMenu.create(app, {
-        items: [
-          { label: "Add IP", destination: "/admin/add-ip" },
-          { label: "Admin IPs", destination: "/admin/admin-ips" },
-          { label: "Blocklist", destination: "/admin/blocklist" },
-          { label: "List IP", destination: "/admin/list-ip" },
-          { label: "Logs", destination: "/admin/logs" },
-        ] as any,
-      });
-    } catch (err) {
-      console.error("AppBridge init error", err);
-    }
+    NavigationMenu.create(app, {
+      items: [
+        { label: "Add IP", destination: `/apps/bpp-20250814-final01/admin/add-ip` },
+        { label: "Admin IPs", destination: `/apps/bpp-20250814-final01/admin/admin-ips` },
+        { label: "Blocklist", destination: `/apps/bpp-20250814-final01/admin/blocklist` },
+        { label: "List IP", destination: `/apps/bpp-20250814-final01/admin/list-ip` },
+        { label: "Logs", destination: `/apps/bpp-20250814-final01/admin/logs` },
+      ] as any,
+    });
   }, []);
 
   return null;
