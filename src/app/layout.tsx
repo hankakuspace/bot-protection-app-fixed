@@ -3,6 +3,10 @@ import { headers } from "next/headers";
 import "./globals.css";
 import LogAccessClient from "@/components/LogAccessClient";
 
+// 追加
+import { AppBridgeProvider } from "@shopify/app-bridge-react";
+import AppNavigationMenu from "@/components/NavigationMenu";
+
 export default async function RootLayout({
   children,
 }: {
@@ -22,8 +26,16 @@ export default async function RootLayout({
         <meta name="x-client-ip" content={ip} />
       </head>
       <body>
+        {/* アクセスログ送信 */}
         <LogAccessClient ip={ip} />
-        {children}
+
+        {/* Shopify アプリナビゲーション */}
+        <AppBridgeProvider>
+          <AppNavigationMenu />
+
+          {/* 各ページ */}
+          {children}
+        </AppBridgeProvider>
       </body>
     </html>
   );
