@@ -1,88 +1,63 @@
 // src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
 
 export const runtime = "nodejs";
 
-const ipv4Regex =
-  /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-
-async function getCountryFromIp(ip: string): Promise<string> {
-  if (!ip || ip === "UNKNOWN") return "UNKNOWN";
-  try {
-    const token = process.env.IPINFO_TOKEN;
-    const resp = await fetch(`https://ipinfo.io/${ip}/json?token=${token}`);
-    if (!resp.ok) return "UNKNOWN";
-    const data = await resp.json();
-    return data.country || "UNKNOWN";
-  } catch {
-    return "UNKNOWN";
-  }
-}
-
+/**
+ * POST: ログを保存
+ */
 export async function POST(req: NextRequest) {
   try {
-    const { ip: clientIpFromBody, isAdmin, userAgent, clientTime } = await req.json();
-
-    // ✅ host 判定（App Proxy経由なら x-forwarded-host に be-search.biz が入る）
-    const host =
-      req.headers.get("x-forwarded-host") ||
-      req.headers.get("host") ||
-      "UNKNOWN";
-
-    if (process.env.NODE_ENV === "production" && host !== "be-search.biz") {
-      return NextResponse.json({ ok: false, error: "invalid host", host }, { status: 400 });
-    }
-
-    // ✅ IP 取得
-    let clientIp = getClientIp(req) || clientIpFromBody || "UNKNOWN";
-
-    let ip_v4 = "UNKNOWN";
-    let ip_v6 = "UNKNOWN";
-    if (clientIp !== "UNKNOWN") {
-      if (clientIp.startsWith("::ffff:")) {
-        ip_v4 = clientIp.replace("::ffff:", "");
-      } else if (ipv4Regex.test(clientIp)) {
-        ip_v4 = clientIp;
-      } else if (clientIp.includes(":")) {
-        ip_v6 = clientIp;
-      }
-    }
-
-    const ip = ip_v4 !== "UNKNOWN" ? ip_v4 : ip_v6;
-    const country = await getCountryFromIp(ip);
-    const allowedCountry = country === "JP";
-    const blocked = !allowedCountry;
+    const body = await req.json();
+    const ip = getClientIp(req);
+    const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
+    const clientTime = body.clientTime || null;
 
     await db.collection("access_logs").add({
       ip,
-      ip_v4,
-      ip_v6,
-      country,
-      allowedCountry,
-      blocked,
-      isAdmin: !!isAdmin,
-      userAgent: userAgent || req.headers.get("user-agent") || "UNKNOWN",
-      host,
-      createdAt: FieldValue.serverTimestamp(),
-      clientTime: clientTime || new Date().toISOString(),
+      country: body.country || "UNKNOWN",
+      allowedCountry: body.allowedCountry ?? true,
+      blocked: body.blocked ?? false,
+      isAdmin: body.isAdmin ?? false,
+      userAgent,
+      host: req.headers.get("host") || null,
+      createdAt: new Date(),
+      clientTime,
     });
 
-    return NextResponse.json({
-      ok: true,
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  }
+}
+
+/**
+ * GET: クエリパラメータ経由でログを保存
+ * 例: /apps/bpp-20250814-final01/log-access?ua=xxx&t=2025-08-27T00:00:00Z
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const ip = getClientIp(req);
+    const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
+    const clientTime = searchParams.get("t") || null;
+
+    await db.collection("access_logs").add({
       ip,
-      ip_v4,
-      ip_v6,
-      country,
-      allowedCountry,
-      blocked,
-      isAdmin,
-      host,
+      country: searchParams.get("country") || "UNKNOWN",
+      allowedCountry: searchParams.get("allowedCountry") === "true",
+      blocked: searchParams.get("blocked") === "true",
+      isAdmin: searchParams.get("isAdmin") === "true",
+      userAgent,
+      host: req.headers.get("host") || null,
+      createdAt: new Date(),
+      clientTime,
     });
-  } catch (err) {
-    console.error("log-access error:", err);
-    return NextResponse.json({ ok: false, error: "failed to log access" }, { status: 500 });
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
