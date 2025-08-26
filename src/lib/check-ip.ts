@@ -54,11 +54,14 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 
 /**
  * IPをブロックリストに追加
+ * @param ip - 対象のIP
+ * @param reason - ブロック理由（デフォルト: "manual"）
  */
-export async function blockIp(ip: string): Promise<void> {
+export async function blockIp(ip: string, reason: string = "manual"): Promise<void> {
   try {
     await db.collection("blocked_ips").doc(ip).set({
       blocked: true,
+      reason,
       createdAt: new Date().toISOString(),
     });
   } catch (e) {
@@ -68,8 +71,10 @@ export async function blockIp(ip: string): Promise<void> {
 
 /**
  * IPをブロックリストから解除
+ * @param ip - 対象のIP
+ * @param reason - 解除理由（デフォルト: "manual"）
  */
-export async function unblockIp(ip: string): Promise<void> {
+export async function unblockIp(ip: string, reason: string = "manual"): Promise<void> {
   try {
     await db.collection("blocked_ips").doc(ip).delete();
   } catch (e) {
