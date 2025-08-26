@@ -17,11 +17,26 @@ export default function AppNavigationMenu() {
 
     const navMenu = NavigationMenu.create(app, {
       items: [
-        { label: "Add IP", destination: "/admin/add-ip" },
-        { label: "Admin IPs", destination: "/admin/admin-ips" },
-        { label: "Blocklist", destination: "/admin/blocklist" },
-        { label: "List IP", destination: "/admin/list-ip" },
-        { label: "Logs", destination: "/admin/logs" },
+        NavigationMenu.Link.create(app, {
+          label: "Add IP",
+          destination: "/admin/add-ip",
+        }),
+        NavigationMenu.Link.create(app, {
+          label: "Admin IPs",
+          destination: "/admin/admin-ips",
+        }),
+        NavigationMenu.Link.create(app, {
+          label: "Blocklist",
+          destination: "/admin/blocklist",
+        }),
+        NavigationMenu.Link.create(app, {
+          label: "List IP",
+          destination: "/admin/list-ip",
+        }),
+        NavigationMenu.Link.create(app, {
+          label: "Logs",
+          destination: "/admin/logs",
+        }),
       ],
     });
 
