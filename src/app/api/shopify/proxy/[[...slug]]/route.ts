@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { slug?: string[] } }) {
+export async function POST(req: NextRequest) {
   const url = req.nextUrl;
   const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
 
@@ -58,12 +58,12 @@ export async function POST(req: NextRequest, { params }: { params: { slug?: stri
     );
   }
 
-  const slug = params.slug || [];
+  // slug の配列を自力で解析する
   const pathPrefix = `/apps/${process.env.SHOPIFY_PROXY_SUBPATH}`;
   const internalPath = url.pathname.replace(pathPrefix, "");
+  const slugParts = internalPath.split("/").filter(Boolean); // ["log-access"] など
 
-  // ✅ log-access に対する POST を内部 API に転送
-  if (slug.length === 1 && slug[0] === "log-access") {
+  if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
       const body = await req.text();
       const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`;
