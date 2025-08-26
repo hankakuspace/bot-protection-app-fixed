@@ -4,45 +4,28 @@ import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
-  const url = req.nextUrl;
-  const result = verifyAppProxySignature(
-    url,
-    process.env.SHOPIFY_API_SECRET || ""
-  );
-
-  if (!result.ok) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized", debug: result.debug },
-      { status: 401 }
-    );
-  }
-
-  // slugParts を pathname から抽出
-  const pathname = url.pathname;
-  const slugParts = pathname.split("/").filter(Boolean).slice(3); 
-  // /api/shopify/proxy/... の3階層を除外して残りを slugParts に
-
+// 共通フォワード処理
+async function forwardToInternal(req: NextRequest, slugParts: string[]) {
+  // ✅ /log-access を内部APIに転送
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
-    try {
-      const queryString = url.searchParams.toString();
-      const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access${
-        queryString ? `?${queryString}` : ""
-      }`;
+    const url = req.nextUrl;
+    const queryString = url.searchParams.toString();
+    const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access${
+      queryString ? `?${queryString}` : ""
+    }`;
 
-      const resp = await fetch(targetUrl, {
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-      });
+    const init: RequestInit = {
+      method: req.method,
+      headers: { "Content-Type": "application/json" },
+    };
 
-      const data = await resp.json();
-      return NextResponse.json(data, { status: resp.status });
-    } catch (e: any) {
-      return NextResponse.json(
-        { ok: false, error: e?.message || "Proxy forward failed (GET)" },
-        { status: 500 }
-      );
+    if (req.method === "POST") {
+      init.body = await req.text(); // bodyをそのまま転送
     }
+
+    const resp = await fetch(targetUrl, init);
+    const text = await resp.text();
+    return new NextResponse(text, { status: resp.status });
   }
 
   return NextResponse.json(
@@ -51,13 +34,12 @@ export async function GET(req: NextRequest) {
   );
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const result = verifyAppProxySignature(
     url,
     process.env.SHOPIFY_API_SECRET || ""
   );
-
   if (!result.ok) {
     return NextResponse.json(
       { ok: false, error: "Unauthorized", debug: result.debug },
@@ -65,33 +47,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // slugParts を pathname から抽出
-  const pathname = url.pathname;
-  const slugParts = pathname.split("/").filter(Boolean).slice(3);
+  const slugParts = url.pathname.split("/").filter(Boolean).slice(3); // /api/shopify/proxy/... の後ろ
+  return forwardToInternal(req, slugParts);
+}
 
-  if (slugParts.length === 1 && slugParts[0] === "log-access") {
-    try {
-      const body = await req.text();
-      const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access`;
-
-      const resp = await fetch(targetUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-
-      const data = await resp.json();
-      return NextResponse.json(data, { status: resp.status });
-    } catch (e: any) {
-      return NextResponse.json(
-        { ok: false, error: e?.message || "Proxy forward failed (POST)" },
-        { status: 500 }
-      );
-    }
+export async function POST(req: NextRequest) {
+  const url = req.nextUrl;
+  const result = verifyAppProxySignature(
+    url,
+    process.env.SHOPIFY_API_SECRET || ""
+  );
+  if (!result.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized", debug: result.debug },
+      { status: 401 }
+    );
   }
 
-  return NextResponse.json(
-    { ok: false, error: "Not found", slugParts },
-    { status: 404 }
-  );
+  const slugParts = url.pathname.split("/").filter(Boolean).slice(3);
+  return forwardToInternal(req, slugParts);
 }
