@@ -24,6 +24,7 @@ export async function GET() {
         blocked: data.blocked ?? false,
         isAdmin: data.isAdmin ?? false,
         userAgent: data.userAgent || "UNKNOWN",
+        host: data.host || "UNKNOWN", // ✅ host を追加
         timestamp:
           data.createdAt?.toDate?.().toISOString() ||
           data.clientTime ||
