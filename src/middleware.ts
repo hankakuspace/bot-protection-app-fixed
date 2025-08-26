@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import requestIp from "request-ip";
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname, searchParams } = req.nextUrl;
 
   // 🚫 favicon
   if (pathname === "/favicon.ico") return NextResponse.next();
@@ -12,8 +12,17 @@ export async function middleware(req: NextRequest) {
   // 🚫 API 完全除外
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
-  // 🚫 /admin は素通り
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) return NextResponse.next();
+  // 🚫 /admin パスは host パラメータ必須（Shopify経由のみ許可）
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    const hostParam = searchParams.get("host");
+    if (!hostParam) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized: must access from Shopify Admin (host missing)" },
+        { status: 403 }
+      );
+    }
+    return NextResponse.next();
+  }
 
   // 🚫 host チェックは本番のみ
   if (process.env.NODE_ENV === "production" && req.headers.get("host") !== "be-search.biz") {
