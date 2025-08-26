@@ -44,29 +44,31 @@ export default function LogsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 100;
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        const res = await fetch("/api/admin/logs");
-        const data = await res.json();
-        if (data.ok) {
-          // ✅ createdAt を基準に並べ替え
-          const sorted = data.logs.sort((a: AccessLog, b: AccessLog) => {
-            if (!a.createdAt && b.createdAt) return 1;
-            if (a.createdAt && !b.createdAt) return -1;
-            if (a.createdAt && b.createdAt) {
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-            return 0;
-          });
-          setLogs(sorted);
-        }
-      } catch (err) {
-        console.error("fetch logs error", err);
-      } finally {
-        setLoading(false);
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/logs");
+      const data = await res.json();
+      if (data.ok) {
+        // ✅ createdAt を基準に並べ替え
+        const sorted = data.logs.sort((a: AccessLog, b: AccessLog) => {
+          if (!a.createdAt && b.createdAt) return 1;
+          if (a.createdAt && !b.createdAt) return -1;
+          if (a.createdAt && b.createdAt) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          }
+          return 0;
+        });
+        setLogs(sorted);
       }
-    };
+    } catch (err) {
+      console.error("fetch logs error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchLogs();
   }, []);
 
@@ -95,7 +97,7 @@ export default function LogsPage() {
 
   // ✅ CSVエクスポート
   const exportCSV = () => {
-    const header = ["CreatedAt", "IP", "Country", "Allowed", "Blocked", "isAdmin", "UserAgent"];
+    const header = ["Timestamp", "IP", "Country", "Allowed", "Blocked", "isAdmin", "UserAgent"];
     const rows = filtered.map((log) => [
       formatDate(log.createdAt || null),
       log.ip,
@@ -125,6 +127,29 @@ export default function LogsPage() {
     a.download = "access_logs.json";
     a.click();
   };
+
+  // ✅ Pager コンポーネント
+  const Pager = () => (
+    <div className="flex justify-center items-center gap-4 my-2">
+      <button
+        disabled={page <= 1}
+        onClick={() => setPage((p) => p - 1)}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        ← Prev
+      </button>
+      <span>
+        Page {page} / {totalPages}
+      </span>
+      <button
+        disabled={page >= totalPages}
+        onClick={() => setPage((p) => p + 1)}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Next →
+      </button>
+    </div>
+  );
 
   return (
     <div className="p-4">
@@ -184,13 +209,21 @@ export default function LogsPage() {
         <button onClick={exportJSON} className="border px-2 py-1 bg-gray-100">
           Export JSON
         </button>
+
+        {/* リロード */}
+        <button onClick={fetchLogs} className="border px-2 py-1 bg-blue-100">
+          Reload
+        </button>
       </div>
+
+      {/* Pager (上) */}
+      <Pager />
 
       {/* テーブル */}
       <table className="table-auto border-collapse border border-gray-400 w-full text-sm">
         <thead>
           <tr className="bg-gray-200">
-            <th className="border px-2 py-1">Created At</th>
+            <th className="border px-2 py-1">Timestamp</th>
             <th className="border px-2 py-1">IP</th>
             <th className="border px-2 py-1">Country</th>
             <th className="border px-2 py-1">Allowed</th>
@@ -214,26 +247,8 @@ export default function LogsPage() {
         </tbody>
       </table>
 
-      {/* Pager */}
-      <div className="flex justify-center items-center gap-4 mt-4">
-        <button
-          disabled={page <= 1}
-          onClick={() => setPage((p) => p - 1)}
-          className="px-3 py-1 border rounded disabled:opacity-50"
-        >
-          ← Prev
-        </button>
-        <span>
-          Page {page} / {totalPages}
-        </span>
-        <button
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => p + 1)}
-          className="px-3 py-1 border rounded disabled:opacity-50"
-        >
-          Next →
-        </button>
-      </div>
+      {/* Pager (下) */}
+      <Pager />
     </div>
   );
 }
