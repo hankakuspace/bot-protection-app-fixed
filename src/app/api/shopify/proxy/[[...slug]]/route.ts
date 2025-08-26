@@ -1,70 +1,84 @@
-// src/app/api/shopify/proxy/[[...slug]]/route.ts
+// src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
+import { db } from "@/lib/firebase";
+import { getClientIp } from "@/lib/check-ip";
+import geoip from "geoip-lite";
 
 export const runtime = "nodejs";
 
-// 共通フォワード処理
-async function forwardToInternal(req: NextRequest, slugParts: string[]) {
-  // ✅ /log-access を内部APIに転送
-  if (slugParts.at(-1) === "log-access") {
-    const url = req.nextUrl;
-    const queryString = url.searchParams.toString();
-    const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/log-access${
-      queryString ? `?${queryString}` : ""
-    }`;
+/**
+ * POST: ログを保存
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const ip = getClientIp(req);
 
-    const init: RequestInit = {
-      method: req.method,
-      headers: { "Content-Type": "application/json" },
-    };
-
-    if (req.method === "POST") {
-      init.body = await req.text(); // bodyをそのまま転送
+    // geoipで国判定
+    let country = "UNKNOWN";
+    let allowedCountry = false;
+    const geo = geoip.lookup(ip);
+    if (geo && geo.country) {
+      country = geo.country;
+      allowedCountry = country === "JP";
     }
 
-    const resp = await fetch(targetUrl, init);
-    const text = await resp.text();
-    return new NextResponse(text, { status: resp.status });
-  }
+    const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
+    const clientTime = body.clientTime || null;
 
-  // その他は 404
-  return NextResponse.json(
-    { ok: false, error: "Not found", slugParts },
-    { status: 404 }
-  );
+    await db.collection("access_logs").add({
+      ip,
+      country,
+      allowedCountry,
+      blocked: body.blocked ?? false,
+      isAdmin: body.isAdmin ?? false,
+      userAgent,
+      host: req.headers.get("host") || null,
+      createdAt: new Date(),
+      clientTime,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  }
 }
 
+/**
+ * GET: クエリパラメータ経由でログを保存
+ * 例: /apps/bpp-20250814-final01/log-access?ua=xxx&t=2025-08-27T00:00:00Z
+ */
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl;
-  const result = verifyAppProxySignature(
-    url,
-    process.env.SHOPIFY_API_SECRET || ""
-  );
-  if (!result.ok) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized", debug: result.debug },
-      { status: 401 }
-    );
+  try {
+    const { searchParams } = new URL(req.url);
+    const ip = getClientIp(req);
+
+    // geoipで国判定
+    let country = "UNKNOWN";
+    let allowedCountry = false;
+    const geo = geoip.lookup(ip);
+    if (geo && geo.country) {
+      country = geo.country;
+      allowedCountry = country === "JP";
+    }
+
+    const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
+    const clientTime = searchParams.get("t") || null;
+
+    await db.collection("access_logs").add({
+      ip,
+      country,
+      allowedCountry,
+      blocked: searchParams.get("blocked") === "true",
+      isAdmin: searchParams.get("isAdmin") === "true",
+      userAgent,
+      host: req.headers.get("host") || null,
+      createdAt: new Date(),
+      clientTime,
+    });
+
+    return NextResponse.json({ ok: true, country, allowedCountry });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
-
-  const slugParts = url.pathname.split("/").filter(Boolean).slice(3); // /api/shopify/proxy/... の後ろ
-  return forwardToInternal(req, slugParts);
-}
-
-export async function POST(req: NextRequest) {
-  const url = req.nextUrl;
-  const result = verifyAppProxySignature(
-    url,
-    process.env.SHOPIFY_API_SECRET || ""
-  );
-  if (!result.ok) {
-    return NextResponse.json(
-      { ok: false, error: "Unauthorized", debug: result.debug },
-      { status: 401 }
-    );
-  }
-
-  const slugParts = url.pathname.split("/").filter(Boolean).slice(3);
-  return forwardToInternal(req, slugParts);
 }
