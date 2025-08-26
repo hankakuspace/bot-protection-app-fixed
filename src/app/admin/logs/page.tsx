@@ -11,8 +11,7 @@ interface AccessLog {
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
-  host?: string;
-  createdAt?: string | null; // ✅ createdAtのみ利用
+  createdAt?: string | null;
 }
 
 // ✅ 日本時間に整形
@@ -40,6 +39,10 @@ export default function LogsPage() {
   const [blockedFilter, setBlockedFilter] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  // ページネーション
+  const [page, setPage] = useState(1);
+  const pageSize = 100;
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -85,27 +88,22 @@ export default function LogsPage() {
     return true;
   });
 
+  // ページ分割
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const paged = filtered.slice(startIndex, startIndex + pageSize);
+
   // ✅ CSVエクスポート
   const exportCSV = () => {
-    const header = [
-      "CreatedAt",
-      "IP",
-      "Country",
-      "Allowed",
-      "Blocked",
-      "isAdmin",
-      "UserAgent",
-      "Host",
-    ];
+    const header = ["CreatedAt", "IP", "Country", "Allowed", "Blocked", "isAdmin", "UserAgent"];
     const rows = filtered.map((log) => [
       formatDate(log.createdAt || null),
       log.ip,
       log.country,
-      log.allowedCountry,
-      log.blocked,
-      log.isAdmin,
+      log.allowedCountry ? "Yes" : "No",
+      log.blocked ? "Yes" : "No",
+      log.isAdmin ? "Yes" : "No",
       log.userAgent,
-      log.host || "-",
     ]);
     const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -192,18 +190,17 @@ export default function LogsPage() {
       <table className="table-auto border-collapse border border-gray-400 w-full text-sm">
         <thead>
           <tr className="bg-gray-200">
-            <th className="border px-2 py-1">Created At</th> {/* ✅ 一番左に表示 */}
+            <th className="border px-2 py-1">Created At</th>
             <th className="border px-2 py-1">IP</th>
             <th className="border px-2 py-1">Country</th>
             <th className="border px-2 py-1">Allowed</th>
             <th className="border px-2 py-1">Blocked</th>
             <th className="border px-2 py-1">isAdmin</th>
             <th className="border px-2 py-1">UserAgent</th>
-            <th className="border px-2 py-1">Host</th>
           </tr>
         </thead>
         <tbody>
-          {filtered.map((log) => (
+          {paged.map((log) => (
             <tr key={log.id}>
               <td className="border px-2 py-1">{formatDate(log.createdAt || null)}</td>
               <td className="border px-2 py-1">{log.ip}</td>
@@ -212,11 +209,31 @@ export default function LogsPage() {
               <td className="border px-2 py-1">{log.blocked ? "Yes" : "No"}</td>
               <td className="border px-2 py-1">{log.isAdmin ? "Yes" : "No"}</td>
               <td className="border px-2 py-1">{log.userAgent}</td>
-              <td className="border px-2 py-1">{log.host || "-"}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* Pager */}
+      <div className="flex justify-center items-center gap-4 mt-4">
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          ← Prev
+        </button>
+        <span>
+          Page {page} / {totalPages}
+        </span>
+        <button
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+          className="px-3 py-1 border rounded disabled:opacity-50"
+        >
+          Next →
+        </button>
+      </div>
     </div>
   );
 }
