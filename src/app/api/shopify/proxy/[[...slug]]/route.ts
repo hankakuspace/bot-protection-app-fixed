@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
 
   const pathPrefix = `/apps/${process.env.SHOPIFY_PROXY_SUBPATH}`;
   const internalPath = url.pathname.replace(pathPrefix, "");
-
   const queryString = url.searchParams.toString();
   const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}${internalPath}${
     queryString ? `?${queryString}` : ""
@@ -58,10 +57,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // slug の配列を自力で解析する
   const pathPrefix = `/apps/${process.env.SHOPIFY_PROXY_SUBPATH}`;
   const internalPath = url.pathname.replace(pathPrefix, "");
-  const slugParts = internalPath.split("/").filter(Boolean); // ["log-access"] など
+  const slugParts = internalPath.split("/").filter(Boolean);
 
   if (slugParts.length === 1 && slugParts[0] === "log-access") {
     try {
@@ -84,5 +82,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  // ✅ デバッグ出力
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "Not found",
+      debug: {
+        url: url.pathname,
+        pathPrefix,
+        internalPath,
+        slugParts,
+      },
+    },
+    { status: 404 }
+  );
 }
