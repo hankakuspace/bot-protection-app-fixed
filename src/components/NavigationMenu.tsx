@@ -7,28 +7,35 @@ import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function AppNavigationMenu() {
   useEffect(() => {
-    const host = new URLSearchParams(window.location.search).get("host") || "";
+    const params = new URLSearchParams(window.location.search);
+    const host = params.get("host") || "";
+    const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "";
 
-    const app = createApp({
-      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
-      host,
-      forceRedirect: true,
-    });
+    // ✅ host や apiKey が無ければ初期化しない
+    if (!host || !apiKey) {
+      console.warn("Skip AppBridge init: missing host or apiKey");
+      return;
+    }
 
-    // ✅ items は {label, destination} の配列でOK
-    const navMenu = NavigationMenu.create(app, {
-      items: [
-        { label: "Add IP", destination: "/admin/add-ip" },
-        { label: "Admin IPs", destination: "/admin/admin-ips" },
-        { label: "Blocklist", destination: "/admin/blocklist" },
-        { label: "List IP", destination: "/admin/list-ip" },
-        { label: "Logs", destination: "/admin/logs" },
-      ] as any, // 型エラー回避
-    });
+    try {
+      const app = createApp({
+        apiKey,
+        host,
+        forceRedirect: true,
+      });
 
-    return () => {
-      navMenu.unsubscribe();
-    };
+      NavigationMenu.create(app, {
+        items: [
+          { label: "Add IP", destination: "/admin/add-ip" },
+          { label: "Admin IPs", destination: "/admin/admin-ips" },
+          { label: "Blocklist", destination: "/admin/blocklist" },
+          { label: "List IP", destination: "/admin/list-ip" },
+          { label: "Logs", destination: "/admin/logs" },
+        ] as any,
+      });
+    } catch (err) {
+      console.error("AppBridge init error", err);
+    }
   }, []);
 
   return null;
