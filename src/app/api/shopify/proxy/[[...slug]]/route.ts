@@ -2,9 +2,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getClientIp } from "@/lib/check-ip";
-import geoip from "geoip-lite";
 
 export const runtime = "nodejs";
+
+async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
+  try {
+    const token = process.env.IPINFO_TOKEN;
+    if (!token || ip === "UNKNOWN") return { country: "UNKNOWN", allowed: false };
+
+    const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
+    if (!res.ok) return { country: "UNKNOWN", allowed: false };
+
+    const data = await res.json();
+    const country = data.country || "UNKNOWN";
+    return { country, allowed: country === "JP" };
+  } catch {
+    return { country: "UNKNOWN", allowed: false };
+  }
+}
 
 /**
  * POST: ログを保存
@@ -14,14 +29,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const ip = getClientIp(req);
 
-    // geoipで国判定
-    let country = "UNKNOWN";
-    let allowedCountry = false;
-    const geo = geoip.lookup(ip);
-    if (geo && geo.country) {
-      country = geo.country;
-      allowedCountry = country === "JP";
-    }
+    const { country, allowed } = await getCountryFromIp(ip);
 
     const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
     const clientTime = body.clientTime || null;
@@ -29,7 +37,7 @@ export async function POST(req: NextRequest) {
     await db.collection("access_logs").add({
       ip,
       country,
-      allowedCountry,
+      allowedCountry: allowed,
       blocked: body.blocked ?? false,
       isAdmin: body.isAdmin ?? false,
       userAgent,
@@ -38,7 +46,7 @@ export async function POST(req: NextRequest) {
       clientTime,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, country, allowedCountry: allowed });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
@@ -46,21 +54,13 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET: クエリパラメータ経由でログを保存
- * 例: /apps/bpp-20250814-final01/log-access?ua=xxx&t=2025-08-27T00:00:00Z
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const ip = getClientIp(req);
 
-    // geoipで国判定
-    let country = "UNKNOWN";
-    let allowedCountry = false;
-    const geo = geoip.lookup(ip);
-    if (geo && geo.country) {
-      country = geo.country;
-      allowedCountry = country === "JP";
-    }
+    const { country, allowed } = await getCountryFromIp(ip);
 
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
     const clientTime = searchParams.get("t") || null;
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     await db.collection("access_logs").add({
       ip,
       country,
-      allowedCountry,
+      allowedCountry: allowed,
       blocked: searchParams.get("blocked") === "true",
       isAdmin: searchParams.get("isAdmin") === "true",
       userAgent,
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       clientTime,
     });
 
-    return NextResponse.json({ ok: true, country, allowedCountry });
+    return NextResponse.json({ ok: true, country, allowedCountry: allowed });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
