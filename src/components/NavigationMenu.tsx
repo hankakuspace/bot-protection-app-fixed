@@ -7,7 +7,6 @@ import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function AppNavigationMenu() {
   useEffect(() => {
-    // ✅ host は Shopify から ?host=xxxx として渡される
     const host = new URLSearchParams(window.location.search).get("host") || "";
 
     const app = createApp({
@@ -31,5 +30,5 @@ export default function AppNavigationMenu() {
     };
   }, []);
 
-  return null; // Shopify が自動で左メニューを描画するため UIは不要
+  return null;
 }
