@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const snapshot = await db
       .collection("access_logs")
-      .orderBy("createdAt", "desc") // ✅ 新しい順
+      .orderBy("createdAt", "desc")
       .limit(200)
       .get();
 
@@ -18,21 +18,24 @@ export async function GET() {
 
       return {
         id: doc.id,
-        ip: data.ip || data.ip_v4 || data.ip_v6 || "UNKNOWN", // ✅ Firestoreのipを優先
+        ip: data.ip || data.ip_v4 || data.ip_v6 || "UNKNOWN",
         country: data.country || "UNKNOWN",
         allowedCountry: data.allowedCountry ?? false,
         blocked: data.blocked ?? false,
         isAdmin: data.isAdmin ?? false,
         userAgent: data.userAgent || "UNKNOWN",
-        host: data.host || "UNKNOWN", // ✅ host を追加
+        host: data.host || "UNKNOWN",
+        clientTime: data.clientTime || null,
+        createdAt: data.createdAt?.toDate?.().toISOString() || null,
+        // ✅ timestamp を必ず返す（UIで利用）
         timestamp:
-          data.createdAt?.toDate?.().toISOString() ||
           data.clientTime ||
+          data.createdAt?.toDate?.().toISOString() ||
           null,
       };
     });
 
-    // ✅ null timestamp を下に
+    // ✅ timestamp で降順
     logs.sort((a, b) => {
       if (!a.timestamp && b.timestamp) return 1;
       if (a.timestamp && !b.timestamp) return -1;

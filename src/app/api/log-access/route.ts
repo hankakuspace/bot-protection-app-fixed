@@ -26,23 +26,21 @@ export async function POST(req: NextRequest) {
   try {
     const { ip: clientIpFromBody, isAdmin, userAgent, clientTime } = await req.json();
 
-    // ✅ host を取得
-    const host = req.headers.get("host") || "";
+    // ✅ host 判定（App Proxy経由なら x-forwarded-host に be-search.biz が入る）
+    const host =
+      req.headers.get("x-forwarded-host") ||
+      req.headers.get("host") ||
+      "UNKNOWN";
 
-    // 🚫 本番環境では be-search.biz 以外はログ拒否
     if (process.env.NODE_ENV === "production" && host !== "be-search.biz") {
-      return NextResponse.json(
-        { ok: false, error: "invalid host", host },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "invalid host", host }, { status: 400 });
     }
 
-    // ✅ サーバー側を優先、クライアント送信は補助
+    // ✅ IP 取得
     let clientIp = getClientIp(req) || clientIpFromBody || "UNKNOWN";
 
     let ip_v4 = "UNKNOWN";
     let ip_v6 = "UNKNOWN";
-
     if (clientIp !== "UNKNOWN") {
       if (clientIp.startsWith("::ffff:")) {
         ip_v4 = clientIp.replace("::ffff:", "");
@@ -67,7 +65,7 @@ export async function POST(req: NextRequest) {
       blocked,
       isAdmin: !!isAdmin,
       userAgent: userAgent || req.headers.get("user-agent") || "UNKNOWN",
-      host, // ✅ 保存
+      host,
       createdAt: FieldValue.serverTimestamp(),
       clientTime: clientTime || new Date().toISOString(),
     });
@@ -81,13 +79,10 @@ export async function POST(req: NextRequest) {
       allowedCountry,
       blocked,
       isAdmin,
-      host, // ✅ レスポンスにも含める
+      host,
     });
   } catch (err) {
     console.error("log-access error:", err);
-    return NextResponse.json(
-      { ok: false, error: "failed to log access" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "failed to log access" }, { status: 500 });
   }
 }
