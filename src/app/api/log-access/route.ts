@@ -2,8 +2,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
+import { getClientIp } from "@/lib/check-ip";
 
 export const runtime = "nodejs";
+
+const ipv4Regex =
+  /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
 async function getCountryFromIp(ip: string): Promise<string> {
   if (!ip || ip === "UNKNOWN") return "UNKNOWN";
@@ -13,54 +17,64 @@ async function getCountryFromIp(ip: string): Promise<string> {
     if (!resp.ok) return "UNKNOWN";
     const data = await resp.json();
     return data.country || "UNKNOWN";
-  } catch (e) {
-    console.error("IP lookup failed:", e);
+  } catch {
     return "UNKNOWN";
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { ip, isAdmin, userAgent, clientTime } = await req.json();
+    const { isAdmin, userAgent, clientTime } = await req.json();
+    let clientIp = getClientIp(req) || "UNKNOWN";
 
-    // fallbackでサーバヘッダも確認
-    let clientIp = ip;
-    if (!clientIp || clientIp === "UNKNOWN") {
-      clientIp =
-        req.headers.get("cf-connecting-ip") ||
-        req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-        req.headers.get("x-real-ip") ||
-        "UNKNOWN";
-      clientIp = clientIp.replace(/^::ffff:/, "");
+    let ip_v4 = "UNKNOWN";
+    let ip_v6 = "UNKNOWN";
+
+    if (clientIp !== "UNKNOWN") {
+      if (clientIp.startsWith("::ffff:")) {
+        ip_v4 = clientIp.replace("::ffff:", "");
+      } else if (ipv4Regex.test(clientIp)) {
+        ip_v4 = clientIp;
+      } else if (clientIp.includes(":")) {
+        ip_v6 = clientIp;
+      }
     }
 
-    const country = await getCountryFromIp(clientIp);
+    // ✅ Firestoreに統一的に保存するフィールド
+    const ip = ip_v4 !== "UNKNOWN" ? ip_v4 : ip_v6;
+
+    const country = await getCountryFromIp(ip);
     const allowedCountry = country === "JP";
     const blocked = !allowedCountry;
 
     await db.collection("access_logs").add({
-      ip: clientIp || "UNKNOWN",
+      ip,        // ← これを追加
+      ip_v4,
+      ip_v6,
       country,
       allowedCountry,
       blocked,
       isAdmin: !!isAdmin,
-      userAgent: userAgent || "UNKNOWN",
-      timestamp: FieldValue.serverTimestamp(),
+      userAgent: userAgent || req.headers.get("user-agent") || "UNKNOWN",
       createdAt: FieldValue.serverTimestamp(),
       clientTime: clientTime || new Date().toISOString(),
     });
 
     return NextResponse.json({
       ok: true,
-      ip: clientIp,
+      ip,   // ← レスポンスにも含める
+      ip_v4,
+      ip_v6,
       country,
       allowedCountry,
       blocked,
       isAdmin,
-      userAgent,
     });
   } catch (err) {
     console.error("log-access error:", err);
-    return NextResponse.json({ ok: false, error: "failed to log access" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "failed to log access" },
+      { status: 500 }
+    );
   }
 }

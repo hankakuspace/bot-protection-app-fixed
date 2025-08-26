@@ -1,53 +1,40 @@
-import { db } from "@/lib/admin"; // admin SDK を利用
-import { isAdminIp } from "@/lib/admin";
+// src/lib/check-ip.ts
+import type { NextRequest } from "next/server";
 
 /**
- * 管理者判定 & ブロック判定
+ * クライアントIPを正規化して取得
+ * - ヘッダ優先順: cf-connecting-ip → x-forwarded-for → x-real-ip
+ * - 複数IPがある場合は IPv4 を優先して返す
+ * - ::ffff:xxx.xxx.xxx.xxx は IPv4 として扱う
  */
-export async function checkIp(ip: string) {
-  if (!ip) {
-    return { ip, blocked: false, isAdmin: false };
-  }
+export function getClientIp(req: NextRequest): string {
+  const headers = req.headers;
 
-  // 🔹 admin SDK で blocked 判定
-  const blockedSnap = await db.collection("blocked_ips").doc(ip).get();
-  const blocked = blockedSnap.exists;
+  const candidates: string[] = [];
 
-  // 🔹 admin SDK で管理者判定（共通関数利用）
-  const isAdmin = await isAdminIp(ip);
+  const cf = headers.get("cf-connecting-ip");
+  const xff = headers.get("x-forwarded-for");
+  const xri = headers.get("x-real-ip");
 
-  return {
-    ip,
-    blocked,
-    isAdmin,
-  };
-}
+  if (cf) candidates.push(...cf.split(",").map((s) => s.trim()));
+  if (xff) candidates.push(...xff.split(",").map((s) => s.trim()));
+  if (xri) candidates.push(...xri.split(",").map((s) => s.trim()));
 
-/**
- * 単純にブロックされているか確認
- */
-export async function isIpBlocked(ip: string): Promise<boolean> {
-  if (!ip) return false;
-  const snap = await db.collection("blocked_ips").doc(ip).get();
-  return snap.exists;
-}
+  // ::ffff: を外す
+  const normalized = candidates.map((ip) =>
+    ip.startsWith("::ffff:") ? ip.replace("::ffff:", "") : ip
+  );
 
-/**
- * IP をブロックリストに追加（呼び出し元の記録オプション付き）
- */
-export async function blockIp(ip: string, source: string = "manual"): Promise<void> {
-  if (!ip) return;
-  await db.collection("blocked_ips").doc(ip).set({
-    createdAt: new Date().toISOString(),
-    source,
-  });
-}
+  // IPv4正規表現
+  const ipv4Regex =
+    /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
-/**
- * IP をブロックリストから解除（呼び出し元の記録オプション付き）
- */
-export async function unblockIp(ip: string, source: string = "manual"): Promise<void> {
-  if (!ip) return;
-  await db.collection("blocked_ips").doc(ip).delete();
-  // TODO: 削除ログ保存処理を追加したい場合はここに実装
+  // ✅ IPv4 があれば優先して返す
+  const ipv4 = normalized.find((ip) => ipv4Regex.test(ip));
+  if (ipv4) return ipv4;
+
+  // IPv4 が無ければ最初の候補（IPv6など）を返す
+  if (normalized.length > 0) return normalized[0];
+
+  return "UNKNOWN";
 }

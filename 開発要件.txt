@@ -206,3 +206,18 @@ export const db = getFirestore(firebaseApp);
 
 
 
+
+
+🌐 Shopify アプリ設定
+本番（Vercel + be-search.biz）
+アプリURL: https://bot-protection-ten.vercel.app/api/shopify/proxy
+許可されたリダイレクトURL: https://bot-protection-ten.vercel.app/api/shopify/proxy
+Proxy URL: https://bot-protection-ten.vercel.app/api/shopify/proxy
+Shopify 側では /apps/bpp-20250814-final01/... で利用
+ローカル（ngrok 固定ドメイン）
+アプリURL: https://hankaku-app.ngrok.io/api/shopify/proxy
+許可されたリダイレクトURL: https://hankaku-app.ngrok.io/api/shopify/proxy
+Proxy URL: https://hankaku-app.ngrok.io/api/shopify/proxy
+Shopify 側では /apps/bpp-20250814-final01/... で利用
+
+

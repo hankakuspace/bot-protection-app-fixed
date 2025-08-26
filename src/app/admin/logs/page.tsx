@@ -1,7 +1,7 @@
 // src/app/admin/logs/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 interface AccessLog {
   id: string;
@@ -11,22 +11,27 @@ interface AccessLog {
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
-  timestamp: string | null;   // ISO文字列 or null
-  createdAt?: string | null;  // クライアント保存時刻
+  timestamp: string | null;
 }
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [authError, setAuthError] = useState<string>("");
+
+  // ✅ フィルタ用 state
   const [countryFilter, setCountryFilter] = useState("");
   const [isAdminFilter, setIsAdminFilter] = useState(false);
   const [blockedFilter, setBlockedFilter] = useState(false);
 
-  // ページネーション
-  const [page, setPage] = useState(1);
-  const pageSize = 100; // ✅ デフォルト表示件数を100件に設定
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
-  // ✅ fetchLogs を外出しにする（再利用できるように）
+  const [page, setPage] = useState(1);
+  const pageSize = 100;
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
@@ -41,128 +46,159 @@ export default function LogsPage() {
   };
 
   useEffect(() => {
-    fetchLogs();
+    fetch("/api/verify-hmac" + window.location.search)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) {
+          setAuthorized(true);
+          fetchLogs();
+        } else {
+          setAuthorized(false);
+          setAuthError(data.error || "invalid hmac");
+        }
+      })
+      .catch(() => {
+        setAuthorized(false);
+        setAuthError("server error");
+      });
   }, []);
 
-  // フィルタ適用
+  // ✅ ログからユニークな国コードを抽出
+  const countryOptions = useMemo(() => {
+    const set = new Set<string>();
+    logs.forEach((log) => {
+      if (log.country && log.country !== "UNKNOWN") {
+        set.add(log.country);
+      }
+    });
+    return Array.from(set).sort();
+  }, [logs]);
+
+  if (authorized === null) return <p className="p-4">Verifying access...</p>;
+  if (!authorized) {
+    return (
+      <div className="p-6 text-red-600">
+        <h1 className="text-xl font-bold mb-2">Unauthorized</h1>
+        <p>This page can only be accessed from Shopify Admin.</p>
+        <p className="text-sm text-gray-600 mt-2">Reason: {authError}</p>
+      </div>
+    );
+  }
+  if (loading) return <p className="p-4">Loading logs...</p>;
+
+  // ✅ フィルタ処理
   const filteredLogs = logs.filter((log) => {
     if (countryFilter && log.country !== countryFilter) return false;
     if (isAdminFilter && !log.isAdmin) return false;
     if (blockedFilter && !log.blocked) return false;
+
+    if (fromDate) {
+      const from = new Date(fromDate).getTime();
+      const ts = log.timestamp ? new Date(log.timestamp).getTime() : 0;
+      if (ts < from) return false;
+    }
+    if (toDate) {
+      const to = new Date(toDate).getTime();
+      const ts = log.timestamp ? new Date(log.timestamp).getTime() : 0;
+      if (ts > to) return false;
+    }
     return true;
   });
 
-  // ページネーション処理
   const totalPages = Math.ceil(filteredLogs.length / pageSize);
   const paginatedLogs = filteredLogs.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
 
-  // CSV Export
-  const handleCsvExport = () => {
-    const header = [
-      "Timestamp",
-      "IP",
-      "Country",
-      "Allowed",
-      "Blocked",
-      "Admin",
-      "UserAgent",
-    ];
-    const rows = filteredLogs.map((log) => [
-      log.timestamp
-        ? new Date(log.timestamp).toLocaleString()
-        : log.createdAt
-        ? new Date(log.createdAt).toLocaleString()
-        : "pending...",
-      log.ip,
-      log.country,
-      String(log.allowedCountry),
-      String(log.blocked),
-      String(log.isAdmin),
-      log.userAgent || "",
-    ]);
-    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+  // ✅ CSVエクスポート
+  const exportCSV = () => {
+    const header =
+      "id,ip,country,allowedCountry,blocked,isAdmin,userAgent,timestamp\n";
+    const rows = filteredLogs.map(
+      (l) =>
+        `${l.id},${l.ip},${l.country},${l.allowedCountry},${l.blocked},${l.isAdmin},${l.userAgent},${l.timestamp}`
+    );
+    const blob = new Blob([header + rows.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "access_logs.csv";
+    a.download = "logs.csv";
     a.click();
-    URL.revokeObjectURL(url);
   };
 
-  // JSON Export
-  const handleJsonExport = () => {
+  // ✅ JSONエクスポート
+  const exportJSON = () => {
     const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "access_logs.json";
+    a.download = "logs.json";
     a.click();
-    URL.revokeObjectURL(url);
   };
-
-  if (loading) return <p className="p-4">Loading logs...</p>;
 
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold mb-4">Access Logs</h1>
 
-      {/* フィルタ & リロード */}
-      <div className="flex items-center gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="Country code (例: JP)"
+      {/* ✅ フィルタ UI */}
+      <div className="flex gap-4 mb-4 flex-wrap">
+        <select
           value={countryFilter}
           onChange={(e) => setCountryFilter(e.target.value)}
-          className="border px-2 py-1 rounded"
-        />
+          className="border px-2 py-1"
+        >
+          <option value="">All Countries</option>
+          {countryOptions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
         <label>
           <input
             type="checkbox"
             checked={isAdminFilter}
             onChange={(e) => setIsAdminFilter(e.target.checked)}
-            className="mr-1"
-          />
+          />{" "}
           isAdmin
         </label>
+
         <label>
           <input
             type="checkbox"
             checked={blockedFilter}
             onChange={(e) => setBlockedFilter(e.target.checked)}
-            className="mr-1"
-          />
+          />{" "}
           blocked
         </label>
-        <button
-          onClick={() => {
-            setPage(1);
-            fetchLogs(); // ✅ 再読み込み
-          }}
-          className="bg-gray-500 text-white px-3 py-1 rounded"
-        >
-          再読み込み
-        </button>
+
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          className="border px-2 py-1"
+        />
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          className="border px-2 py-1"
+        />
       </div>
 
-      {/* エクスポート */}
+      {/* ✅ エクスポート */}
       <div className="flex gap-2 mb-4">
-        <button
-          onClick={handleCsvExport}
-          className="bg-green-500 text-white px-3 py-1 rounded"
-        >
-          CSV Export
+        <button onClick={exportCSV} className="px-3 py-1 border rounded">
+          Export CSV
         </button>
-        <button
-          onClick={handleJsonExport}
-          className="bg-gray-600 text-white px-3 py-1 rounded"
-        >
-          JSON Export
+        <button onClick={exportJSON} className="px-3 py-1 border rounded">
+          Export JSON
         </button>
       </div>
 
@@ -170,7 +206,7 @@ export default function LogsPage() {
         {filteredLogs.length} 件のログを表示中
       </p>
 
-      {/* テーブル */}
+      {/* ✅ ログテーブル */}
       <table className="w-full border-collapse border border-gray-300 text-sm">
         <thead>
           <tr className="bg-gray-100">
@@ -179,7 +215,7 @@ export default function LogsPage() {
             <th className="border px-2 py-1">Country</th>
             <th className="border px-2 py-1">Allowed</th>
             <th className="border px-2 py-1">Blocked</th>
-            <th className="border px-2 py-1">Admin</th>
+            <th className="border px-2 py-1">isAdmin</th>
             <th className="border px-2 py-1">UserAgent</th>
           </tr>
         </thead>
@@ -189,18 +225,14 @@ export default function LogsPage() {
               <td className="border px-2 py-1">
                 {log.timestamp
                   ? new Date(log.timestamp).toLocaleString()
-                  : log.createdAt
-                  ? new Date(log.createdAt).toLocaleString()
                   : "pending..."}
               </td>
-              <td className="border px-2 py-1">{log.ip}</td>
+              <td className="border px-2 py-1 font-mono">{log.ip}</td>
               <td className="border px-2 py-1">{log.country}</td>
-              <td className="border px-2 py-1">
-                {String(log.allowedCountry)}
-              </td>
+              <td className="border px-2 py-1">{String(log.allowedCountry)}</td>
               <td className="border px-2 py-1">{String(log.blocked)}</td>
               <td className="border px-2 py-1">{String(log.isAdmin)}</td>
-              <td className="border px-2 py-1 truncate max-w-xs">
+              <td className="border px-2 py-1 max-w-xs break-all">
                 {log.userAgent}
               </td>
             </tr>
@@ -208,24 +240,24 @@ export default function LogsPage() {
         </tbody>
       </table>
 
-      {/* ページネーション */}
-      <div className="flex justify-between items-center mt-4">
+      {/* ✅ ページネーション */}
+      <div className="flex items-center gap-2 mt-4">
         <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          onClick={() => setPage(page - 1)}
+          className="px-2 py-1 border rounded disabled:opacity-50"
         >
-          前へ
+          Prev
         </button>
         <span>
           {page} / {totalPages}
         </span>
         <button
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          onClick={() => setPage(page + 1)}
+          className="px-2 py-1 border rounded disabled:opacity-50"
         >
-          次へ
+          Next
         </button>
       </div>
     </div>

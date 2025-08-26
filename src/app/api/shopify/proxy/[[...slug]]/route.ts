@@ -1,39 +1,38 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 
 export const runtime = "nodejs";
 
-function verifyProxySignature(req: NextRequest): boolean {
-  const url = new URL(req.url);
-  const params = Object.fromEntries(url.searchParams.entries());
-  const signature = params.signature;
-  delete params.signature;
-
-  const keys = Object.keys(params).sort();
-  const canonicalQuery = keys.map((k) => `${k}=${params[k]}`).join("\n");
-
-  const expected = crypto
-    .createHmac("sha256", process.env.SHOPIFY_API_SECRET || "")
-    .update(canonicalQuery)
-    .digest("hex");
-
-  return expected === signature;
-}
-
 export async function GET(req: NextRequest) {
-  const valid = verifyProxySignature(req);
-  if (!valid) {
-    return NextResponse.json({ ok: false, error: "Invalid signature" }, { status: 403 });
+  const url = req.nextUrl;
+  const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
+
+  if (!result.ok) {
+    return NextResponse.json({ ok: false, error: "Unauthorized", debug: result.debug }, { status: 401 });
   }
 
-  // ✅ /admin/list-ip のページを内部フェッチしてHTMLを返す
-  const res = await fetch(new URL("/admin/list-ip", req.nextUrl.origin), {
-    headers: { "Content-Type": "text/html" },
-  });
-  const html = await res.text();
+  const pathPrefix = `/apps/${process.env.SHOPIFY_PROXY_SUBPATH}`;
+  const internalPath = url.pathname.replace(pathPrefix, "");
 
-  return new NextResponse(html, {
-    headers: { "Content-Type": "text/html" },
-  });
+  const queryString = url.searchParams.toString();
+  const targetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}${internalPath}${queryString ? `?${queryString}` : ""}`;
+
+  try {
+    const resp = await fetch(targetUrl, {
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    });
+
+    // 内部APIが失敗した場合
+    if (!resp.ok) {
+      const text = await resp.text();
+      return NextResponse.json({ ok: false, error: "Internal API failed", status: resp.status, body: text }, { status: 500 });
+    }
+
+    const data = await resp.json();
+    return NextResponse.json(data);
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || "Proxy forward failed" }, { status: 500 });
+  }
 }

@@ -3,12 +3,16 @@ import { headers } from "next/headers";
 import "./globals.css";
 import LogAccessClient from "@/components/LogAccessClient";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // headers() が Promise 扱いされる場合に対応
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // ✅ 非同期でヘッダーを取得
   let ip = "UNKNOWN";
   try {
-    const h = (headers() as any);
-    ip = h.get?.("x-client-ip") || "UNKNOWN";
+    const h = await headers();
+    ip = h.get("x-client-ip") || "UNKNOWN";
   } catch {
     ip = "UNKNOWN";
   }
