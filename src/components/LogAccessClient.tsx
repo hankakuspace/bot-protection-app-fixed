@@ -7,13 +7,20 @@ export default function LogAccessClient({ ip }: { ip: string }) {
   useEffect(() => {
     const logAccess = async () => {
       try {
+        const ua =
+          (navigator as any).userAgent ||
+          (navigator as any).userAgentData?.brands
+            ?.map((b: any) => `${b.brand}/${b.version}`)
+            .join(", ") ||
+          "UNKNOWN";
+
         await fetch("/api/log-access", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ip,
             isAdmin: false,
-            userAgent: navigator.userAgent, // ✅ 実際のブラウザUA
+            userAgent: ua, // ✅ UAを確実に送信
             clientTime: new Date().toISOString(),
           }),
         });
@@ -21,8 +28,10 @@ export default function LogAccessClient({ ip }: { ip: string }) {
         console.error("client log-access failed", err);
       }
     };
-    logAccess();
-  }, [ip]);
 
-  return null; // UIは不要
+    // ✅ 初回マウント時に必ず送信（ip が UNKNOWN でも送る）
+    logAccess();
+  }, []); // ← ip依存を外した
+
+  return null;
 }
