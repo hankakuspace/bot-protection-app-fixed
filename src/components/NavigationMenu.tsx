@@ -25,16 +25,17 @@ export default function AppNavigationMenu() {
         forceRedirect: true,
       });
 
-      // ✅ NavigationMenu 設定（active を明示）
+      const items = [
+        { label: "Add IP", destination: "/apps/bpp-20250814-final01/admin/add-ip" },
+        { label: "Admin IPs", destination: "/apps/bpp-20250814-final01/admin/admin-ips" },
+        { label: "Blocklist", destination: "/apps/bpp-20250814-final01/admin/blocklist" },
+        { label: "List IP", destination: "/apps/bpp-20250814-final01/admin/list-ip" },
+        { label: "Logs", destination: "/apps/bpp-20250814-final01/admin/logs" },
+      ] as any;
+
       NavigationMenu.create(app, {
-        items: [
-          { label: "Add IP", destination: "/apps/bpp-20250814-final01/admin/add-ip" },
-          { label: "Admin IPs", destination: "/apps/bpp-20250814-final01/admin/admin-ips" },
-          { label: "Blocklist", destination: "/apps/bpp-20250814-final01/admin/blocklist" },
-          { label: "List IP", destination: "/apps/bpp-20250814-final01/admin/list-ip" },
-          { label: "Logs", destination: "/apps/bpp-20250814-final01/admin/logs" },
-        ] as any,
-        active: "/apps/bpp-20250814-final01/admin/logs",
+        items,
+        active: items[items.length - 1], // ← Logs をアクティブに
       });
     } catch (err) {
       console.error("NavigationMenu init error", err);
