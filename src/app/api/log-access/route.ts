@@ -5,20 +5,39 @@ import { getClientIp } from "@/lib/check-ip";
 
 export const runtime = "nodejs";
 
+async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
+  try {
+    const token = process.env.IPINFO_TOKEN;
+    if (!token || ip === "UNKNOWN") return { country: "UNKNOWN", allowed: false };
+
+    const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
+    if (!res.ok) return { country: "UNKNOWN", allowed: false };
+
+    const data = await res.json();
+    const country = data.country || "UNKNOWN";
+    return { country, allowed: country === "JP" };
+  } catch {
+    return { country: "UNKNOWN", allowed: false };
+  }
+}
+
 /**
- * POST: ログを保存
+ * POST
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const ip = getClientIp(req);
+
+    const { country, allowed } = await getCountryFromIp(ip);
+
     const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
     const clientTime = body.clientTime || null;
 
     await db.collection("access_logs").add({
       ip,
-      country: body.country || "UNKNOWN",
-      allowedCountry: body.allowedCountry ?? true,
+      country,
+      allowedCountry: allowed,
       blocked: body.blocked ?? false,
       isAdmin: body.isAdmin ?? false,
       userAgent,
@@ -34,20 +53,22 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * GET: クエリパラメータ経由でログを保存
- * 例: /apps/bpp-20250814-final01/log-access?ua=xxx&t=2025-08-27T00:00:00Z
+ * GET
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const ip = getClientIp(req);
+
+    const { country, allowed } = await getCountryFromIp(ip);
+
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
     const clientTime = searchParams.get("t") || null;
 
     await db.collection("access_logs").add({
       ip,
-      country: searchParams.get("country") || "UNKNOWN",
-      allowedCountry: searchParams.get("allowedCountry") === "true",
+      country,
+      allowedCountry: allowed,
       blocked: searchParams.get("blocked") === "true",
       isAdmin: searchParams.get("isAdmin") === "true",
       userAgent,
@@ -56,7 +77,7 @@ export async function GET(req: NextRequest) {
       clientTime,
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, country, allowedCountry: allowed });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
