@@ -12,12 +12,10 @@ interface AccessLog {
   isAdmin?: boolean;
   userAgent?: string;
   host?: string;
-  clientTime?: string | null;
-  createdAt?: string | null;
-  timestamp?: string | null;
+  createdAt?: string | null; // ✅ createdAtのみ利用
 }
 
-// ✅ 日時整形（日本時間）
+// ✅ 日本時間に整形
 function formatDate(isoString: string | null): string {
   if (!isoString) return "-";
   const date = new Date(isoString);
@@ -49,7 +47,16 @@ export default function LogsPage() {
         const res = await fetch("/api/admin/logs");
         const data = await res.json();
         if (data.ok) {
-          setLogs(data.logs);
+          // ✅ createdAt を基準に並べ替え
+          const sorted = data.logs.sort((a: AccessLog, b: AccessLog) => {
+            if (!a.createdAt && b.createdAt) return 1;
+            if (a.createdAt && !b.createdAt) return -1;
+            if (a.createdAt && b.createdAt) {
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }
+            return 0;
+          });
+          setLogs(sorted);
         }
       } catch (err) {
         console.error("fetch logs error", err);
@@ -68,11 +75,11 @@ export default function LogsPage() {
     if (isAdminFilter && !log.isAdmin) return false;
     if (blockedFilter && !log.blocked) return false;
 
-    if (dateFrom && log.timestamp) {
-      if (new Date(log.timestamp) < new Date(dateFrom)) return false;
+    if (dateFrom && log.createdAt) {
+      if (new Date(log.createdAt) < new Date(dateFrom)) return false;
     }
-    if (dateTo && log.timestamp) {
-      if (new Date(log.timestamp) > new Date(dateTo)) return false;
+    if (dateTo && log.createdAt) {
+      if (new Date(log.createdAt) > new Date(dateTo)) return false;
     }
 
     return true;
@@ -81,7 +88,7 @@ export default function LogsPage() {
   // ✅ CSVエクスポート
   const exportCSV = () => {
     const header = [
-      "Timestamp",
+      "CreatedAt",
       "IP",
       "Country",
       "Allowed",
@@ -89,11 +96,9 @@ export default function LogsPage() {
       "isAdmin",
       "UserAgent",
       "Host",
-      "ClientTime",
-      "CreatedAt",
     ];
     const rows = filtered.map((log) => [
-      formatDate(log.timestamp || null),
+      formatDate(log.createdAt || null),
       log.ip,
       log.country,
       log.allowedCountry,
@@ -101,8 +106,6 @@ export default function LogsPage() {
       log.isAdmin,
       log.userAgent,
       log.host || "-",
-      formatDate(log.clientTime || null),
-      formatDate(log.createdAt || null),
     ]);
     const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -189,7 +192,7 @@ export default function LogsPage() {
       <table className="table-auto border-collapse border border-gray-400 w-full text-sm">
         <thead>
           <tr className="bg-gray-200">
-            <th className="border px-2 py-1">Timestamp</th>
+            <th className="border px-2 py-1">Created At</th> {/* ✅ 一番左に表示 */}
             <th className="border px-2 py-1">IP</th>
             <th className="border px-2 py-1">Country</th>
             <th className="border px-2 py-1">Allowed</th>
@@ -197,14 +200,12 @@ export default function LogsPage() {
             <th className="border px-2 py-1">isAdmin</th>
             <th className="border px-2 py-1">UserAgent</th>
             <th className="border px-2 py-1">Host</th>
-            <th className="border px-2 py-1">Client Time</th>
-            <th className="border px-2 py-1">Created At</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map((log) => (
             <tr key={log.id}>
-              <td className="border px-2 py-1">{formatDate(log.timestamp || null)}</td>
+              <td className="border px-2 py-1">{formatDate(log.createdAt || null)}</td>
               <td className="border px-2 py-1">{log.ip}</td>
               <td className="border px-2 py-1">{log.country}</td>
               <td className="border px-2 py-1">{log.allowedCountry ? "Yes" : "No"}</td>
@@ -212,8 +213,6 @@ export default function LogsPage() {
               <td className="border px-2 py-1">{log.isAdmin ? "Yes" : "No"}</td>
               <td className="border px-2 py-1">{log.userAgent}</td>
               <td className="border px-2 py-1">{log.host || "-"}</td>
-              <td className="border px-2 py-1">{formatDate(log.clientTime || null)}</td>
-              <td className="border px-2 py-1">{formatDate(log.createdAt || null)}</td>
             </tr>
           ))}
         </tbody>
