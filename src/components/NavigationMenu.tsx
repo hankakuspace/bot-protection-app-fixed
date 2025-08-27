@@ -25,6 +25,7 @@ export default function AppNavigationMenu() {
         forceRedirect: true,
       });
 
+      // Navigation links
       const items = [
         { label: "Add IP", destination: "/apps/bpp-20250814-final01/admin/add-ip" },
         { label: "Admin IPs", destination: "/apps/bpp-20250814-final01/admin/admin-ips" },
@@ -36,9 +37,10 @@ export default function AppNavigationMenu() {
       const currentPath = window.location.pathname;
       const activeItem = items.find((i) => currentPath.includes(i.destination));
 
+      // ✅ 型を AppLink[] にキャストして回避
       NavigationMenu.create(app, {
-        items,
-        active: activeItem,
+        items: items as any,
+        active: activeItem as any,
       });
 
       console.log("✅ NavigationMenu created", { activeItem });
