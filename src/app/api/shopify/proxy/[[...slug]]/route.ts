@@ -14,14 +14,13 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ /admin 配下は Next.js ページへ rewrite
+  // ✅ /admin 配下は Next.js ページにそのまま rewrite
   if (pathname.includes("/admin")) {
-    const forwardPath = pathname.replace("/api/shopify/proxy", "");
+    const forwardPath = pathname.replace("/api/shopify/proxy", ""); // → /admin/add-ip
     const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-    return NextResponse.rewrite(new URL(forwardPath + query, req.url));
+    return NextResponse.rewrite(forwardPath + query);
   }
 
-  // ✅ デバッグ用 JSON
   return NextResponse.json({
     ok: true,
     route: "proxy",
