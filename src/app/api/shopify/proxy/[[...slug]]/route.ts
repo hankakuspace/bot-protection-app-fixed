@@ -5,9 +5,6 @@ import { db } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 
-/**
- * IPから国情報を取得
- */
 async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
   try {
     const token = process.env.IPINFO_TOKEN;
@@ -27,8 +24,8 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
 /**
  * POST: /apps/.../log-access → Firestore保存
  */
-export async function POST(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  const slug = params.slug?.join("/") || "";
+export async function POST(req: NextRequest, context: any) {
+  const slug = context.params?.slug?.join("/") || "";
 
   if (slug === "log-access") {
     try {
@@ -68,8 +65,8 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 /**
  * GET: 確認用
  */
-export async function GET(req: NextRequest, { params }: { params: { slug: string[] } }) {
-  const slug = params.slug?.join("/") || "";
+export async function GET(req: NextRequest, context: any) {
+  const slug = context.params?.slug?.join("/") || "";
   return NextResponse.json({
     ok: true,
     method: "GET",
