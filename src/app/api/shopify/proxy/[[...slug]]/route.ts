@@ -14,17 +14,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ /admin 配下は Proxy 経由の URL にリダイレクト
+  // ✅ /admin 配下は Proxy 経由の URL にリダイレクト（絶対URL）
   if (pathname.includes("/admin")) {
-    // /api/shopify/proxy/admin/add-ip → /apps/bpp-20250814-final01/admin/add-ip
-    const proxyPath =
-      `/apps/bpp-20250814-final01${pathname.replace("/api/shopify/proxy", "")}` +
-      (searchParams.toString() ? `?${searchParams.toString()}` : "");
+    const forwardPath = pathname.replace("/api/shopify/proxy", "");
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
 
-    return NextResponse.redirect(proxyPath);
+    // host パラメータは base64 でエンコードされた admin URL を含む
+    // Shopify embedded app の場合、必ずストアドメインに戻す
+    const shop = searchParams.get("shop");
+    const proxyUrl = `https://${shop}/apps/bpp-20250814-final01${forwardPath}${query}`;
+
+    return NextResponse.redirect(proxyUrl);
   }
 
-  // それ以外は JSON 応答
   return NextResponse.json({
     ok: true,
     route: "proxy",
