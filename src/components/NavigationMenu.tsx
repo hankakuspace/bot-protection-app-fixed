@@ -22,6 +22,7 @@ function MenuInner() {
   return (
     <nav className="flex gap-4 border-b border-gray-300 mb-4 p-3 bg-gray-50">
       {links.map((link) => {
+        // ✅ href を相対パスにする
         const href = `${link.path}${suffix}`;
         const active = pathname.includes(link.path);
         return (
