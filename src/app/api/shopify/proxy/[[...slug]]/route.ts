@@ -1,9 +1,14 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * Shopify App Proxy キャッチオール
+ * - UI (/admin/...) はここで扱わない
+ * - Proxy はテーマからの API リクエスト専用にする
+ */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const pathname = url.pathname; // 例: /api/shopify/proxy/admin/logs
+  const pathname = url.pathname;
   const searchParams = url.searchParams;
 
   const host = searchParams.get("host");
@@ -14,16 +19,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ /admin 配下は Next.js ページへ rewrite (絶対URLで指定)
-  if (pathname.includes("/admin")) {
-    const forwardPath = pathname.replace("/api/shopify/proxy", ""); // /admin/logs
-    const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-    const absoluteUrl = `${req.nextUrl.origin}${forwardPath}${query}`;
-
-    return NextResponse.rewrite(absoluteUrl);
-  }
-
-  // API用などはJSON応答
+  // ✅ API 専用レスポンス
   return NextResponse.json({
     ok: true,
     route: "proxy",
