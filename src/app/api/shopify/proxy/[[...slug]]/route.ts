@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const pathname = url.pathname; // e.g. /api/shopify/proxy/admin/add-ip
+  const pathname = url.pathname;
   const searchParams = url.searchParams;
 
   const host = searchParams.get("host");
@@ -14,18 +14,12 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ /admin 配下は rewrite/redirect せず「OKレスポンス」を返す
-  // → Next.js が /admin/... ページをそのまま処理できるようにする
+  // ✅ /admin/... は Next.js ページにそのまま処理させる → Proxy側では何もしない
   if (pathname.includes("/admin")) {
-    return NextResponse.json({
-      ok: true,
-      route: "admin-ui",
-      path: pathname,
-      query: Object.fromEntries(searchParams.entries()),
-    });
+    return NextResponse.next();
   }
 
-  // ✅ APIなど他リクエスト用
+  // ✅ API用のパスだけ JSON を返す
   return NextResponse.json({
     ok: true,
     route: "proxy",
