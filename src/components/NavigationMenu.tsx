@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const links = [
   { label: "Add IP", href: "/admin/add-ip" },
@@ -12,11 +13,10 @@ const links = [
   { label: "Logs", href: "/admin/logs" },
 ];
 
-export default function AppNavigationMenu() {
+function MenuInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // ✅ host / shop / hmac など現在のクエリを維持
   const queryString = searchParams.toString();
   const suffix = queryString ? `?${queryString}` : "";
 
@@ -38,5 +38,13 @@ export default function AppNavigationMenu() {
         );
       })}
     </nav>
+  );
+}
+
+export default function AppNavigationMenu() {
+  return (
+    <Suspense fallback={null}>
+      <MenuInner />
+    </Suspense>
   );
 }
