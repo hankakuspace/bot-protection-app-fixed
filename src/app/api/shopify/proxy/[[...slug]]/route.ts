@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const pathname = url.pathname; // 例: /api/shopify/proxy/admin/add-ip
+  const pathname = url.pathname; // 例: /api/shopify/proxy/admin/logs
   const searchParams = url.searchParams;
 
   const host = searchParams.get("host");
@@ -14,14 +14,16 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ /admin 配下 → Next.js の内部ページに rewrite
+  // ✅ /admin 配下は Next.js ページへ rewrite (絶対URLで指定)
   if (pathname.includes("/admin")) {
-    const forwardPath = pathname.replace("/api/shopify/proxy", ""); // /admin/add-ip
+    const forwardPath = pathname.replace("/api/shopify/proxy", ""); // /admin/logs
     const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-    return NextResponse.rewrite(`${forwardPath}${query}`);
+    const absoluteUrl = `${req.nextUrl.origin}${forwardPath}${query}`;
+
+    return NextResponse.rewrite(absoluteUrl);
   }
 
-  // ✅ その他は JSON
+  // API用などはJSON応答
   return NextResponse.json({
     ok: true,
     route: "proxy",
