@@ -27,8 +27,8 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
 /**
  * POST: /apps/.../log-access → Firestore保存
  */
-export async function POST(req: NextRequest, context: { params: { slug?: string[] } }) {
-  const slug = context.params.slug?.join("/") || "";
+export async function POST(req: NextRequest, { params }: { params: { slug: string[] } }) {
+  const slug = params.slug?.join("/") || "";
 
   if (slug === "log-access") {
     try {
@@ -68,8 +68,8 @@ export async function POST(req: NextRequest, context: { params: { slug?: string[
 /**
  * GET: 確認用
  */
-export async function GET(req: NextRequest, context: { params: { slug?: string[] } }) {
-  const slug = context.params.slug?.join("/") || "";
+export async function GET(req: NextRequest, { params }: { params: { slug: string[] } }) {
+  const slug = params.slug?.join("/") || "";
   return NextResponse.json({
     ok: true,
     method: "GET",
