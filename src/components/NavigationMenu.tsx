@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const links = [
   { label: "Add IP", path: "/apps/bpp-20250814-final01/admin/add-ip" },
@@ -12,11 +13,9 @@ const links = [
   { label: "Logs", path: "/apps/bpp-20250814-final01/admin/logs" },
 ];
 
-export default function AppNavigationMenu() {
+function MenuInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  // ✅ host や shop を維持
   const queryString = searchParams.toString();
   const suffix = queryString ? `?${queryString}` : "";
 
@@ -30,9 +29,7 @@ export default function AppNavigationMenu() {
             key={link.path}
             href={href}
             className={`px-3 py-1 rounded-md text-sm font-medium ${
-              active
-                ? "bg-blue-600 text-white"
-                : "text-blue-600 hover:bg-blue-100"
+              active ? "bg-blue-600 text-white" : "text-blue-600 hover:bg-blue-100"
             }`}
           >
             {link.label}
@@ -40,5 +37,13 @@ export default function AppNavigationMenu() {
         );
       })}
     </nav>
+  );
+}
+
+export default function AppNavigationMenu() {
+  return (
+    <Suspense fallback={null}>
+      <MenuInner />
+    </Suspense>
   );
 }
