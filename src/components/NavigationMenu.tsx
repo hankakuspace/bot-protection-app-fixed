@@ -1,7 +1,9 @@
 // src/components/NavigationMenu.tsx
 "use client";
 
-import Link from "next/link";
+import { useEffect } from "react";
+import createApp from "@shopify/app-bridge";
+import { Redirect } from "@shopify/app-bridge/actions";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -19,21 +21,42 @@ function MenuInner() {
   const queryString = searchParams.toString();
   const suffix = queryString ? `?${queryString}` : "";
 
+  useEffect(() => {
+    console.log("🚀 Menu loaded with query", suffix);
+  }, [suffix]);
+
+  const app = typeof window !== "undefined"
+    ? createApp({
+        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
+        host: searchParams.get("host") || "",
+        forceRedirect: true,
+      })
+    : null;
+
+  const redirect = app ? Redirect.create(app) : null;
+
   return (
     <nav className="flex gap-4 border-b border-gray-300 mb-4 p-3 bg-gray-50">
       {links.map((link) => {
         const href = `${link.path}${suffix}`;
         const active = pathname.includes(link.path);
+
         return (
-          <Link
+          <button
             key={link.path}
-            href={href}
+            onClick={() => {
+              if (redirect) {
+                redirect.dispatch(Redirect.Action.APP, href);
+              } else {
+                window.location.href = href;
+              }
+            }}
             className={`px-3 py-1 rounded-md text-sm font-medium ${
               active ? "bg-blue-600 text-white" : "text-blue-600 hover:bg-blue-100"
             }`}
           >
             {link.label}
-          </Link>
+          </button>
         );
       })}
     </nav>
