@@ -21,10 +21,6 @@ function MenuInner() {
   const queryString = searchParams.toString();
   const suffix = queryString ? `?${queryString}` : "";
 
-  useEffect(() => {
-    console.log("🚀 Menu loaded with query", suffix);
-  }, [suffix]);
-
   const app = typeof window !== "undefined"
     ? createApp({
         apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
@@ -46,7 +42,8 @@ function MenuInner() {
             key={link.path}
             onClick={() => {
               if (redirect) {
-                redirect.dispatch(Redirect.Action.APP, href);
+                // ✅ APP アクションは相対パスを指定
+                redirect.dispatch(Redirect.Action.APP, link.path + suffix);
               } else {
                 window.location.href = href;
               }
