@@ -3,10 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const pathname = url.pathname; // 例: /api/shopify/proxy/admin/logs
+  const pathname = url.pathname; // e.g. /api/shopify/proxy/admin/add-ip
   const searchParams = url.searchParams;
 
-  // host チェック
   const host = searchParams.get("host");
   if (!host) {
     return NextResponse.json(
@@ -17,9 +16,9 @@ export async function GET(req: NextRequest) {
 
   // ✅ /admin 配下は Proxy 経由の URL にリダイレクト
   if (pathname.includes("/admin")) {
+    // /api/shopify/proxy/admin/add-ip → /apps/bpp-20250814-final01/admin/add-ip
     const proxyPath =
-      "/apps/bpp-20250814-final01" + // ← Proxy サブパスを強制付与
-      pathname.replace("/api/shopify/proxy", "") +
+      `/apps/bpp-20250814-final01${pathname.replace("/api/shopify/proxy", "")}` +
       (searchParams.toString() ? `?${searchParams.toString()}` : "");
 
     return NextResponse.redirect(proxyPath);
