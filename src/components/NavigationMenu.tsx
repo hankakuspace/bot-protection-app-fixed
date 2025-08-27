@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 const links = [
   { label: "Add IP", href: "/admin/add-ip" },
@@ -14,15 +14,21 @@ const links = [
 
 export default function AppNavigationMenu() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // ✅ host / shop / hmac など現在のクエリを維持
+  const queryString = searchParams.toString();
+  const suffix = queryString ? `?${queryString}` : "";
 
   return (
     <nav className="flex gap-4 border-b border-gray-300 mb-4 p-3 bg-gray-50">
       {links.map((link) => {
+        const href = `${link.href}${suffix}`;
         const active = pathname.includes(link.href);
         return (
           <Link
             key={link.href}
-            href={link.href}
+            href={href}
             className={`px-3 py-1 rounded-md text-sm font-medium ${
               active ? "bg-blue-600 text-white" : "text-blue-600 hover:bg-blue-100"
             }`}
