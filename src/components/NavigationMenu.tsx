@@ -8,11 +8,11 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const links = [
-  { label: "Add IP", path: "/apps/bpp-20250814-final01/admin/add-ip" },
-  { label: "Admin IPs", path: "/apps/bpp-20250814-final01/admin/admin-ips" },
-  { label: "Blocklist", path: "/apps/bpp-20250814-final01/admin/blocklist" },
-  { label: "List IP", path: "/apps/bpp-20250814-final01/admin/list-ip" },
-  { label: "Logs", path: "/apps/bpp-20250814-final01/admin/logs" },
+  { label: "Add IP", path: "/admin/add-ip" },
+  { label: "Admin IPs", path: "/admin/admin-ips" },
+  { label: "Blocklist", path: "/admin/blocklist" },
+  { label: "List IP", path: "/admin/list-ip" },
+  { label: "Logs", path: "/admin/logs" },
 ];
 
 function MenuInner() {
@@ -42,8 +42,8 @@ function MenuInner() {
             key={link.path}
             onClick={() => {
               if (redirect) {
-                // ✅ ADMIN_PATH を使って遷移（ループ防止）
-                redirect.dispatch(Redirect.Action.ADMIN_PATH, link.path + suffix);
+                // ✅ APP アクションに /admin/... を渡す
+                redirect.dispatch(Redirect.Action.APP, href);
               } else {
                 window.location.href = href;
               }
