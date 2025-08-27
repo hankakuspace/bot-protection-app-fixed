@@ -3,29 +3,25 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const pathname = url.pathname; 
+  const pathname = url.pathname; // e.g. /api/shopify/proxy/admin/add-ip
   const searchParams = url.searchParams;
 
   const host = searchParams.get("host");
-  const shop = searchParams.get("shop");
-  if (!host || !shop) {
+  if (!host) {
     return NextResponse.json(
-      { ok: false, error: "Unauthorized: missing host/shop" },
+      { ok: false, error: "Unauthorized: must access from Shopify Admin (host missing)" },
       { status: 401 }
     );
   }
 
-  // ✅ /admin 配下は myshopify.com 側の Proxy URL にリダイレクト
-  if (pathname.includes("/admin")) {
+  // ✅ /admin 配下はリダイレクトせず、Next.js のページにそのままフォワード
+  if (pathname.startsWith("/api/shopify/proxy/admin")) {
     const forwardPath = pathname.replace("/api/shopify/proxy", "");
-    const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-
-    // 🔑 常に myshopify.com を使う（独自ドメインは埋め込み不可）
-    const proxyUrl = `https://${shop}/apps/bpp-20250814-final01${forwardPath}${query}`;
-
-    return NextResponse.redirect(proxyUrl);
+    // Next.js の /admin/... ページを直接呼ぶ
+    return NextResponse.rewrite(new URL(forwardPath + `?${searchParams.toString()}`, req.url));
   }
 
+  // それ以外は JSON 応答
   return NextResponse.json({
     ok: true,
     route: "proxy",
