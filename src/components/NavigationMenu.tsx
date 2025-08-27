@@ -42,8 +42,8 @@ function MenuInner() {
             key={link.path}
             onClick={() => {
               if (redirect) {
-                // ✅ APP アクションは相対パスを指定
-                redirect.dispatch(Redirect.Action.APP, link.path + suffix);
+                // ✅ ADMIN_PATH を使って遷移（ループ防止）
+                redirect.dispatch(Redirect.Action.ADMIN_PATH, link.path + suffix);
               } else {
                 window.location.href = href;
               }
