@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const pathname = url.pathname; 
+  const pathname = url.pathname; // 例: /api/shopify/proxy/admin/add-ip
   const searchParams = url.searchParams;
 
   const host = searchParams.get("host");
@@ -14,15 +14,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // ✅ /admin/... は Vercel の UI ページにリダイレクト
+  // ✅ /admin 配下 → Next.js の内部ページに rewrite
   if (pathname.includes("/admin")) {
     const forwardPath = pathname.replace("/api/shopify/proxy", ""); // /admin/add-ip
     const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
-    const vercelUrl = `https://bot-protection-ten.vercel.app${forwardPath}${query}`;
-    return NextResponse.redirect(vercelUrl);
+    return NextResponse.rewrite(`${forwardPath}${query}`);
   }
 
-  // それ以外は JSON
+  // ✅ その他は JSON
   return NextResponse.json({
     ok: true,
     route: "proxy",
