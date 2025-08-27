@@ -1,53 +1,38 @@
 // src/components/NavigationMenu.tsx
 "use client";
 
-import { useEffect } from "react";
-import createApp from "@shopify/app-bridge";
-import { NavigationMenu } from "@shopify/app-bridge/actions";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const links = [
+  { label: "Add IP", href: "/apps/bpp-20250814-final01/admin/add-ip" },
+  { label: "Admin IPs", href: "/apps/bpp-20250814-final01/admin/admin-ips" },
+  { label: "Blocklist", href: "/apps/bpp-20250814-final01/admin/blocklist" },
+  { label: "List IP", href: "/apps/bpp-20250814-final01/admin/list-ip" },
+  { label: "Logs", href: "/apps/bpp-20250814-final01/admin/logs" },
+];
 
 export default function AppNavigationMenu() {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const host = params.get("host") || "";
-    const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "";
+  const pathname = usePathname();
 
-    console.log("🚀 NavigationMenu init check", { host, apiKey });
-
-    if (!host || !apiKey) {
-      console.warn("⏭ NavigationMenu skipped (missing host/apiKey)", { host, apiKey });
-      return;
-    }
-
-    try {
-      const app = createApp({
-        apiKey,
-        host,
-        forceRedirect: true,
-      });
-
-      // Navigation links
-      const items = [
-        { label: "Add IP", destination: "/apps/bpp-20250814-final01/admin/add-ip" },
-        { label: "Admin IPs", destination: "/apps/bpp-20250814-final01/admin/admin-ips" },
-        { label: "Blocklist", destination: "/apps/bpp-20250814-final01/admin/blocklist" },
-        { label: "List IP", destination: "/apps/bpp-20250814-final01/admin/list-ip" },
-        { label: "Logs", destination: "/apps/bpp-20250814-final01/admin/logs" },
-      ];
-
-      const currentPath = window.location.pathname;
-      const activeItem = items.find((i) => currentPath.includes(i.destination));
-
-      // ✅ 型を AppLink[] にキャストして回避
-      NavigationMenu.create(app, {
-        items: items as any,
-        active: activeItem as any,
-      });
-
-      console.log("✅ NavigationMenu created", { activeItem });
-    } catch (err) {
-      console.error("❌ NavigationMenu init error", err);
-    }
-  }, []);
-
-  return null;
+  return (
+    <nav className="flex gap-4 border-b border-gray-300 mb-4 p-3 bg-gray-50">
+      {links.map((link) => {
+        const active = pathname.includes(link.href);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`px-3 py-1 rounded-md text-sm font-medium ${
+              active
+                ? "bg-blue-600 text-white"
+                : "text-blue-600 hover:bg-blue-100"
+            }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
