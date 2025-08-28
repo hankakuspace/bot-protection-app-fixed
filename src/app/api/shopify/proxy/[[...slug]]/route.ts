@@ -29,6 +29,11 @@ export async function POST(req: NextRequest, context: any) {
 
   if (slug === "log-access") {
     try {
+      // 🔍 ヘッダ全体をログ出力（Vercelのログで確認）
+      console.log("==== Incoming Headers ====");
+      console.log(Object.fromEntries(req.headers));
+      console.log("==========================");
+
       const body = await req.json();
       const ip = getClientIp(req);
       const { country, allowed } = await getCountryFromIp(ip);
