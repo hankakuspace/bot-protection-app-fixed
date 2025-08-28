@@ -3,11 +3,6 @@ import type { NextRequest } from "next/server";
 import requestIp from "request-ip";
 import { db } from "@/lib/firebase";
 
-/**
- * クライアントIPを正規化して取得
- * - 優先順: cf-connecting-ip → x-shopify-client-ip → x-forwarded-for → x-real-ip
- * - IPv6のみの場合は ipinfo.io を使って IPv4 に変換
- */
 export async function getClientIp(req: NextRequest): Promise<string> {
   const headers = req.headers;
 
@@ -32,9 +27,10 @@ export async function getClientIp(req: NextRequest): Promise<string> {
   const ipv4Regex =
     /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
+  // すでにIPv4ならそのまま
   if (ipv4Regex.test(ip)) return ip;
 
-  // IPv6 → IPv4 変換（ipinfo.io利用）
+  // IPv6 → IPv4 変換を試みる
   try {
     const token = process.env.IPINFO_TOKEN;
     if (token && ip !== "UNKNOWN") {
@@ -50,44 +46,6 @@ export async function getClientIp(req: NextRequest): Promise<string> {
     console.error("IPv6 to IPv4 lookup failed:", e);
   }
 
-  return "UNKNOWN";
-}
-
-/**
- * 指定されたIPがブロックされているかどうかを判定
- */
-export async function isIpBlocked(ip: string): Promise<boolean> {
-  try {
-    const doc = await db.collection("blocked_ips").doc(ip).get();
-    return doc.exists;
-  } catch (e) {
-    console.error("Error checking if IP is blocked:", e);
-    return false;
-  }
-}
-
-/**
- * IPをブロックリストに追加
- */
-export async function blockIp(ip: string, reason: string = "manual"): Promise<void> {
-  try {
-    await db.collection("blocked_ips").doc(ip).set({
-      blocked: true,
-      reason,
-      createdAt: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.error("Error blocking IP:", e);
-  }
-}
-
-/**
- * IPをブロックリストから解除
- */
-export async function unblockIp(ip: string, reason: string = "manual"): Promise<void> {
-  try {
-    await db.collection("blocked_ips").doc(ip).delete();
-  } catch (e) {
-    console.error("Error unblocking IP:", e);
-  }
+  // fallback: IPv6をそのまま返す（UNKNOWNは返さない）
+  return ip;
 }
