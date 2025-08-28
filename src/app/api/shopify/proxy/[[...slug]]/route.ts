@@ -34,7 +34,9 @@ export async function POST(req: NextRequest, context: any) {
     try {
       // 🔍 ヘッダ全体をログ出力（Vercelのログで確認）
       console.log("==== Incoming Headers ====");
-      console.log(Array.from(req.headers.entries()));
+      req.headers.forEach((value, key) => {
+        console.log(`${key}: ${value}`);
+      });
       console.log("==========================");
 
       const body = await req.json();
