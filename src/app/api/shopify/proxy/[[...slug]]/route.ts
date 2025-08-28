@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, context: any) {
 
   if (slug === "log-access") {
     try {
-      // 🔍 ヘッダ全体をログ出力（Vercelのログで確認）
+      // 🔍 ヘッダ全体をログ出力
       console.log("==== Incoming Headers ====");
       req.headers.forEach((value, key) => {
         console.log(`${key}: ${value}`);
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, context: any) {
       console.log("==========================");
 
       const body = await req.json();
-      const ip = getClientIp(req);
+      const ip = await getClientIp(req); // ← await を追加
       const { country, allowed } = await getCountryFromIp(ip);
 
       const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
