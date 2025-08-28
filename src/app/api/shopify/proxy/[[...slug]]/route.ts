@@ -5,6 +5,9 @@ import { db } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 
+/**
+ * IPから国情報を取得
+ */
 async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
   try {
     const token = process.env.IPINFO_TOKEN;
@@ -31,7 +34,7 @@ export async function POST(req: NextRequest, context: any) {
     try {
       // 🔍 ヘッダ全体をログ出力（Vercelのログで確認）
       console.log("==== Incoming Headers ====");
-      console.log(Object.fromEntries(req.headers));
+      console.log(Array.from(req.headers.entries()));
       console.log("==========================");
 
       const body = await req.json();
