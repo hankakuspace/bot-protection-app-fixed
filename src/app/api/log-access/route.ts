@@ -27,7 +27,7 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const ip = getClientIp(req);
+    const ip = await getClientIp(req); // ← await を追加
 
     const { country, allowed } = await getCountryFromIp(ip);
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const ip = getClientIp(req);
+    const ip = await getClientIp(req); // ← await を追加
 
     const { country, allowed } = await getCountryFromIp(ip);
 
