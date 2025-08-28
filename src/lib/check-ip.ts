@@ -1,22 +1,25 @@
+// src/lib/check-ip.ts
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/firebase";
 
 /**
  * クライアントIPを正規化して取得
- * - ヘッダ優先順: cf-connecting-ip → x-forwarded-for → x-real-ip
- * - 複数IPがある場合は IPv4 を優先して返す
- * - ::ffff:xxx.xxx.xxx.xxx は IPv4 として扱う
+ * - 優先順: cf-connecting-ip → true-client-ip → x-forwarded-for → x-real-ip
+ * - 複数ある場合は先頭を利用
+ * - ::ffff: を除去
+ * - IPv4を優先
  */
 export function getClientIp(req: NextRequest): string {
   const headers = req.headers;
-
   const candidates: string[] = [];
 
   const cf = headers.get("cf-connecting-ip");
+  const trueClient = headers.get("true-client-ip");
   const xff = headers.get("x-forwarded-for");
   const xri = headers.get("x-real-ip");
 
   if (cf) candidates.push(...cf.split(",").map((s) => s.trim()));
+  if (trueClient) candidates.push(...trueClient.split(",").map((s) => s.trim()));
   if (xff) candidates.push(...xff.split(",").map((s) => s.trim()));
   if (xri) candidates.push(...xri.split(",").map((s) => s.trim()));
 
@@ -29,11 +32,11 @@ export function getClientIp(req: NextRequest): string {
   const ipv4Regex =
     /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
-  // ✅ IPv4 があれば優先して返す
+  // IPv4 があれば優先
   const ipv4 = normalized.find((ip) => ipv4Regex.test(ip));
   if (ipv4) return ipv4;
 
-  // IPv4 が無ければ最初の候補（IPv6など）を返す
+  // 候補があればそのまま返す
   if (normalized.length > 0) return normalized[0];
 
   return "UNKNOWN";
@@ -54,8 +57,6 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 
 /**
  * IPをブロックリストに追加
- * @param ip - 対象のIP
- * @param reason - ブロック理由（デフォルト: "manual"）
  */
 export async function blockIp(ip: string, reason: string = "manual"): Promise<void> {
   try {
@@ -71,8 +72,6 @@ export async function blockIp(ip: string, reason: string = "manual"): Promise<vo
 
 /**
  * IPをブロックリストから解除
- * @param ip - 対象のIP
- * @param reason - 解除理由（デフォルト: "manual"）
  */
 export async function unblockIp(ip: string, reason: string = "manual"): Promise<void> {
   try {
