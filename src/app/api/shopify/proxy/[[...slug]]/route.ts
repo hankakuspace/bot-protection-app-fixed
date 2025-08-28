@@ -32,15 +32,8 @@ export async function POST(req: NextRequest, context: any) {
 
   if (slug === "log-access") {
     try {
-      // 🔍 ヘッダ全体をログ出力
-      console.log("==== Incoming Headers ====");
-      req.headers.forEach((value, key) => {
-        console.log(`${key}: ${value}`);
-      });
-      console.log("==========================");
-
       const body = await req.json();
-      const ip = await getClientIp(req); // ← await を追加
+      const ip = await getClientIp(req);
       const { country, allowed } = await getCountryFromIp(ip);
 
       const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
@@ -53,8 +46,9 @@ export async function POST(req: NextRequest, context: any) {
         blocked: body.blocked ?? false,
         isAdmin: body.isAdmin ?? false,
         userAgent,
-        url: body.url || null,
-        referrer: body.referrer || null,
+        url: body.url || null,                          // ✅ ページURL
+        host: body.host || req.headers.get("host"),     // ✅ 実際のホスト名を優先
+        referrer: body.referrer || null,                // ✅ リファラ
         createdAt: new Date(),
         clientTime,
       });
