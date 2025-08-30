@@ -1,33 +1,13 @@
-// src/app/layout.tsx
-import { headers } from "next/headers";
 import "./globals.css";
-import LogAccessClient from "@/components/LogAccessClient";
-import ClientProviders from "@/components/ClientProviders";
+import AppBridgeProvider from "@/components/AppBridgeProvider";
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  let ip = "UNKNOWN";
-  try {
-    const h = headers();
-    ip = h.get("x-client-ip") || "UNKNOWN";
-  } catch {
-    ip = "UNKNOWN";
-  }
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <head>
-        <meta name="x-client-ip" content={ip} />
-      </head>
       <body>
-        {/* アクセスログ送信 */}
-        <LogAccessClient ip={ip} />
-
-        {/* AppBridge などの Client Providers */}
-        <ClientProviders>{children}</ClientProviders>
+        <AppBridgeProvider>
+          {children}
+        </AppBridgeProvider>
       </body>
     </html>
   );
