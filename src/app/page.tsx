@@ -1,7 +1,6 @@
 // src/app/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   AppProvider as PolarisProvider,
   Page,
@@ -16,24 +15,8 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import AppBridgeProvider from "@/components/AppBridgeProvider";
 
 export default function Home() {
-  const [host, setHost] = useState<string | null>(null);
-
-  useEffect(() => {
-    const h = new URLSearchParams(window.location.search).get("host");
-    if (h) {
-      setHost(h);
-    } else {
-      console.error("❌ Shopify host param is missing");
-    }
-  }, []);
-
-  // host がなくても最低限 UI を出す
-  if (!host) {
-    return <div>アプリを読み込み中... (host パラメータ未検出)</div>;
-  }
-
   return (
-    <AppBridgeProvider host={host}>
+    <AppBridgeProvider>
       <PolarisProvider i18n={enTranslations}>
         <Page title="Bot Protection App">
           <TitleBar title="Bot Protection App" />
