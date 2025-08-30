@@ -1,13 +1,19 @@
+// src/app/page.tsx
 "use client";
 
-import ShopifyNavigation from "@/components/ShopifyNavigation";
+import { Page, TitleBar } from "@shopify/app-bridge-react";
+import { AppProvider as PolarisProvider } from "@shopify/polaris";
+import enTranslations from "@shopify/polaris/locales/en.json";
+import AppBridgeProvider from "@/components/AppBridgeProvider";
 
-export default function AdminHome() {
+export default function HomePage() {
   return (
-    <div>
-      {/* Shopify左ナビに統合される */}
-      <ShopifyNavigation />
-      <h1 className="text-xl font-bold">管理画面トップ</h1>
-    </div>
+    <AppBridgeProvider>
+      <PolarisProvider i18n={enTranslations}>
+        <Page title="Bot Protection App">
+          <TitleBar title="Bot Protection App" />
+        </Page>
+      </PolarisProvider>
+    </AppBridgeProvider>
   );
 }
