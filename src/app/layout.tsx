@@ -1,20 +1,14 @@
 // src/app/layout.tsx
-"use client";
-
 import { headers } from "next/headers";
 import "./globals.css";
 import LogAccessClient from "@/components/LogAccessClient";
-import { AppBridgeProvider } from "@shopify/app-bridge-react";
-import { ReactNode, useEffect, useState } from "react";
+import ClientProviders from "@/components/ClientProviders";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  const [host, setHost] = useState("");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setHost(params.get("host") || "");
-  }, []);
-
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   let ip = "UNKNOWN";
   try {
     const h = headers();
@@ -32,16 +26,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* アクセスログ送信 */}
         <LogAccessClient ip={ip} />
 
-        {/* Shopify AppBridge Provider */}
-        <AppBridgeProvider
-          config={{
-            apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
-            host: host,
-            forceRedirect: true,
-          }}
-        >
-          {children}
-        </AppBridgeProvider>
+        {/* AppBridge などの Client Providers */}
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
