@@ -1,4 +1,3 @@
-// src/components/ShopifyNavigation.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -12,9 +11,9 @@ export default function ShopifyNavigation() {
     if (!app) return;
 
     const items = [
-      { label: "IP追加", destination: "/admin/add-ip" },
-      { label: "ブロックリスト一覧", destination: "/admin/list-ip" },
-      { label: "アクセスログ", destination: "/admin/logs" },
+      { label: "IP追加", destination: "/apps/bot-protection-proxy/admin/add-ip" },
+      { label: "ブロックリスト一覧", destination: "/apps/bot-protection-proxy/admin/list-ip" },
+      { label: "アクセスログ", destination: "/apps/bot-protection-proxy/admin/logs" },
     ] as any;
 
     console.log("✅ NavigationMenu items set", items);
