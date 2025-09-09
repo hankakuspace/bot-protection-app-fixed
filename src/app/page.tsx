@@ -4,8 +4,9 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-export default function Home() {
+function PageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -15,11 +16,9 @@ export default function Home() {
   // ✅ CSRリダイレクト（iframe 内対応）
   useEffect(() => {
     if (host && shop) {
-      // Shopify Admin 内から来た場合はそのまま保持
       console.log("✅ Loaded with host/shop:", { host, shop });
       router.replace(`/admin/logs?host=${host}&shop=${shop}`);
     } else {
-      // 直叩きなど host がない場合は通常ログ画面へ
       router.replace("/admin/logs");
     }
   }, [router, host, shop]);
@@ -30,4 +29,12 @@ export default function Home() {
   }
 
   return null;
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PageInner />
+    </Suspense>
+  );
 }
