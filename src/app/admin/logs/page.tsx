@@ -47,7 +47,8 @@ export default function LogsPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/logs");
+      // 👇 no-store を追加して常にCSRで取得
+      const res = await fetch("/api/admin/logs", { cache: "no-store" });
       const data = await res.json();
       if (data.ok) {
         // ✅ createdAt を基準に並べ替え
