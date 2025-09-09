@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const shop = sp.get('shop');
   const code = sp.get('code');
   const state = sp.get('state');
+  const host = sp.get('host'); // 👈 追加: host パラメータ取得
 
   if (!shop || !code) {
     return NextResponse.json({ ok:false, error:'missing params' }, { status:400 });
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok:false, error:'invalid_state', state, cookieState }, { status:400 });
   }
 
-  // アクセストークン交換（必要なら）
+  // アクセストークン交換
   const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
     method: 'POST',
     headers: { 'content-type':'application/json' },
@@ -43,6 +44,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok:false, error:'token_exchange_failed', detail:t }, { status:400 });
   }
 
-  // 成功 ⇒ /installed にリダイレクト
+  // ✅ 成功 ⇒ Shopify Admin のアプリTOPへリダイレクト
+  if (host) {
+    // Shopify Admin 内のアプリURLに戻す
+    return NextResponse.redirect(
+      `https://admin.shopify.com/store/ruhra-store/apps/bot-protection-proxy?host=${host}`,
+      302
+    );
+  }
+
+  // host が無いときだけ /installed にフォールバック
   return NextResponse.redirect(new URL('/installed', url.origin), 302);
 }
