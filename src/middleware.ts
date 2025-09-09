@@ -9,20 +9,15 @@ export async function middleware(req: NextRequest) {
   // 🚫 favicon
   if (pathname === "/favicon.ico") return NextResponse.next();
 
-  // 🚫 API 完全除外
+  // 🚫 API 完全除外（OAuth含む）
   if (pathname.startsWith("/api/")) return NextResponse.next();
-
-  // ✅ /admin パスは host パラメータがなくても通す
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    return withCSP(NextResponse.next(), req);
-  }
 
   // 🚫 host チェックは本番のみ
   if (
     process.env.NODE_ENV === "production" &&
     req.headers.get("host") !== "be-search.biz"
   ) {
-    return withCSP(NextResponse.next(), req);
+    return NextResponse.next();
   }
 
   // ✅ IP取得
@@ -37,17 +32,6 @@ export async function middleware(req: NextRequest) {
 
   const res = NextResponse.next();
   res.headers.set("x-client-ip", ip);
-
-  return withCSP(res, req);
-}
-
-// 共通で CSP ヘッダーを付与する関数
-function withCSP(res: NextResponse, _req: NextRequest) {
-  res.headers.delete("Content-Security-Policy");
-  res.headers.set(
-    "Content-Security-Policy",
-    "frame-ancestors https://admin.shopify.com https://*.myshopify.com"
-  );
   return res;
 }
 
