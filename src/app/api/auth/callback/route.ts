@@ -1,58 +1,65 @@
 // src/app/api/auth/callback/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'node:crypto';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/firebase";
+import crypto from "crypto";
 
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY!;
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET!;
+export const runtime = "nodejs";
 
-function verifyHmac(params: URLSearchParams, secret: string) {
-  const p = new URLSearchParams(params.toString());
-  const hmac = p.get('hmac') || '';
-  p.delete('hmac');
-  const msg = decodeURIComponent(p.toString()).split('&').sort().join('&');
-  const digest = crypto.createHmac('sha256', secret).update(msg).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(hmac));
+function verifyHmac(query: URLSearchParams, clientSecret: string): boolean {
+  const hmac = query.get("hmac")!;
+  const params = [...query.entries()]
+    .filter(([key]) => key !== "hmac")
+    .map(([key, value]) => `${key}=${value}`)
+    .sort()
+    .join("&");
+
+  const digest = crypto.createHmac("sha256", clientSecret).update(params).digest("hex");
+  return digest === hmac;
 }
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const sp = url.searchParams;
-  const shop = sp.get('shop');
-  const code = sp.get('code');
-  const state = sp.get('state');
-  const host = sp.get('host'); // 👈 追加: host パラメータ取得
+  try {
+    const url = new URL(req.url);
+    const shop = url.searchParams.get("shop");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
 
-  if (!shop || !code) {
-    return NextResponse.json({ ok:false, error:'missing params' }, { status:400 });
-  }
-  if (!verifyHmac(sp, SHOPIFY_API_SECRET)) {
-    return NextResponse.json({ ok:false, error:'invalid_hmac' }, { status:400 });
-  }
-  const cookieState = req.cookies.get('shopify_state')?.value;
-  if (!cookieState || cookieState !== state) {
-    return NextResponse.json({ ok:false, error:'invalid_state', state, cookieState }, { status:400 });
-  }
+    console.log("🔎 Callback params:", { shop, code, state });
 
-  // アクセストークン交換
-  const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
-    method: 'POST',
-    headers: { 'content-type':'application/json' },
-    body: JSON.stringify({ client_id: SHOPIFY_API_KEY, client_secret: SHOPIFY_API_SECRET, code }),
-  });
-  if (!tokenRes.ok) {
-    const t = await tokenRes.text();
-    return NextResponse.json({ ok:false, error:'token_exchange_failed', detail:t }, { status:400 });
-  }
+    // Firestore に保存されている state 一覧を取得
+    const snapshot = await db.collection("auth_states").get();
+    const storedStates = snapshot.docs.map((d) => d.id);
+    console.log("📂 Stored states:", storedStates);
 
-  // ✅ 成功 ⇒ Shopify Admin のアプリTOPへリダイレクト
-  if (host) {
-    // Shopify Admin 内のアプリURLに戻す
-    return NextResponse.redirect(
-      `https://admin.shopify.com/store/ruhra-store/apps/bot-protection-proxy?host=${host}`,
-      302
-    );
-  }
+    if (!shop || !code || !state) {
+      return NextResponse.json({ ok: false, error: "missing_params" }, { status: 400 });
+    }
 
-  // host が無いときだけ /installed にフォールバック
-  return NextResponse.redirect(new URL('/installed', url.origin), 302);
+    // Firestore から state を検証
+    const doc = await db.collection("auth_states").doc(state).get();
+    if (!doc.exists) {
+      console.error("❌ State not found in Firestore:", state);
+      return NextResponse.json({ ok: false, error: "invalid_state", state }, { status: 400 });
+    }
+
+    const data = doc.data();
+    if (!data || data.shop !== shop) {
+      console.error("❌ State/shop mismatch:", { expected: data?.shop, got: shop });
+      return NextResponse.json({ ok: false, error: "state_shop_mismatch" }, { status: 400 });
+    }
+
+    // ✅ HMAC 検証
+    if (!verifyHmac(url.searchParams, process.env.SHOPIFY_API_SECRET!)) {
+      console.error("❌ HMAC verification failed");
+      return NextResponse.json({ ok: false, error: "hmac_verification_failed" }, { status: 400 });
+    }
+
+    console.log("🎉 Auth success:", { shop, state });
+
+    // 🎉 認証成功 → 任意のページにリダイレクト
+    return NextResponse.redirect(`${process.env.SHOPIFY_APP_URL}/admin/logs`);
+  } catch (err) {
+    console.error("Auth callback error:", err);
+    return NextResponse.json({ ok: false, error: "auth_callback_failed" }, { status: 500 });
+  }
 }
