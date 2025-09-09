@@ -21,7 +21,7 @@ export async function middleware(req: NextRequest) {
         { status: 403 }
       );
     }
-    return NextResponse.next();
+    // host がある場合は処理継続
   }
 
   // 🚫 host チェックは本番のみ
@@ -40,6 +40,13 @@ export async function middleware(req: NextRequest) {
   ip = ip.replace(/^::ffff:/, "");
 
   const res = NextResponse.next();
+
+  // 👇 追加: Shopify 管理画面 iframe 埋め込み許可
+  res.headers.set(
+    "Content-Security-Policy",
+    "frame-ancestors https://admin.shopify.com https://*.myshopify.com"
+  );
+
   res.headers.set("x-client-ip", ip);
   return res;
 }
