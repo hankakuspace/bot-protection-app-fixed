@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppBridge } from "@/components/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 export default function ShopifyNavigation() {
   const app = useAppBridge();
@@ -10,20 +11,18 @@ export default function ShopifyNavigation() {
   useEffect(() => {
     if (!app) return;
 
-    // Web Components API: Navigation Menu
-    const navMenu = (window as any).shopify?.ui?.navMenu;
-    if (navMenu) {
-      navMenu({
-        items: [
-          { label: "IP追加", destination: "/admin/add-ip" },
-          { label: "ブロックリスト一覧", destination: "/admin/list-ip" },
-          { label: "アクセスログ", destination: "/admin/logs" },
-        ],
-      });
-    } else {
-      console.warn("⚠️ NavigationMenu API is not available (Admin Navigation Extension not enabled?)");
-    }
+    const navMenu = NavigationMenu.create(app, {
+      items: [
+        { label: "IP追加", destination: "/admin/add-ip" },
+        { label: "ブロックリスト一覧", destination: "/admin/list-ip" },
+        { label: "アクセスログ", destination: "/admin/logs" },
+      ],
+    });
+
+    return () => {
+      navMenu.unsubscribe();
+    };
   }, [app]);
 
-  return null; // UIに直接描画はしない
+  return null;
 }
