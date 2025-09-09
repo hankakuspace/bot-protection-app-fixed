@@ -8,7 +8,8 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import type { ClientApplication } from "@shopify/app-bridge";
 
 function PageInner() {
-  const app = useAppBridge() as ClientApplication<any>; // ✅ 型を明示キャスト
+  // ✅ unknown を挟んでから ClientApplication にキャスト
+  const app = useAppBridge() as unknown as ClientApplication<any>;
 
   useEffect(() => {
     if (app) {
