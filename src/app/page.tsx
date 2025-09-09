@@ -2,31 +2,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { Redirect } from "@shopify/app-bridge/actions";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 function PageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const app = useAppBridge();
 
-  const host = searchParams.get("host");
-  const shop = searchParams.get("shop");
-
-  // ✅ CSRリダイレクト（iframe 内対応）
   useEffect(() => {
-    if (host && shop) {
-      console.log("✅ Loaded with host/shop:", { host, shop });
-      router.replace(`/admin/logs?host=${host}&shop=${shop}`);
-    } else {
-      router.replace("/admin/logs");
+    if (app) {
+      const redirect = Redirect.create(app);
+      redirect.dispatch(Redirect.Action.APP, "/admin/logs");
     }
-  }, [router, host, shop]);
-
-  // ✅ SSRリダイレクト（直叩き用）
-  if (!host) {
-    redirect("/admin/logs");
-  }
+  }, [app]);
 
   return null;
 }
