@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
     const shop = url.searchParams.get("shop");
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
+    const host = url.searchParams.get("host"); // ✅ Shopify Admin が渡してくるパラメータ
 
-    console.log("🔎 Callback params:", { shop, state, code });
+    console.log("🔎 Callback params:", { shop, state, code, host });
 
     if (!shop || !code || !state) {
       return NextResponse.json({ ok: false, error: "missing_params" }, { status: 400 });
@@ -57,15 +58,14 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // 🎉 認証成功後 → iframe内ではなくトップレベルへリダイレクト
+    // 🎉 認証成功後 → host付きURLでトップレベルにリダイレクト
     return new NextResponse(
       `<script>
+        var target = "${process.env.SHOPIFY_APP_URL}?shop=${shop}&host=${host}";
         if (window.top === window.self) {
-          // トップレベルならそのまま遷移
-          window.location.href = "${process.env.SHOPIFY_APP_URL}/admin/logs";
+          window.location.href = target;
         } else {
-          // iframe内ならトップレベルにリダイレクト
-          window.top.location.href = "${process.env.SHOPIFY_APP_URL}/admin/logs";
+          window.top.location.href = target;
         }
       </script>`,
       { status: 200, headers: { "Content-Type": "text/html" } }

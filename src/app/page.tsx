@@ -2,19 +2,32 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { redirect } from "next/navigation";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // ✅ CSR（iframe 内で redirect() が無視される場合に対応）
+  const host = searchParams.get("host");
+  const shop = searchParams.get("shop");
+
+  // ✅ CSRリダイレクト（iframe 内対応）
   useEffect(() => {
-    router.replace("/admin/logs");
-  }, [router]);
+    if (host && shop) {
+      // Shopify Admin 内から来た場合はそのまま保持
+      console.log("✅ Loaded with host/shop:", { host, shop });
+      router.replace(`/admin/logs?host=${host}&shop=${shop}`);
+    } else {
+      // 直叩きなど host がない場合は通常ログ画面へ
+      router.replace("/admin/logs");
+    }
+  }, [router, host, shop]);
 
-  // ✅ SSR（直叩き時はサーバーサイドでリダイレクト）
-  redirect("/admin/logs");
+  // ✅ SSRリダイレクト（直叩き用）
+  if (!host) {
+    redirect("/admin/logs");
+  }
 
   return null;
 }
