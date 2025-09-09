@@ -2,7 +2,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { AppBridgeProvider as Provider } from "@shopify/app-bridge-react";
+import { Provider } from "@shopify/app-bridge-react";
 
 export default function AppBridgeProvider({ children }: { children: ReactNode }) {
   const host =
