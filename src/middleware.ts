@@ -12,9 +12,9 @@ export async function middleware(req: NextRequest) {
   // 🚫 API 完全除外
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
-  // ✅ /admin パス → host パラメータが無くても通す（以前は403にしていた）
+  // ✅ /admin パスは host パラメータがなくても通す
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    return NextResponse.next();
+    return withCSP(NextResponse.next(), req);
   }
 
   // 🚫 host チェックは本番のみ
@@ -22,7 +22,7 @@ export async function middleware(req: NextRequest) {
     process.env.NODE_ENV === "production" &&
     req.headers.get("host") !== "be-search.biz"
   ) {
-    return NextResponse.next();
+    return withCSP(NextResponse.next(), req);
   }
 
   // ✅ IP取得
@@ -36,15 +36,18 @@ export async function middleware(req: NextRequest) {
   ip = ip.replace(/^::ffff:/, "");
 
   const res = NextResponse.next();
+  res.headers.set("x-client-ip", ip);
 
-  // CSPヘッダーを強制付与（Shopify管理画面iframe対応）
+  return withCSP(res, req);
+}
+
+// 共通で CSP ヘッダーを付与する関数
+function withCSP(res: NextResponse, _req: NextRequest) {
   res.headers.delete("Content-Security-Policy");
   res.headers.set(
     "Content-Security-Policy",
     "frame-ancestors https://admin.shopify.com https://*.myshopify.com"
   );
-
-  res.headers.set("x-client-ip", ip);
   return res;
 }
 
