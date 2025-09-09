@@ -1,3 +1,4 @@
+// src/app/admin/blocked/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,7 +11,8 @@ import {
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client'; // ← クライアントSDKを利用
+import { db } from '@/lib/firebase-client';
+import AdminNav from '@/components/AdminNav'; // ← 共通ナビ追加
 
 type BlockCountry = { id: string; enabled: boolean; note?: string; updatedAt?: any };
 type BlockIP = { id: string; enabled: boolean; note?: string; updatedAt?: any };
@@ -95,6 +97,9 @@ export default function BlocklistPage() {
 
   return (
     <div className="p-6">
+      {/* 共通ナビを追加 */}
+      <AdminNav />
+
       <h1 className="text-2xl font-bold">ブロック設定</h1>
 
       {/* タブ切替 */}

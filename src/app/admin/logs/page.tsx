@@ -2,8 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import AdminNav from "@/components/AdminNav"; // 共通ナビをインポート
 
 interface AccessLog {
   id: string;
@@ -19,7 +18,6 @@ interface AccessLog {
 export default function LogsPage() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const pathname = usePathname();
 
   useEffect(() => {
     async function fetchLogs() {
@@ -38,47 +36,8 @@ export default function LogsPage() {
 
   return (
     <div className="p-6">
-      {/* ナビゲーションバー */}
-      <nav className="mb-6 border-b border-gray-200">
-        <ul className="flex space-x-6">
-          <li>
-            <Link
-              href="/admin/add-ip"
-              className={`pb-2 ${
-                pathname === "/admin/add-ip"
-                  ? "border-b-2 border-blue-500 font-semibold"
-                  : "text-gray-600 hover:text-blue-500"
-              }`}
-            >
-              IP追加
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/admin/list-ip"
-              className={`pb-2 ${
-                pathname === "/admin/list-ip"
-                  ? "border-b-2 border-blue-500 font-semibold"
-                  : "text-gray-600 hover:text-blue-500"
-              }`}
-            >
-              ブロックリスト
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/admin/logs"
-              className={`pb-2 ${
-                pathname === "/admin/logs"
-                  ? "border-b-2 border-blue-500 font-semibold"
-                  : "text-gray-600 hover:text-blue-500"
-              }`}
-            >
-              アクセスログ
-            </Link>
-          </li>
-        </ul>
-      </nav>
+      {/* 共通ナビ */}
+      <AdminNav />
 
       {/* コンテンツ */}
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>

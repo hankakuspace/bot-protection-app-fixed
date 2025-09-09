@@ -1,6 +1,8 @@
+// src/app/admin/add-ip/page.tsx
 "use client"; // ← クライアントコンポーネント宣言
 
 import { useState } from "react";
+import AdminNav from "@/components/AdminNav";
 
 export default function AddIpPage() {
   const [ip, setIp] = useState("");
@@ -38,6 +40,9 @@ export default function AddIpPage() {
 
   return (
     <div className="p-8">
+      {/* 共通ナビを追加 */}
+      <AdminNav />
+
       <h1 className="text-xl font-bold mb-4">IP 登録</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
@@ -47,7 +52,6 @@ export default function AddIpPage() {
           onChange={(e) => setIp(e.target.value)}
           className="border px-3 py-2 rounded w-full"
         />
-        {/* submit ボタンであることを明示 */}
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded"

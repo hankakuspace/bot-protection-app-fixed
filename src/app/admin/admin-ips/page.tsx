@@ -1,8 +1,9 @@
+// src/app/admin/list-ip/page.tsx
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { db } from '@/lib/firebase-client'; // ← 修正ポイント
+import { db } from '@/lib/firebase-client';
 import {
   addDoc,
   collection,
@@ -13,6 +14,7 @@ import {
   query,
   serverTimestamp,
 } from 'firebase/firestore';
+import AdminNav from '@/components/AdminNav'; // ← 共通ナビを追加
 
 type AdminIpRow = {
   id: string;
@@ -115,13 +117,6 @@ export default function AdminIpsPage() {
           >
             Add
           </button>
-          <Link
-            href="/admin/logs"
-            className="border rounded px-3 py-1 text-sm inline-flex items-center"
-            title="アクセスログに戻る"
-          >
-            Back to Logs
-          </Link>
         </div>
       </div>
     ),
@@ -130,6 +125,9 @@ export default function AdminIpsPage() {
 
   return (
     <div className="p-6">
+      {/* 共通ナビを表示 */}
+      <AdminNav />
+
       {header}
       {err && <div className="mt-2 text-sm text-red-600">{err}</div>}
 
