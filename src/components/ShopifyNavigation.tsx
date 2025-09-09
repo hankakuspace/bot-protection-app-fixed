@@ -12,10 +12,12 @@ export default function ShopifyNavigation() {
     if (!app) return;
 
     const items = [
-      { label: "IP追加", destination: "/add-ip" },
-      { label: "ブロックリスト一覧", destination: "/list-ip" },
-      { label: "アクセスログ", destination: "/logs" },
-    ] as any; // ✅ 型エラー回避
+      { label: "IP追加", destination: "/admin/add-ip" },
+      { label: "ブロックリスト一覧", destination: "/admin/list-ip" },
+      { label: "アクセスログ", destination: "/admin/logs" },
+    ] as any;
+
+    console.log("✅ NavigationMenu items set", items);
 
     const navMenu = NavigationMenu.create(app, { items });
 
