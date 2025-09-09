@@ -13,9 +13,9 @@ export default function ShopifyNavigation() {
 
     const navMenu = NavigationMenu.create(app, {
       items: [
-        { label: "IP追加", destination: { url: "/admin/add-ip" } },
-        { label: "ブロックリスト一覧", destination: { url: "/admin/list-ip" } },
-        { label: "アクセスログ", destination: { url: "/admin/logs" } },
+        { label: "IP追加", destination: "/admin/add-ip" },
+        { label: "ブロックリスト一覧", destination: "/admin/list-ip" },
+        { label: "アクセスログ", destination: "/admin/logs" },
       ],
     });
 
