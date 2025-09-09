@@ -1,32 +1,37 @@
 // src/components/AppBridgeProvider.tsx
 "use client";
 
-import { ReactNode, useEffect, useMemo, useState } from "react";
-import createApp, { AppConfig } from "@shopify/app-bridge";
-import { Provider } from "@shopify/app-bridge-react";
+import { ReactNode, useEffect, useMemo, useState, createContext, useContext } from "react";
+import createApp, { AppConfig, ClientApplication } from "@shopify/app-bridge";
+
+interface AppBridgeContextValue {
+  app: ClientApplication<any> | null;
+}
+
+const AppBridgeContext = createContext<AppBridgeContextValue>({ app: null });
+
+export function useAppBridge() {
+  return useContext(AppBridgeContext).app;
+}
 
 export default function AppBridgeProvider({ children }: { children: ReactNode }) {
-  const [host, setHost] = useState<string | null>(null);
+  const [app, setApp] = useState<ClientApplication<any> | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setHost(params.get("host"));
-  }, []);
-
-  const app = useMemo(() => {
-    if (!host) return null;
+    const host = new URLSearchParams(window.location.search).get("host");
+    if (!host) return;
 
     const config: AppConfig = {
-      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
+      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
       host,
       forceRedirect: true,
     };
 
-    return createApp(config);
-  }, [host]);
+    const appInstance = createApp(config);
+    setApp(appInstance);
+  }, []);
 
-  if (!app) return null;
+  const value = useMemo(() => ({ app }), [app]);
 
-  // 🔑 公式の Provider を利用する
-  return <Provider config={app}>{children}</Provider>;
+  return <AppBridgeContext.Provider value={value}>{children}</AppBridgeContext.Provider>;
 }
