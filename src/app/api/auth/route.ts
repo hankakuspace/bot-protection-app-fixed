@@ -33,7 +33,14 @@ export async function GET(req: NextRequest) {
   const origin = getOrigin(req);
   const redirectUri = `${origin}/api/auth/callback`;
 
-  // ✅ Firestore に保存する state を生成
+  // ✅ Firestore に既にトークンがあるか確認
+  const existing = await db.collection("shops").doc(shop).get();
+  if (existing.exists) {
+    console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
+    return NextResponse.redirect(`${origin}/admin/logs`);
+  }
+
+  // 新規インストール → OAuth 開始
   const state = crypto.randomUUID();
   await db.collection("auth_states").doc(state).set({
     shop,
@@ -41,13 +48,11 @@ export async function GET(req: NextRequest) {
     timestamp: Date.now(),
   });
 
-  // Shopify 認可 URL 構築
   const authorizeUrl = new URL(`https://${shop}/admin/oauth/authorize`);
   authorizeUrl.searchParams.set("client_id", SHOPIFY_API_KEY);
   authorizeUrl.searchParams.set("scope", SCOPES);
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("state", state);
 
-  // ✅ Cookie ではなく Firestore 管理なので Set-Cookie は不要
   return NextResponse.redirect(authorizeUrl.toString(), { status: 302 });
 }
