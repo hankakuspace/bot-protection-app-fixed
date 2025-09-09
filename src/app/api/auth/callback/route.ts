@@ -5,11 +5,17 @@ import crypto from "crypto";
 
 export const runtime = "nodejs";
 
-function verifyHmac(query: URLSearchParams, clientSecret: string): boolean {
-  const hmac = query.get("hmac")!;
-  const params = [...query.entries()]
-    .filter(([key]) => key !== "hmac")
-    .map(([key, value]) => `${key}=${value}`)
+// ✅ HMAC 検証（raw queryベース）
+function verifyHmacFromRaw(req: NextRequest, clientSecret: string): boolean {
+  const url = new URL(req.url);
+
+  const rawQuery = url.search.slice(1); // "?" を除いた raw query
+  const hmac = url.searchParams.get("hmac");
+  if (!hmac) return false;
+
+  const params = rawQuery
+    .split("&")
+    .filter((kv) => !kv.startsWith("hmac="))
     .sort()
     .join("&");
 
@@ -24,12 +30,7 @@ export async function GET(req: NextRequest) {
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
 
-    console.log("🔎 Callback params:", { shop, code, state });
-
-    // Firestore に保存されている state 一覧を取得
-    const snapshot = await db.collection("auth_states").get();
-    const storedStates = snapshot.docs.map((d) => d.id);
-    console.log("📂 Stored states:", storedStates);
+    console.log("🔎 Callback params:", { shop, state, code });
 
     if (!shop || !code || !state) {
       return NextResponse.json({ ok: false, error: "missing_params" }, { status: 400 });
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
     // Firestore から state を検証
     const doc = await db.collection("auth_states").doc(state).get();
     if (!doc.exists) {
-      console.error("❌ State not found in Firestore:", state);
+      console.error("❌ State not found:", state);
       return NextResponse.json({ ok: false, error: "invalid_state", state }, { status: 400 });
     }
 
@@ -48,16 +49,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "state_shop_mismatch" }, { status: 400 });
     }
 
-    // ✅ HMAC 検証
-    if (!verifyHmac(url.searchParams, process.env.SHOPIFY_API_SECRET!)) {
+    // ✅ HMAC 検証（raw query使用）
+    if (!verifyHmacFromRaw(req, process.env.SHOPIFY_API_SECRET!)) {
       console.error("❌ HMAC verification failed");
       return NextResponse.json({ ok: false, error: "hmac_verification_failed" }, { status: 400 });
     }
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // 🎉 認証成功 → 任意のページにリダイレクト
-    return NextResponse.redirect(`${process.env.SHOPIFY_APP_URL}/admin/logs`);
+    // 🎉 認証成功後 → iframe内ではなくトップレベルへリダイレクト
+    return new NextResponse(
+      `<script>
+        if (window.top === window.self) {
+          // トップレベルならそのまま遷移
+          window.location.href = "${process.env.SHOPIFY_APP_URL}/admin/logs";
+        } else {
+          // iframe内ならトップレベルにリダイレクト
+          window.top.location.href = "${process.env.SHOPIFY_APP_URL}/admin/logs";
+        }
+      </script>`,
+      { status: 200, headers: { "Content-Type": "text/html" } }
+    );
   } catch (err) {
     console.error("Auth callback error:", err);
     return NextResponse.json({ ok: false, error: "auth_callback_failed" }, { status: 500 });
