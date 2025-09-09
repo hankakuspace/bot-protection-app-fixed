@@ -11,13 +11,13 @@ export default function ShopifyNavigation() {
   useEffect(() => {
     if (!app) return;
 
-    const navMenu = NavigationMenu.create(app, {
-      items: [
-        { label: "IP追加", destination: "/add-ip" },
-        { label: "ブロックリスト一覧", destination: "/list-ip" },
-        { label: "アクセスログ", destination: "/logs" },
-      ],
-    });
+    const items = [
+      { label: "IP追加", destination: "/add-ip" },
+      { label: "ブロックリスト一覧", destination: "/list-ip" },
+      { label: "アクセスログ", destination: "/logs" },
+    ] as any; // ✅ 型エラー回避
+
+    const navMenu = NavigationMenu.create(app, { items });
 
     return () => {
       navMenu.unsubscribe();
