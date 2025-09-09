@@ -3,7 +3,7 @@
 
 import { useEffect } from "react";
 import { NavigationMenu } from "@shopify/app-bridge/actions";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import { useAppBridge } from "@/components/AppBridgeProvider";
 
 export default function ShopifyNavigation() {
   const app = useAppBridge();
