@@ -57,13 +57,56 @@ export default function LogsPage() {
     });
   };
 
+  // CSV ダウンロード
+  const downloadCSV = () => {
+    const header = [
+      "Timestamp",
+      "IP",
+      "Country",
+      "Allowed",
+      "Blocked",
+      "isAdmin",
+      "UserAgent",
+    ];
+    const rows = logs.map((log) => [
+      formatDate(log.timestamp),
+      log.ip,
+      log.country,
+      log.allowedCountry ? "Yes" : "No",
+      log.blocked ? "Yes" : "No",
+      log.isAdmin ? "Yes" : "No",
+      `"${log.userAgent || ""}"`,
+    ]);
+    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `access_logs_${fromDate}_${toDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // JSON ダウンロード
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify(logs, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `access_logs_${fromDate}_${toDate}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
       <AdminNav />
 
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
-      {/* 日付範囲選択 */}
+      {/* 操作バー */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
         <label>
           From:
@@ -94,6 +137,18 @@ export default function LogsPage() {
           className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
         >
           Reload
+        </button>
+        <button
+          onClick={downloadCSV}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+        >
+          Export CSV
+        </button>
+        <button
+          onClick={downloadJSON}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+        >
+          Export JSON
         </button>
       </div>
 
@@ -132,9 +187,7 @@ export default function LogsPage() {
                   <td className="border border-gray-300 px-2 py-1">
                     {log.isAdmin ? "👑" : "—"}
                   </td>
-                  <td className="border border-gray-300 px-2 py-1">
-                    {log.userAgent}
-                  </td>
+                  <td className="border border-gray-300 px-2 py-1">{log.userAgent}</td>
                 </tr>
               ))}
             </tbody>
