@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "@/components/AdminNav"; // 共通ナビをインポート
+import AdminNav from "@/components/AdminNav";
 
 interface AccessLog {
   id: string;
@@ -19,46 +19,127 @@ export default function LogsPage() {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const res = await fetch("/api/admin/logs");
-        const data = await res.json();
-        setLogs(data.logs || []);
-      } catch (e) {
-        console.error("ログ取得失敗:", e);
-      } finally {
-        setLoading(false);
-      }
+  // ログ取得
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch("/api/admin/logs");
+      const data = await res.json();
+      // 日付でソート（新しい順）
+      const sorted = (data.logs || []).sort(
+        (a: AccessLog, b: AccessLog) =>
+          new Date(b.timestamp || 0).getTime() -
+          new Date(a.timestamp || 0).getTime()
+      );
+      setLogs(sorted);
+    } catch (e) {
+      console.error("ログ取得失敗:", e);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchLogs();
   }, []);
 
+  // 日時をフォーマット
+  const formatDate = (iso: string | null) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    return d.toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  // CSV ダウンロード
+  const downloadCSV = () => {
+    const header = ["Timestamp", "IP", "Country", "Allowed", "Blocked", "isAdmin", "UserAgent"];
+    const rows = logs.map((log) => [
+      formatDate(log.timestamp),
+      log.ip,
+      log.country,
+      log.allowedCountry ? "Yes" : "No",
+      log.blocked ? "Yes" : "No",
+      log.isAdmin ? "Yes" : "No",
+      `"${log.userAgent || ""}"`,
+    ]);
+    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "access_logs.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // JSON ダウンロード
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify(logs, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "access_logs.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
-      {/* 共通ナビ */}
       <AdminNav />
 
-      {/* コンテンツ */}
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
+
+      {/* 操作用ボタン */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={fetchLogs}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+        >
+          Reload
+        </button>
+        <button
+          onClick={downloadCSV}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+        >
+          Export CSV
+        </button>
+        <button
+          onClick={downloadJSON}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+        >
+          Export JSON
+        </button>
+      </div>
+
       {loading ? (
         <p>読み込み中...</p>
       ) : (
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
             <tr className="bg-gray-100">
+              <th className="border border-gray-300 px-2 py-1">Timestamp</th>
               <th className="border border-gray-300 px-2 py-1">IP</th>
-              <th className="border border-gray-300 px-2 py-1">国</th>
-              <th className="border border-gray-300 px-2 py-1">許可国</th>
-              <th className="border border-gray-300 px-2 py-1">ブロック</th>
-              <th className="border border-gray-300 px-2 py-1">管理者</th>
-              <th className="border border-gray-300 px-2 py-1">UA</th>
-              <th className="border border-gray-300 px-2 py-1">日時</th>
+              <th className="border border-gray-300 px-2 py-1">Country</th>
+              <th className="border border-gray-300 px-2 py-1">Allowed</th>
+              <th className="border border-gray-300 px-2 py-1">Blocked</th>
+              <th className="border border-gray-300 px-2 py-1">isAdmin</th>
+              <th className="border border-gray-300 px-2 py-1">UserAgent</th>
             </tr>
           </thead>
           <tbody>
             {logs.map((log) => (
               <tr key={log.id}>
+                <td className="border border-gray-300 px-2 py-1">
+                  {formatDate(log.timestamp)}
+                </td>
                 <td className="border border-gray-300 px-2 py-1">{log.ip}</td>
                 <td className="border border-gray-300 px-2 py-1">{log.country}</td>
                 <td className="border border-gray-300 px-2 py-1">
@@ -70,8 +151,9 @@ export default function LogsPage() {
                 <td className="border border-gray-300 px-2 py-1">
                   {log.isAdmin ? "👑" : "—"}
                 </td>
-                <td className="border border-gray-300 px-2 py-1">{log.userAgent}</td>
-                <td className="border border-gray-300 px-2 py-1">{log.timestamp}</td>
+                <td className="border border-gray-300 px-2 py-1">
+                  {log.userAgent}
+                </td>
               </tr>
             ))}
           </tbody>
