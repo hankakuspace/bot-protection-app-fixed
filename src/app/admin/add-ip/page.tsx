@@ -1,5 +1,5 @@
 // src/app/admin/add-ip/page.tsx
-"use client"; // ← クライアントコンポーネント宣言
+"use client";
 
 import { useState } from "react";
 import AdminNav from "@/components/AdminNav";
@@ -17,7 +17,11 @@ export default function AddIpPage() {
     }
 
     try {
-      const res = await fetch("/api/admin/add-ip", {
+      // ✅ 絶対URLでAPIを指定
+      const apiUrl = `${window.location.origin}/api/admin/add-ip`;
+      console.log("[UI] fetch to", apiUrl);
+
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ip }),
@@ -40,7 +44,6 @@ export default function AddIpPage() {
 
   return (
     <div className="p-8">
-      {/* 共通ナビを追加 */}
       <AdminNav />
 
       <h1 className="text-xl font-bold mb-4">IP 登録</h1>
