@@ -16,20 +16,19 @@ interface AccessLog {
 }
 
 export default function LogsPage() {
+  const today = new Date().toISOString().slice(0, 10);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [date, setDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10)
-  ); // デフォルト=今日
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
-  // ログ取得
-  const fetchLogs = async (date: string, offset: number) => {
+  const fetchLogs = async (from: string, to: string, offset: number) => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/admin/logs?date=${date}&offset=${offset}`
+        `/api/admin/logs?from=${from}&to=${to}&offset=${offset}`
       );
       const data = await res.json();
       setLogs(data.logs || []);
@@ -42,10 +41,9 @@ export default function LogsPage() {
   };
 
   useEffect(() => {
-    fetchLogs(date, offset);
-  }, [date, offset]);
+    fetchLogs(fromDate, toDate, offset);
+  }, [fromDate, toDate, offset]);
 
-  // 日時をフォーマット
   const formatDate = (iso: string | null) => {
     if (!iso) return "-";
     const d = new Date(iso);
@@ -59,83 +57,43 @@ export default function LogsPage() {
     });
   };
 
-  // CSV ダウンロード
-  const downloadCSV = () => {
-    const header = [
-      "Timestamp",
-      "IP",
-      "Country",
-      "Allowed",
-      "Blocked",
-      "isAdmin",
-      "UserAgent",
-    ];
-    const rows = logs.map((log) => [
-      formatDate(log.timestamp),
-      log.ip,
-      log.country,
-      log.allowedCountry ? "Yes" : "No",
-      log.blocked ? "Yes" : "No",
-      log.isAdmin ? "Yes" : "No",
-      `"${log.userAgent || ""}"`,
-    ]);
-    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `access_logs_${date}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // JSON ダウンロード
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(logs, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `access_logs_${date}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="p-6">
       <AdminNav />
 
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
-      {/* 操作バー */}
+      {/* 日付範囲選択 */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => {
-            setOffset(0); // ページをリセット
-            setDate(e.target.value);
-          }}
-          className="border rounded px-2 py-1"
-        />
+        <label>
+          From:
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => {
+              setOffset(0);
+              setFromDate(e.target.value);
+            }}
+            className="ml-2 border rounded px-2 py-1"
+          />
+        </label>
+        <label>
+          To:
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => {
+              setOffset(0);
+              setToDate(e.target.value);
+            }}
+            className="ml-2 border rounded px-2 py-1"
+          />
+        </label>
         <button
-          onClick={() => fetchLogs(date, offset)}
+          onClick={() => fetchLogs(fromDate, toDate, offset)}
           className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
         >
           Reload
-        </button>
-        <button
-          onClick={downloadCSV}
-          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
-        >
-          Export CSV
-        </button>
-        <button
-          onClick={downloadJSON}
-          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
-        >
-          Export JSON
         </button>
       </div>
 
@@ -164,9 +122,7 @@ export default function LogsPage() {
                     {formatDate(log.timestamp)}
                   </td>
                   <td className="border border-gray-300 px-2 py-1">{log.ip}</td>
-                  <td className="border border-gray-300 px-2 py-1">
-                    {log.country}
-                  </td>
+                  <td className="border border-gray-300 px-2 py-1">{log.country}</td>
                   <td className="border border-gray-300 px-2 py-1">
                     {log.allowedCountry ? "✅" : "❌"}
                   </td>
