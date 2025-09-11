@@ -1,56 +1,51 @@
 // src/app/api/admin/logs/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 
 export const runtime = "nodejs";
-export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+
+    // 日付 (YYYY-MM-DD) とオフセットを取得
+    const date = searchParams.get("date");
+    const offset = parseInt(searchParams.get("offset") || "0", 10);
+
+    const baseDate = date ? new Date(date) : new Date();
+    const start = new Date(baseDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(baseDate);
+    end.setHours(23, 59, 59, 999);
+
     const snapshot = await db
       .collection("access_logs")
+      .where("createdAt", ">=", start)
+      .where("createdAt", "<=", end)
       .orderBy("createdAt", "desc")
+      .offset(offset)
       .limit(200)
       .get();
 
-    let logs = snapshot.docs.map((doc) => {
+    const logs = snapshot.docs.map((doc) => {
       const data = doc.data();
-
       return {
         id: doc.id,
-        ip: data.ip || data.ip_v4 || data.ip_v6 || "UNKNOWN",
-        country: data.country || "UNKNOWN",
-        allowedCountry: data.allowedCountry ?? false,
-        blocked: data.blocked ?? false,
-        isAdmin: data.isAdmin ?? false,
-        userAgent: data.userAgent || "UNKNOWN",
-        host: data.host || "UNKNOWN",
-        clientTime: data.clientTime || null,
-        createdAt: data.createdAt?.toDate?.().toISOString() || null,
-        // ✅ timestamp を必ず返す（UIで利用）
-        timestamp:
-          data.clientTime ||
-          data.createdAt?.toDate?.().toISOString() ||
-          null,
+        ...data,
+        timestamp: data.createdAt ? data.createdAt.toDate().toISOString() : null,
       };
     });
 
-    // ✅ timestamp で降順
-    logs.sort((a, b) => {
-      if (!a.timestamp && b.timestamp) return 1;
-      if (a.timestamp && !b.timestamp) return -1;
-      if (a.timestamp && b.timestamp) {
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      }
-      return 0;
+    return NextResponse.json({
+      ok: true,
+      logs,
+      hasMore: logs.length === 200,
     });
-
-    return NextResponse.json({ ok: true, logs });
-  } catch (error: any) {
-    console.error("🔥 Error in /api/admin/logs:", error);
+  } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: error?.message || String(error) },
+      { ok: false, error: err.message },
       { status: 500 }
     );
   }
 }
+
