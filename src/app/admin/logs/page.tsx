@@ -187,7 +187,6 @@ export default function LogsPage() {
                 <th className="border px-2 py-1">Timestamp</th>
                 <th className="border px-2 py-1">IP</th>
                 <th className="border px-2 py-1">Country</th>
-                <th className="border px-2 py-1">Allowed</th>
                 <th className="border px-2 py-1">Blocked</th>
                 <th className="border px-2 py-1">isAdmin</th>
                 <th className="border px-2 py-1">UserAgent</th>
@@ -197,11 +196,19 @@ export default function LogsPage() {
               {filteredLogs.map((log) => (
                 <tr key={log.id}>
                   <td className="border px-2 py-1">{formatDate(log.timestamp)}</td>
-                  <td className="border px-2 py-1 font-mono text-xs">{log.ip}</td>
+                  <td className="border px-2 py-1 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          log.allowedCountry ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      />
+                      <span>{log.ip}</span>
+                    </div>
+                  </td>
                   <td className="border px-2 py-1">
                     <CountryCell code={log.country} />
                   </td>
-                  <td className="border px-2 py-1">{log.allowedCountry ? "✅" : "❌"}</td>
                   <td className="border px-2 py-1">{log.blocked ? "🚫" : "—"}</td>
                   <td className="border px-2 py-1">{log.isAdmin ? "👑" : "—"}</td>
                   <td className="border px-2 py-1 max-w-xs truncate">
