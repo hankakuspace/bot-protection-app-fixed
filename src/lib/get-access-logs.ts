@@ -1,11 +1,12 @@
-import { db } from "@/lib/admin";
+// src/lib/get-access-logs.ts
+import { adminDb } from "@/lib/firebase";
 
 /**
  * Firestore のアクセスログを取得
  * - timestamp の降順
  */
 export async function getAccessLogs() {
-  const snapshot = await db
+  const snapshot = await adminDb
     .collection("access_logs")
     .orderBy("timestamp", "desc")
     .get();

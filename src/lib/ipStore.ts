@@ -1,4 +1,5 @@
-import { db } from "@/lib/admin";
+// src/lib/ipStore.ts
+import { adminDb } from "@/lib/firebase";
 
 const BLOCKED_COLLECTION = "blocked_ips";
 
@@ -6,7 +7,7 @@ const BLOCKED_COLLECTION = "blocked_ips";
  * IP一覧を取得
  */
 export async function listIps(): Promise<string[]> {
-  const snapshot = await db.collection(BLOCKED_COLLECTION).get();
+  const snapshot = await adminDb.collection(BLOCKED_COLLECTION).get();
   return snapshot.docs.map((doc) => doc.id);
 }
 
@@ -15,7 +16,7 @@ export async function listIps(): Promise<string[]> {
  */
 export async function addIp(ip: string, source: string = "manual"): Promise<void> {
   if (!ip) return;
-  await db.collection(BLOCKED_COLLECTION).doc(ip).set({
+  await adminDb.collection(BLOCKED_COLLECTION).doc(ip).set({
     createdAt: new Date().toISOString(),
     source,
   });
@@ -26,7 +27,7 @@ export async function addIp(ip: string, source: string = "manual"): Promise<void
  */
 export async function removeIp(ip: string): Promise<void> {
   if (!ip) return;
-  await db.collection(BLOCKED_COLLECTION).doc(ip).delete();
+  await adminDb.collection(BLOCKED_COLLECTION).doc(ip).delete();
 }
 
 /**
@@ -34,14 +35,14 @@ export async function removeIp(ip: string): Promise<void> {
  */
 export async function setIps(ips: string[], source: string = "manual"): Promise<void> {
   // 既存を全削除 → 新しいリストを追加
-  const snapshot = await db.collection(BLOCKED_COLLECTION).get();
-  const batch = db.batch();
+  const snapshot = await adminDb.collection(BLOCKED_COLLECTION).get();
+  const batch = adminDb.batch();
   snapshot.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
 
-  const newBatch = db.batch();
+  const newBatch = adminDb.batch();
   ips.forEach((ip) => {
-    const ref = db.collection(BLOCKED_COLLECTION).doc(ip);
+    const ref = adminDb.collection(BLOCKED_COLLECTION).doc(ip);
     newBatch.set(ref, {
       createdAt: new Date().toISOString(),
       source,
