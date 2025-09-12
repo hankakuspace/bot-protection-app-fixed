@@ -47,9 +47,9 @@ export async function GET(req: NextRequest) {
     const ip = getClientIp(req);
 
     // ✅ 国コード判定 (ipinfo.io)
-    let country = "UNKNOWN";
+    let country: string = "UNKNOWN";
     if (ip) {
-      country = await getCountryFromIp(ip);
+      country = (await getCountryFromIp(ip)) as string;
     }
 
     // ✅ Firestoreからブロック対象を取得
