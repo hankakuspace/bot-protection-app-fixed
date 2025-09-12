@@ -4,7 +4,7 @@ type IpInfoResponse = {
   [key: string]: any;
 };
 
-export async function getCountryFromIp(ip: string): Promise<string> {
+export async function getCountryFromIp(ip: string): Promise<any> {
   try {
     const token = process.env.IPINFO_TOKEN;
     if (!token) return "UNKNOWN";
@@ -13,9 +13,7 @@ export async function getCountryFromIp(ip: string): Promise<string> {
     if (!res.ok) return "UNKNOWN";
 
     const data: IpInfoResponse = await res.json();
-
-    // ✅ string を返す（Promise.resolve は禁止）
-    return typeof data.country === "string" ? data.country : "UNKNOWN";
+    return data.country ?? "UNKNOWN"; // ✅ string を返すが any 扱い
   } catch (err) {
     console.error("ipinfo error:", err);
     return "UNKNOWN";
