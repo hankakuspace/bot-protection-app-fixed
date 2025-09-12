@@ -7,26 +7,22 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { ip } = body;
+    const { ip, note } = await req.json();
 
-    console.log("[API] add-ip request:", body);
-
-    if (!ip || typeof ip !== "string") {
-      return NextResponse.json({ ok: false, error: "Invalid IP" }, { status: 400 });
+    if (!ip) {
+      return NextResponse.json({ error: "Missing IP" }, { status: 400 });
     }
 
-    // Firestore に保存
-    await db.collection("blocked_ips").add({
+    // Firestore に保存 (admin SDK は .doc().set を使用)
+    await adminDb.collection("blocked_ips").doc(ip).set({
       ip,
+      note: note || "",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.log("[API] added ip:", ip);
-
-    return NextResponse.json({ ok: true, added: ip });
-  } catch (error) {
-    console.error("[API] Error in add-ip:", error);
-    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("add-ip error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
