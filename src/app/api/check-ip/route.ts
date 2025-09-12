@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
-import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
+// import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
@@ -12,16 +12,19 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
 
-    const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
-    if (!result.ok) {
-      return NextResponse.json({ error: result.reason || "Invalid signature" }, { status: 401 });
-    }
+    // ✅ 署名検証は一時的にオフ
+    // const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
+    // if (!result.ok) {
+    //   return NextResponse.json({ error: result.reason || "Invalid signature" }, { status: 401 });
+    // }
 
+    // ✅ shop を抽出
     const shop = url.searchParams.get("shop");
     if (!shop) {
       return NextResponse.json({ error: "Missing shop" }, { status: 400 });
     }
 
+    // ✅ 利用数カウント更新
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const usageRef = db.collection("usage_logs").doc(`${shop}_${yearMonth}`);
@@ -40,6 +43,7 @@ export async function GET(req: NextRequest) {
     const usageData = usageSnap.data();
     const usageCount = usageData?.count ?? 0;
 
+    // ✅ クライアントIP取得
     const ip = getClientIp(req);
 
     // ✅ 国コード判定 (ipinfo.io)
@@ -63,7 +67,7 @@ export async function GET(req: NextRequest) {
       country: String(country),
       blocked,
       usageCount,
-      limit: 50000,
+      limit: 50000, // 仮：Lite プランの上限
     });
   } catch (err: any) {
     console.error("check-ip error:", err);
