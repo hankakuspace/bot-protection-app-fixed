@@ -12,23 +12,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing shop" }, { status: 400 });
     }
 
+    // ✅ プラン情報を Firestore から取得
+    const shopDoc = await db.collection("shops").doc(shop).get();
+    const plan = shopDoc.exists ? shopDoc.data()?.plan || "Lite" : "Lite";
+
+    // ✅ プランごとの上限
+    let limit: number | null = null;
+    if (plan === "Lite") limit = 50000;
+    if (plan === "Pro") limit = 250000;
+    if (plan === "Enterprise") limit = null; // 無制限
+
+    // ✅ 当月利用数を取得
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const usageRef = db.collection("usage_logs").doc(`${shop}_${yearMonth}`);
-
     const usageSnap = await usageRef.get();
     const usageData = usageSnap.data();
     const usageCount = usageData?.count ?? 0;
 
-    // 仮プラン: Lite
-    const limit = 50000;
+    // ✅ 上限超過判定
+    const overLimit = limit !== null ? usageCount > limit : false;
 
     return NextResponse.json({
       shop,
+      plan,
       yearMonth,
       usageCount,
-      limit,
-      overLimit: usageCount > limit,
+      limit: limit ?? "unlimited",
+      overLimit,
     });
   } catch (err: any) {
     console.error("usage API error:", err);

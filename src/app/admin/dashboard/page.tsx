@@ -3,8 +3,17 @@
 
 import { useEffect, useState } from "react";
 
+type UsageData = {
+  shop: string;
+  plan: string;
+  yearMonth: string;
+  usageCount: number;
+  limit: number | "unlimited";
+  overLimit: boolean;
+};
+
 export default function DashboardPage() {
-  const [usage, setUsage] = useState<{ usageCount: number; limit: number; overLimit: boolean } | null>(null);
+  const [usage, setUsage] = useState<UsageData | null>(null);
 
   useEffect(() => {
     async function fetchUsage() {
@@ -26,9 +35,13 @@ export default function DashboardPage() {
       {usage ? (
         <div className="border rounded-lg p-4 bg-white shadow">
           <h2 className="text-lg font-semibold mb-2">API利用状況</h2>
+          <p>プラン: <span className="font-bold">{usage.plan}</span></p>
           <p>
-            今月の利用数: <span className="font-bold">{usage.usageCount}</span> /{" "}
-            <span className="font-bold">{usage.limit}</span>
+            今月の利用数:{" "}
+            <span className="font-bold">{usage.usageCount}</span> /{" "}
+            <span className="font-bold">
+              {usage.limit === "unlimited" ? "無制限" : usage.limit}
+            </span>
           </p>
           {usage.overLimit && (
             <p className="text-red-500 font-bold mt-2">
