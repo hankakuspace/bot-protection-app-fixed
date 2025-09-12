@@ -7,17 +7,15 @@ type IpInfoResponse = {
 export async function getCountryFromIp(ip: string): Promise<string> {
   try {
     const token = process.env.IPINFO_TOKEN;
-    if (!token) {
-      return "UNKNOWN"; // ✅ Promise.resolve は使わない
-    }
+    if (!token) return "UNKNOWN";
 
     const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
-    if (!res.ok) {
-      return "UNKNOWN";
-    }
+    if (!res.ok) return "UNKNOWN";
 
     const data: IpInfoResponse = await res.json();
-    return data.country ?? "UNKNOWN"; // ✅ これで string
+
+    // ✅ string を返す（Promise.resolve は禁止）
+    return typeof data.country === "string" ? data.country : "UNKNOWN";
   } catch (err) {
     console.error("ipinfo error:", err);
     return "UNKNOWN";
