@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
-import { verifyAppProxySignature } from "@/lib/verifyAppProxy"; // ✅ 修正
-import geoip from "geoip-lite";
+import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
+import { getCountryFromIp } from "@/lib/ipinfo"; // ✅ ipinfoを利用
 
 export const runtime = "nodejs";
 
@@ -46,15 +46,14 @@ export async function GET(req: NextRequest) {
     // ✅ クライアントIP取得
     const ip = getClientIp(req);
 
-    // ✅ 国コード判定
-    const geo = ip ? geoip.lookup(ip) : null;
-    const country = geo?.country ?? "UNKNOWN";
+    // ✅ 国コード判定 (ipinfo.io)
+    const country = ip ? await getCountryFromIp(ip) : "UNKNOWN";
 
     // ✅ Firestoreからブロック対象を取得
-    const blockedIpsSnap = await db.collection("blocked_ips").doc(ip).get();
+    const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(ip).get() : null;
     const blockedCountriesSnap = await db.collection("blocked_countries").doc(country).get();
 
-    const ipBlocked = blockedIpsSnap.exists;
+    const ipBlocked = blockedIpsSnap?.exists ?? false;
     const countryBlocked = blockedCountriesSnap.exists;
     const blocked = ipBlocked || countryBlocked;
 
