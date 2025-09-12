@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import AdminNav from "@/components/AdminNav";
-import "flag-icons/css/flag-icons.min.css";
 
 interface AccessLog {
   id: string;
@@ -93,74 +92,6 @@ export default function LogsPage() {
       <AdminNav />
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
-      {/* 操作バー */}
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
-        <label>
-          From:
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => {
-              setOffset(0);
-              setFromDate(e.target.value);
-            }}
-            className="ml-2 border rounded px-2 py-1"
-          />
-        </label>
-        <label>
-          To:
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => {
-              setOffset(0);
-              setToDate(e.target.value);
-            }}
-            className="ml-2 border rounded px-2 py-1"
-          />
-        </label>
-
-        <select
-          value={filterCountry}
-          onChange={(e) => setFilterCountry(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="">全ての国</option>
-          {[...new Set(logs.map((l) => l.country))].map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={filterBlocked}
-          onChange={(e) => setFilterBlocked(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="">Blocked 全て</option>
-          <option value="true">Blocked = true</option>
-          <option value="false">Blocked = false</option>
-        </select>
-
-        <select
-          value={filterAdmin}
-          onChange={(e) => setFilterAdmin(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="">isAdmin 全て</option>
-          <option value="true">isAdmin = true</option>
-          <option value="false">isAdmin = false</option>
-        </select>
-
-        <button
-          onClick={() => fetchLogs(fromDate, toDate, offset)}
-          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
-        >
-          Reload
-        </button>
-      </div>
-
       {loading ? (
         <p>読み込み中...</p>
       ) : filteredLogs.length === 0 ? (
@@ -174,7 +105,6 @@ export default function LogsPage() {
                 <th className="border px-2 py-1">Timestamp</th>
                 <th className="border px-2 py-1">IP</th>
                 <th className="border px-2 py-1">Country</th>
-                <th className="border px-2 py-1">Allowed</th>
                 <th className="border px-2 py-1">isAdmin</th>
                 <th className="border px-2 py-1">UserAgent</th>
               </tr>
@@ -182,7 +112,7 @@ export default function LogsPage() {
             <tbody>
               {filteredLogs.map((log) => (
                 <tr key={log.id}>
-                  {/* Timestamp (小さい文字) */}
+                  {/* Timestamp */}
                   <td className="border px-2 py-1 text-xs">
                     {formatDate(log.timestamp)}
                   </td>
@@ -199,7 +129,7 @@ export default function LogsPage() {
                     </div>
                   </td>
 
-                  {/* Country列 → Allowed状態 */}
+                  {/* Country列 → Allowed状態 (国旗は削除、コード+ドットのみ) */}
                   <td className="border px-2 py-1 text-xs">
                     <div className="flex items-center gap-2">
                       <span
@@ -207,22 +137,16 @@ export default function LogsPage() {
                           log.allowedCountry ? "bg-green-500" : "bg-red-500"
                         }`}
                       />
-                      <span className={`fi fi-${log.country?.toLowerCase()}`} />
                       <span>{log.country}</span>
                     </div>
                   </td>
 
-                  {/* Allowed列は ✅/❌ のまま */}
-                  <td className="border px-2 py-1 text-xs">
-                    {log.allowedCountry ? "✅" : "❌"}
-                  </td>
-
-                  {/* isAdmin (小さい文字) */}
+                  {/* isAdmin */}
                   <td className="border px-2 py-1 text-xs">
                     {log.isAdmin ? "👑" : "—"}
                   </td>
 
-                  {/* UserAgent (小さい文字, 省略表示) */}
+                  {/* UserAgent */}
                   <td className="border px-2 py-1 max-w-xs truncate text-xs">
                     {log.userAgent}
                   </td>
