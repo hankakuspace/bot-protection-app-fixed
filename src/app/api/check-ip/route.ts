@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
-// import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
+import { verifyAppProxySignature } from "@/lib/verifyAppProxy"; // ✅ 復活
 import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
@@ -12,11 +12,14 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
 
-    // ✅ 署名検証は一時的にオフ
-    // const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
-    // if (!result.ok) {
-    //   return NextResponse.json({ error: result.reason || "Invalid signature" }, { status: 401 });
-    // }
+    // ✅ Shopify Proxy署名検証（復活）
+    const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.reason || "Invalid signature" },
+        { status: 401 }
+      );
+    }
 
     // ✅ shop を抽出
     const shop = url.searchParams.get("shop");
