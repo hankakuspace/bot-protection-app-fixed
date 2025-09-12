@@ -1,7 +1,7 @@
 // src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import requestIp from "request-ip";
+import { getClientIp, isIpBlocked } from "@/lib/check-ip";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -20,15 +20,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ IP取得
-  let ip =
-    req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    req.headers.get("x-real-ip") ||
-    requestIp.getClientIp(req as any) ||
-    "UNKNOWN";
+  // ✅ クライアントIP取得
+  const ip = await getClientIp(req);
 
-  ip = ip.replace(/^::ffff:/, "");
+  // ✅ Firestore でブロック判定
+  const blocked = await isIpBlocked(ip);
+  if (blocked) {
+    console.warn(`[Middleware] Blocked IP detected: ${ip}`);
+    return NextResponse.rewrite(new URL("/blocked", req.url)); // 🚫 ブロックページへリダイレクト
+  }
 
   const res = NextResponse.next();
   res.headers.set("x-client-ip", ip);
