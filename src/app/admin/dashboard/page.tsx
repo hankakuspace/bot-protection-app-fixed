@@ -64,7 +64,7 @@ export default function DashboardPage() {
     await setDoc(shopRef, { plan: newPlan }, { merge: true });
     setMessage(`プランを「${newPlan}」に保存しました`);
     setTimeout(() => setMessage(""), 3000);
-    setPendingPlan(null); // モーダル閉じる
+    setPendingPlan(null); // ✅ 保存後に必ず閉じる
   };
 
   const getUsageStatus = () => {
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           {["Lite", "Pro", "Enterprise"].map((p) => (
             <button
               key={p}
-              onClick={() => setPendingPlan(p)} // ✅ 直接保存せずモーダル表示
+              onClick={() => setPendingPlan(p)} // ✅ モーダル表示
               className={`px-4 py-2 rounded-md border font-medium transition ${
                 plan === p
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
