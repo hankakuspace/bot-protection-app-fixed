@@ -42,11 +42,10 @@ export async function GET(req: NextRequest) {
 
     const ip = getClientIp(req);
 
-    // ✅ 国コード判定 (ipinfo.io)
+    // ✅ 国コード判定 (ipinfo.io) - .then() で明示的に string を保証
     let country = "UNKNOWN";
     if (ip) {
-      const result = await getCountryFromIp(ip);
-      country = result as string;
+      country = await getCountryFromIp(ip).then((c) => String(c));
     }
 
     const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(ip).get() : null;
