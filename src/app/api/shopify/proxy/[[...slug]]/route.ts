@@ -39,7 +39,7 @@ export async function POST(req: NextRequest, context: any) {
       const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
       const clientTime = body.t || null;
 
-      await db.collection("access_logs").add({
+      await adminDb.collection("access_logs").add({
         ip,
         country,
         allowedCountry: allowed,

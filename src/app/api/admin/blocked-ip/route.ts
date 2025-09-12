@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "IP is required" }, { status: 400 });
     }
 
-    await db.collection("block_ips").doc(id).set({
+    await adminDb.collection("block_ips").doc(id).set({
       enabled: true,
       note: note || "",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

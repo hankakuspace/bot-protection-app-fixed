@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     // ✅ 利用数カウント更新
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const usageRef = db.collection("usage_logs").doc(`${shop}_${yearMonth}`);
+    const usageRef = adminDb.collection("usage_logs").doc(`${shop}_${yearMonth}`);
 
     await usageRef.set(
       {
@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
     }
 
     // ✅ Firestoreからブロック対象を取得
-    const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(String(ip)).get() : null;
-    const blockedCountriesSnap = await db.collection("blocked_countries").doc(String(country)).get();
+    const blockedIpsSnap = ip ? await adminDb.collection("blocked_ips").doc(String(ip)).get() : null;
+    const blockedCountriesSnap = await adminDb.collection("blocked_countries").doc(String(country)).get();
 
     const ipBlocked = blockedIpsSnap?.exists ?? false;
     const countryBlocked = blockedCountriesSnap.exists;

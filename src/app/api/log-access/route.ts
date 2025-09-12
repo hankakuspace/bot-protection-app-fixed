@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
     const clientTime = body.clientTime || null;
 
-    await db.collection("access_logs").add({
+    await adminDb.collection("access_logs").add({
       ip,
       country,
       allowedCountry: allowed,
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
     const clientTime = searchParams.get("t") || null;
 
-    await db.collection("access_logs").add({
+    await adminDb.collection("access_logs").add({
       ip,
       country,
       allowedCountry: allowed,

@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await db.collection("block_countries").doc(id).set({
+    // ✅ db → adminDb に修正
+    await adminDb.collection("blocked_countries").doc(id).set({
       enabled: true,
       note: note || "",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

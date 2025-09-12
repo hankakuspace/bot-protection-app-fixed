@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const redirectUri = `${origin}/api/auth/callback`;
 
   // ✅ Firestore に既にトークンがあるか確認
-  const existing = await db.collection("shops").doc(shop).get();
+  const existing = await adminDb.collection("shops").doc(shop).get();
   if (existing.exists) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
     return NextResponse.redirect(`${origin}/admin/logs`);
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
   // 新規インストール → OAuth 開始
   const state = crypto.randomUUID();
-  await db.collection("auth_states").doc(state).set({
+  await adminDb.collection("auth_states").doc(state).set({
     shop,
     state,
     timestamp: Date.now(),

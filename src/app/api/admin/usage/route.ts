@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ✅ プラン情報を Firestore から取得
-    const shopDoc = await db.collection("shops").doc(shop).get();
+    const shopDoc = await adminDb.collection("shops").doc(shop).get();
     const plan = shopDoc.exists ? shopDoc.data()?.plan || "Lite" : "Lite";
 
     // ✅ プランごとの上限
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     // ✅ 当月利用数を取得
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const usageRef = db.collection("usage_logs").doc(`${shop}_${yearMonth}`);
+    const usageRef = adminDb.collection("usage_logs").doc(`${shop}_${yearMonth}`);
     const usageSnap = await usageRef.get();
     const usageData = usageSnap.data();
     const usageCount = usageData?.count ?? 0;

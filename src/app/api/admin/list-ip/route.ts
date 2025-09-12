@@ -6,7 +6,7 @@ export const runtime = "nodejs"; // ←追加
 
 export async function GET() {
   try {
-    const snapshot = await db.collection("blocked_ips").get();
+    const snapshot = await adminDb.collection("blocked_ips").get();
     const ips = snapshot.docs.map((doc) => doc.data().ip);
 
     return NextResponse.json({ ok: true, ips });

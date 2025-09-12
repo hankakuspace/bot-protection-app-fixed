@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { ip } = body;
 
-    await db.collection("blocked_ips").doc(ip).delete();
+    await adminDb.collection("blocked_ips").doc(ip).delete();
 
     return NextResponse.json({ ok: true, deleted: ip });
   } catch (error) {

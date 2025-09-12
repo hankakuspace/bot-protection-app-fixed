@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const doc = await db.collection("block_ips").doc(ip).get();
+    const doc = await adminDb.collection("block_ips").doc(ip).get();
     return NextResponse.json({ ok: true, blocked: doc.exists });
   } catch (e) {
     console.error("[API] check-ip error", e);

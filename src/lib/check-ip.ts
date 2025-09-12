@@ -58,7 +58,7 @@ export async function getClientIp(req: NextRequest): Promise<string> {
  */
 export async function isIpBlocked(ip: string): Promise<boolean> {
   try {
-    const doc = await db.collection("block_ips").doc(ip).get(); // ✅ コレクション名を統一
+    const doc = await adminDb.collection("block_ips").doc(ip).get(); // ✅ コレクション名を統一
     return doc.exists;
   } catch (e) {
     console.error("Error checking if IP is blocked:", e);
@@ -71,7 +71,7 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
  */
 export async function blockIp(ip: string, reason: string = "manual"): Promise<void> {
   try {
-    await db.collection("block_ips").doc(ip).set({
+    await adminDb.collection("block_ips").doc(ip).set({
       blocked: true,
       reason,
       createdAt: new Date().toISOString(),
@@ -86,7 +86,7 @@ export async function blockIp(ip: string, reason: string = "manual"): Promise<vo
  */
 export async function unblockIp(ip: string, reason: string = "manual"): Promise<void> {
   try {
-    await db.collection("block_ips").doc(ip).delete();
+    await adminDb.collection("block_ips").doc(ip).delete();
   } catch (e) {
     console.error("Error unblocking IP:", e);
   }

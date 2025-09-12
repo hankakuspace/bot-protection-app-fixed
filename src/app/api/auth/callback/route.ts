@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Firestore から state を検証
-    const doc = await db.collection("auth_states").doc(state).get();
+    const doc = await adminDb.collection("auth_states").doc(state).get();
     if (!doc.exists) {
       console.error("❌ State not found:", state);
       return NextResponse.json({ ok: false, error: "invalid_state", state }, { status: 400 });
