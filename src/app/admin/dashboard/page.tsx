@@ -57,13 +57,13 @@ export default function DashboardPage() {
   }, []);
 
   const confirmPlanChange = async (newPlan: string) => {
-    // すぐ閉じる
-    setPendingPlan(null);
-    // Firestore 更新は並列実行
+    setPendingPlan(null); // 先に閉じる
     setPlan(newPlan);
     setLimit(getLimit(newPlan));
+
     const shopRef = doc(db, "shops", shop);
     await setDoc(shopRef, { plan: newPlan }, { merge: true });
+
     setMessage(`プランを「${newPlan}」に保存しました`);
     setTimeout(() => setMessage(""), 3000);
   };
@@ -83,15 +83,7 @@ export default function DashboardPage() {
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold">管理ダッシュボード</h1>
 
-      {/* ✅ 通知バナー */}
-      {message && (
-        <div className="flex items-center gap-3 p-4 rounded-md border shadow-sm bg-green-50 border-green-300 text-green-800">
-          <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
-          <span className="font-medium">{message}</span>
-        </div>
-      )}
-
-      {/* ✅ 上限バナー */}
+      {/* ✅ 上限利用警告バナー */}
       {limit !== Infinity && (
         <div
           className={`flex items-center gap-3 p-4 rounded-md border shadow-sm ${
@@ -176,6 +168,18 @@ export default function DashboardPage() {
                   変更する
                 </button>
               </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ✅ トースト通知 */}
+      {message &&
+        createPortal(
+          <div className="fixed top-6 right-6 z-[9999] animate-fade-in-out">
+            <div className="flex items-center gap-2 px-4 py-3 bg-white border rounded-md shadow-lg text-gray-800">
+              <CheckCircleIcon className="h-5 w-5 text-green-600" />
+              <span className="text-sm font-medium">{message}</span>
             </div>
           </div>,
           document.body
