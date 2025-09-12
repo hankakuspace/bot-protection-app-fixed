@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const end = new Date(baseDate);
     end.setHours(23, 59, 59, 999);
 
-    const snapshot = await db
+    const snapshot = await adminDb
       .collection("access_logs")
       .where("createdAt", ">=", start)
       .where("createdAt", "<=", end)
@@ -48,4 +48,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
