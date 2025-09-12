@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
 import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
-import { getCountryFromIp } from "@/lib/ipinfo"; // ✅ ipinfoを利用
+import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
 
@@ -47,9 +47,9 @@ export async function GET(req: NextRequest) {
     const ip = getClientIp(req);
 
     // ✅ 国コード判定 (ipinfo.io)
-    let country: string = "UNKNOWN";
+    let country = "UNKNOWN";
     if (ip) {
-      country = (await getCountryFromIp(ip)) as string;
+      country = await getCountryFromIp(ip); // ✅ アサーション不要
     }
 
     // ✅ Firestoreからブロック対象を取得
