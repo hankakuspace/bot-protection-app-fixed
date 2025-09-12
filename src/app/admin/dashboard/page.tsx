@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { db } from "@/lib/firebase-client";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import {
@@ -15,7 +16,7 @@ export default function DashboardPage() {
   const [limit, setLimit] = useState<number>(50000);
   const [message, setMessage] = useState<string>("");
 
-  const [pendingPlan, setPendingPlan] = useState<string | null>(null); // ✅ モーダル用
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
   const shop = "demo-shop"; // TODO: 認証から取得
 
@@ -55,16 +56,16 @@ export default function DashboardPage() {
     fetchUsage();
   }, []);
 
-  const confirmPlanChange = async () => {
-    if (!pendingPlan) return;
-    const newPlan = pendingPlan;
+  const confirmPlanChange = async (newPlan: string) => {
+    // すぐ閉じる
+    setPendingPlan(null);
+    // Firestore 更新は並列実行
     setPlan(newPlan);
     setLimit(getLimit(newPlan));
     const shopRef = doc(db, "shops", shop);
     await setDoc(shopRef, { plan: newPlan }, { merge: true });
     setMessage(`プランを「${newPlan}」に保存しました`);
     setTimeout(() => setMessage(""), 3000);
-    setPendingPlan(null); // ✅ 保存後に必ず閉じる
   };
 
   const getUsageStatus = () => {
@@ -82,7 +83,7 @@ export default function DashboardPage() {
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold">管理ダッシュボード</h1>
 
-      {/* ✅ 保存通知バナー */}
+      {/* ✅ 通知バナー */}
       {message && (
         <div className="flex items-center gap-3 p-4 rounded-md border shadow-sm bg-green-50 border-green-300 text-green-800">
           <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
@@ -90,7 +91,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ✅ 上限利用警告バナー */}
+      {/* ✅ 上限バナー */}
       {limit !== Infinity && (
         <div
           className={`flex items-center gap-3 p-4 rounded-md border shadow-sm ${
@@ -115,7 +116,7 @@ export default function DashboardPage() {
           {["Lite", "Pro", "Enterprise"].map((p) => (
             <button
               key={p}
-              onClick={() => setPendingPlan(p)} // ✅ モーダル表示
+              onClick={() => setPendingPlan(p)}
               className={`px-4 py-2 rounded-md border font-medium transition ${
                 plan === p
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
@@ -128,7 +129,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ✅ 利用数表示 + プログレスバー */}
+      {/* ✅ 利用数 */}
       <div className="bg-white p-6 rounded-lg shadow-sm border space-y-3">
         <p className="text-sm text-gray-700">
           今月の利用数:{" "}
@@ -153,30 +154,32 @@ export default function DashboardPage() {
       </div>
 
       {/* ✅ モーダル */}
-      {pendingPlan && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 className="text-lg font-semibold mb-4">プラン変更確認</h2>
-            <p className="mb-6">
-              プランを <strong>{pendingPlan}</strong> に変更しますか？
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setPendingPlan(null)}
-                className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={confirmPlanChange}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                変更する
-              </button>
+      {pendingPlan &&
+        createPortal(
+          <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+              <h2 className="text-lg font-semibold mb-4">プラン変更確認</h2>
+              <p className="mb-6">
+                プランを <strong>{pendingPlan}</strong> に変更しますか？
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setPendingPlan(null)}
+                  className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={() => confirmPlanChange(pendingPlan)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  変更する
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
