@@ -6,10 +6,13 @@ import { getClientIp } from "@/lib/ip-utils";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (pathname === "/favicon.ico" || pathname.startsWith("/api/")) {
-    return NextResponse.next();
-  }
+  // 🚫 favicon は除外
+  if (pathname === "/favicon.ico") return NextResponse.next();
 
+  // 🚫 API 完全除外（OAuth含む）
+  if (pathname.startsWith("/api/")) return NextResponse.next();
+
+  // 🚫 host チェックは本番のみ
   if (
     process.env.NODE_ENV === "production" &&
     req.headers.get("host") !== "be-search.biz"
@@ -20,19 +23,22 @@ export async function middleware(req: NextRequest) {
   // ✅ クライアントIP取得
   const ip = await getClientIp(req);
 
-  // ✅ API 経由で Firestore に問い合わせ
+  // ✅ API 経由でブロック判定
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bot-protection-ten.vercel.app";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "https://bot-protection-ten.vercel.app";
+
     const res = await fetch(`${baseUrl}/api/admin/check-ip?ip=${ip}`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store", // 🔑 キャッシュ無効化
     });
 
     if (res.ok) {
       const data = await res.json();
       if (data.blocked) {
         console.warn(`[Middleware] Blocked IP detected: ${ip}`);
-        return NextResponse.rewrite(new URL("/blocked", req.url));
+        return NextResponse.redirect(new URL("/blocked", req.url)); // ✅ redirect に変更
       }
     }
   } catch (err) {
