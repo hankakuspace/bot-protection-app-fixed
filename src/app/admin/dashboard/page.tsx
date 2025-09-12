@@ -176,8 +176,8 @@ export default function DashboardPage() {
       {/* ✅ トースト通知 */}
       {message &&
         createPortal(
-          <div className="fixed top-6 right-6 z-[9999] animate-fade-in-out">
-            <div className="flex items-center gap-2 px-4 py-3 bg-white border rounded-md shadow-lg text-gray-800">
+          <div className="fixed top-6 right-6 z-[9999]">
+            <div className="flex items-center gap-2 px-4 py-3 bg-white border rounded-md shadow-lg text-gray-800 animate-fade-in-out">
               <CheckCircleIcon className="h-5 w-5 text-green-600" />
               <span className="text-sm font-medium">{message}</span>
             </div>
