@@ -2,9 +2,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase-client"; // ✅ Client SDKを使用
+import { db } from "@/lib/firebase-client";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/solid";
 
 export default function DashboardPage() {
   const [plan, setPlan] = useState<string>("Lite");
@@ -14,7 +17,6 @@ export default function DashboardPage() {
 
   const shop = "demo-shop"; // TODO: 認証から取得
 
-  // プランごとの上限値
   const getLimit = (plan: string) => {
     switch (plan) {
       case "Lite":
@@ -56,7 +58,7 @@ export default function DashboardPage() {
     setLimit(getLimit(newPlan));
     const shopRef = doc(db, "shops", shop);
     await setDoc(shopRef, { plan: newPlan }, { merge: true });
-    setMessage("保存しました");
+    setMessage("プランを保存しました");
     setTimeout(() => setMessage(""), 3000);
   };
 
@@ -71,21 +73,21 @@ export default function DashboardPage() {
   const usageStatus = getUsageStatus();
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold">管理ダッシュボード</h1>
+    <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold">管理ダッシュボード</h1>
 
       {/* ✅ 保存通知バナー */}
       {message && (
-        <div className="flex items-center gap-2 p-3 rounded-md border bg-green-50 border-green-300 text-green-800">
-          <CheckCircleIcon className="h-5 w-5" />
-          <span>{message}</span>
+        <div className="flex items-center gap-3 p-4 rounded-md border shadow-sm bg-green-50 border-green-300 text-green-800">
+          <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+          <span className="font-medium">{message}</span>
         </div>
       )}
 
       {/* ✅ 上限利用警告バナー */}
       {limit !== Infinity && (
         <div
-          className={`flex items-center gap-2 p-3 rounded-md border ${
+          className={`flex items-center gap-3 p-4 rounded-md border shadow-sm ${
             usageStatus.color === "red"
               ? "bg-red-50 border-red-300 text-red-800"
               : usageStatus.color === "orange"
@@ -93,32 +95,40 @@ export default function DashboardPage() {
               : "bg-green-50 border-green-300 text-green-800"
           }`}
         >
-          <ExclamationTriangleIcon className="h-5 w-5" />
-          <span>
+          <ExclamationTriangleIcon className="h-6 w-6 flex-shrink-0" />
+          <span className="font-medium">
             {usageStatus.label}（{usage} / {limit === Infinity ? "∞" : limit}）
           </span>
         </div>
       )}
 
-      <div>
-        <p className="mb-2">
-          現在のプラン: <strong>{plan}</strong>
-        </p>
-        <select
-          value={plan}
-          onChange={(e) => handlePlanChange(e.target.value)}
-          className="border rounded p-2"
-        >
-          <option value="Lite">Lite</option>
-          <option value="Pro">Pro</option>
-          <option value="Enterprise">Enterprise</option>
-        </select>
+      {/* ✅ プラン切り替え */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <p className="mb-3 text-sm font-medium text-gray-700">現在のプラン</p>
+        <div className="flex gap-3">
+          {["Lite", "Pro", "Enterprise"].map((p) => (
+            <button
+              key={p}
+              onClick={() => handlePlanChange(p)}
+              className={`px-4 py-2 rounded-md border font-medium transition ${
+                plan === p
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div>
-        <p>
-          今月の利用数: <strong>{usage}</strong> /{" "}
-          {limit === Infinity ? "∞" : limit}
+      {/* ✅ 利用数表示 */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <p className="text-sm text-gray-700">
+          今月の利用数:{" "}
+          <span className="font-semibold">
+            {usage} / {limit === Infinity ? "∞" : limit}
+          </span>
         </p>
       </div>
     </div>
