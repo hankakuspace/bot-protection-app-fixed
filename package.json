@@ -20,6 +20,7 @@
     "sign:ip:shopify": "node scripts/sign-proxy.cjs \"https://be-search.biz/apps/bpp-20250814/ip-check\""
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@shopify/app-bridge": "^3.7.10",
     "@shopify/app-bridge-react": "^4.2.1",
     "@shopify/polaris": "^13.9.5",
