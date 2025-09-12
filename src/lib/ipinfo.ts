@@ -13,7 +13,7 @@ export async function getCountryFromIp(ip: string): Promise<string> {
     if (!res.ok) return "UNKNOWN";
 
     const data: IpInfoResponse = await res.json();
-    return data.country ?? "UNKNOWN";
+    return data.country ?? "UNKNOWN"; // ✅ Promise.resolve を削除
   } catch (err) {
     console.error("ipinfo error:", err);
     return "UNKNOWN";
