@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase-client"; // ✅ Client SDKを使用
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
@@ -14,6 +14,7 @@ export default function DashboardPage() {
 
   const shop = "demo-shop"; // TODO: 認証から取得
 
+  // プランごとの上限値
   const getLimit = (plan: string) => {
     switch (plan) {
       case "Lite":
@@ -41,9 +42,9 @@ export default function DashboardPage() {
     };
 
     const fetchUsage = async () => {
-      const res = await fetch("/api/admin/usage");
+      const res = await fetch(`/api/admin/usage?shop=${shop}`);
       const data = await res.json();
-      setUsage(data.usage);
+      setUsage(data.usageCount);
     };
 
     fetchPlan();
@@ -73,6 +74,7 @@ export default function DashboardPage() {
     <div className="p-6 space-y-6">
       <h1 className="text-xl font-bold">管理ダッシュボード</h1>
 
+      {/* ✅ 保存通知バナー */}
       {message && (
         <div className="flex items-center gap-2 p-3 rounded-md border bg-green-50 border-green-300 text-green-800">
           <CheckCircleIcon className="h-5 w-5" />
@@ -80,6 +82,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ✅ 上限利用警告バナー */}
       {limit !== Infinity && (
         <div
           className={`flex items-center gap-2 p-3 rounded-md border ${
@@ -92,7 +95,7 @@ export default function DashboardPage() {
         >
           <ExclamationTriangleIcon className="h-5 w-5" />
           <span>
-            {usageStatus.label}（{usage} / {limit}）
+            {usageStatus.label}（{usage} / {limit === Infinity ? "∞" : limit}）
           </span>
         </div>
       )}
