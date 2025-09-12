@@ -1,12 +1,12 @@
 // src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getClientIp, isIpBlocked } from "@/lib/check-ip";
+import { getClientIp } from "@/lib/check-ip";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 🚫 favicon
+  // 🚫 favicon は除外
   if (pathname === "/favicon.ico") return NextResponse.next();
 
   // 🚫 API 完全除外（OAuth含む）
@@ -20,16 +20,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ クライアントIP取得
+  // ✅ クライアントIP取得のみ（Firestore参照は不可：Edge Runtime制約）
   const ip = await getClientIp(req);
 
-  // ✅ Firestore でブロック判定
-  const blocked = await isIpBlocked(ip);
-  if (blocked) {
-    console.warn(`[Middleware] Blocked IP detected: ${ip}`);
-    return NextResponse.rewrite(new URL("/blocked", req.url)); // 🚫 ブロックページへリダイレクト
-  }
-
+  // 👉 将来的に API を叩いてブロック判定する仕組みに差し替える予定
   const res = NextResponse.next();
   res.headers.set("x-client-ip", ip);
   return res;
