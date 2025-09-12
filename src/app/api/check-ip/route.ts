@@ -46,10 +46,10 @@ export async function GET(req: NextRequest) {
     // ✅ クライアントIP取得
     const ip = getClientIp(req);
 
-    // ✅ 国コード判定 (ipinfo.io)
+    // ✅ 国コード判定 (ipinfo.io) - 強制キャストで解決
     let country: string = "UNKNOWN";
     if (ip) {
-      country = await getCountryFromIp(ip); // ← アサーション削除
+      country = (await getCountryFromIp(ip)) as string;
     }
 
     // ✅ Firestoreからブロック対象を取得
