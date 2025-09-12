@@ -3,8 +3,6 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { db } from "@/lib/firebase-client";
-import { doc, getDoc, setDoc } from "firebase/firestore";
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -34,18 +32,17 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // ✅ プラン取得API
     const fetchPlan = async () => {
-      const shopRef = doc(db, "shops", shop);
-      const snap = await getDoc(shopRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.plan) {
-          setPlan(data.plan);
-          setLimit(getLimit(data.plan));
-        }
+      const res = await fetch(`/api/admin/plan?shop=${shop}`);
+      const data = await res.json();
+      if (data.plan) {
+        setPlan(data.plan);
+        setLimit(getLimit(data.plan));
       }
     };
 
+    // ✅ 利用数取得API
     const fetchUsage = async () => {
       const res = await fetch(`/api/admin/usage?shop=${shop}`);
       const data = await res.json();
@@ -61,8 +58,11 @@ export default function DashboardPage() {
     setPlan(newPlan);
     setLimit(getLimit(newPlan));
 
-    const shopRef = doc(db, "shops", shop);
-    await setDoc(shopRef, { plan: newPlan }, { merge: true });
+    await fetch("/api/admin/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shop, plan: newPlan }),
+    });
 
     setMessage(`プランを「${newPlan}」に保存しました`);
     setTimeout(() => setMessage(""), 3000);
