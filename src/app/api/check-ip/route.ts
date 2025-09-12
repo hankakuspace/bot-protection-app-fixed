@@ -43,14 +43,15 @@ export async function GET(req: NextRequest) {
     const ip = getClientIp(req);
 
     // ✅ 国コード判定 (ipinfo.io)
-    let country = "UNKNOWN";
+    let country: any = "UNKNOWN";
     if (ip) {
-      // @ts-ignore 型チェックを無効化して強制通過
+      // @ts-ignore
       country = await getCountryFromIp(ip);
     }
 
     const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(ip).get() : null;
-    const blockedCountriesSnap = await db.collection("blocked_countries").doc(country).get();
+    // ✅ country を String() で強制変換
+    const blockedCountriesSnap = await db.collection("blocked_countries").doc(String(country)).get();
 
     const ipBlocked = blockedIpsSnap?.exists ?? false;
     const countryBlocked = blockedCountriesSnap.exists;
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       shop,
       ip,
-      country,
+      country: String(country),
       blocked,
       usageCount,
       limit: 50000,
