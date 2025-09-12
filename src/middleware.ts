@@ -6,9 +6,15 @@ import { getClientIp } from "@/lib/ip-utils";
 export async function middleware(req: NextRequest) {
   const { pathname, origin } = req.nextUrl;
 
-  // favicon と API は除外
-  if (pathname === "/favicon.ico") return NextResponse.next();
-  if (pathname.startsWith("/api/")) return NextResponse.next();
+  // 🚫 除外: favicon, Next.js assets, API, 管理画面(/admin)
+  if (
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/admin")
+  ) {
+    return NextResponse.next();
+  }
 
   // ✅ クライアントIP取得
   const ip = await getClientIp(req);
@@ -22,7 +28,6 @@ export async function middleware(req: NextRequest) {
       const data = await res.json();
       if (data.blocked) {
         console.warn(`[Middleware] Blocked IP detected: ${ip}`);
-        // ✅ 必ず絶対URLでリダイレクト
         return NextResponse.redirect(`${origin}/blocked`);
       }
     }
@@ -35,6 +40,7 @@ export async function middleware(req: NextRequest) {
   return response;
 }
 
+// ✅ ストアフロントのみ対象
 export const config = {
-  matcher: ["/:path*"], // ✅ よりシンプルで確実
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api|admin).*)"],
 };
