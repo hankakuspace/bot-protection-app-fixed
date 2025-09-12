@@ -2,15 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  doc,
-  setDoc,
-  deleteDoc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase-client";
 import AdminNav from "@/components/AdminNav";
 
@@ -26,6 +18,7 @@ export default function BlocklistPage() {
   const [inputIP, setInputIP] = useState("");
   const [note, setNote] = useState("");
 
+  // 初期ロード（一覧取得のみ Firestore クライアント SDK でOK）
   useEffect(() => {
     const load = async () => {
       const [cs, is] = await Promise.all([
@@ -46,52 +39,58 @@ export default function BlocklistPage() {
     load();
   }, []);
 
+  // ✅ 国追加 (API経由)
   const addCountry = async () => {
     const id = inputCountry.trim().toUpperCase();
-    if (!/^[A-Z]{2}$/.test(id)) return alert("ISO 国コード2文字で入力してください（例: JP, US）");
-    await setDoc(doc(db, "block_countries", id), {
-      enabled: true,
-      note: note || "",
-      updatedAt: serverTimestamp(),
-    });
-    setCountries((prev) => [{ id, enabled: true, note }, ...prev.filter((c) => c.id !== id)]);
-    setInputCountry("");
-    setNote("");
+    if (!/^[A-Z]{2}$/.test(id)) {
+      return alert("ISO 国コード2文字で入力してください（例: JP, US）");
+    }
+
+    try {
+      const res = await fetch("/api/admin/blocked-country", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, note }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        setCountries((prev) => [{ id, enabled: true, note }, ...prev.filter((c) => c.id !== id)]);
+        setInputCountry("");
+        setNote("");
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch (err) {
+      console.error("[UI] addCountry error", err);
+      alert("通信エラー");
+    }
   };
 
+  // ✅ IP追加 (API経由)
   const addIP = async () => {
     const id = inputIP.trim();
     if (!id) return alert("IPを入力してください（IPv4/IPv6 可）");
-    await setDoc(doc(db, "block_ips", id), {
-      enabled: true,
-      note: note || "",
-      updatedAt: serverTimestamp(),
-    });
-    setIps((prev) => [{ id, enabled: true, note }, ...prev.filter((p) => p.id !== id)]);
-    setInputIP("");
-    setNote("");
-  };
 
-  const toggleCountry = async (id: string, enabled: boolean) => {
-    await updateDoc(doc(db, "block_countries", id), { enabled, updatedAt: serverTimestamp() });
-    setCountries((prev) => prev.map((c) => (c.id === id ? { ...c, enabled } : c)));
-  };
+    try {
+      const res = await fetch("/api/admin/blocked-ip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, note }),
+      });
+      const data = await res.json();
 
-  const toggleIP = async (id: string, enabled: boolean) => {
-    await updateDoc(doc(db, "block_ips", id), { enabled, updatedAt: serverTimestamp() });
-    setIps((prev) => prev.map((p) => (p.id === id ? { ...p, enabled } : p)));
-  };
-
-  const removeCountry = async (id: string) => {
-    if (!confirm(`${id} を削除しますか？`)) return;
-    await deleteDoc(doc(db, "block_countries", id));
-    setCountries((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  const removeIP = async (id: string) => {
-    if (!confirm(`${id} を削除しますか？`)) return;
-    await deleteDoc(doc(db, "block_ips", id));
-    setIps((prev) => prev.filter((p) => p.id !== id));
+      if (data.ok) {
+        setIps((prev) => [{ id, enabled: true, note }, ...prev.filter((p) => p.id !== id)]);
+        setInputIP("");
+        setNote("");
+      } else {
+        alert(`エラー: ${data.error}`);
+      }
+    } catch (err) {
+      console.error("[UI] addIP error", err);
+      alert("通信エラー");
+    }
   };
 
   return (
@@ -195,21 +194,10 @@ export default function BlocklistPage() {
               <tr key={c.id} className="odd:bg-white even:bg-gray-50">
                 <td className="p-2 border">{c.id}</td>
                 <td className="p-2 border">
-                  <input
-                    type="checkbox"
-                    checked={!!c.enabled}
-                    onChange={(e) => toggleCountry(c.id, e.target.checked)}
-                  />
+                  <input type="checkbox" checked={!!c.enabled} readOnly />
                 </td>
                 <td className="p-2 border">{c.note || "-"}</td>
-                <td className="p-2 border">
-                  <button
-                    onClick={() => removeCountry(c.id)}
-                    className="px-2 py-1 rounded border hover:bg-red-50"
-                  >
-                    削除
-                  </button>
-                </td>
+                <td className="p-2 border">—</td>
               </tr>
             ))}
             {countries.length === 0 && (
@@ -236,21 +224,10 @@ export default function BlocklistPage() {
               <tr key={p.id} className="odd:bg-white even:bg-gray-50">
                 <td className="p-2 border font-mono">{p.id}</td>
                 <td className="p-2 border">
-                  <input
-                    type="checkbox"
-                    checked={!!p.enabled}
-                    onChange={(e) => toggleIP(p.id, e.target.checked)}
-                  />
+                  <input type="checkbox" checked={!!p.enabled} readOnly />
                 </td>
                 <td className="p-2 border">{p.note || "-"}</td>
-                <td className="p-2 border">
-                  <button
-                    onClick={() => removeIP(p.id)}
-                    className="px-2 py-1 rounded border hover:bg-red-50"
-                  >
-                    削除
-                  </button>
-                </td>
+                <td className="p-2 border">—</td>
               </tr>
             ))}
             {ips.length === 0 && (
