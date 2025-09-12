@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [limit, setLimit] = useState<number>(50000);
   const [message, setMessage] = useState<string>("");
 
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null); // ✅ モーダル用
+
   const shop = "demo-shop"; // TODO: 認証から取得
 
   const getLimit = (plan: string) => {
@@ -53,13 +55,16 @@ export default function DashboardPage() {
     fetchUsage();
   }, []);
 
-  const handlePlanChange = async (newPlan: string) => {
+  const confirmPlanChange = async () => {
+    if (!pendingPlan) return;
+    const newPlan = pendingPlan;
     setPlan(newPlan);
     setLimit(getLimit(newPlan));
     const shopRef = doc(db, "shops", shop);
     await setDoc(shopRef, { plan: newPlan }, { merge: true });
-    setMessage("プランを保存しました");
+    setMessage(`プランを「${newPlan}」に保存しました`);
     setTimeout(() => setMessage(""), 3000);
+    setPendingPlan(null); // モーダル閉じる
   };
 
   const getUsageStatus = () => {
@@ -71,6 +76,7 @@ export default function DashboardPage() {
   };
 
   const usageStatus = getUsageStatus();
+  const usageRatio = limit === Infinity ? 0 : Math.min((usage / limit) * 100, 100);
 
   return (
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
@@ -109,7 +115,7 @@ export default function DashboardPage() {
           {["Lite", "Pro", "Enterprise"].map((p) => (
             <button
               key={p}
-              onClick={() => handlePlanChange(p)}
+              onClick={() => setPendingPlan(p)} // ✅ 直接保存せずモーダル表示
               className={`px-4 py-2 rounded-md border font-medium transition ${
                 plan === p
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
@@ -122,15 +128,55 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ✅ 利用数表示 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      {/* ✅ 利用数表示 + プログレスバー */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border space-y-3">
         <p className="text-sm text-gray-700">
           今月の利用数:{" "}
           <span className="font-semibold">
             {usage} / {limit === Infinity ? "∞" : limit}
           </span>
         </p>
+        {limit !== Infinity && (
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className={`h-3 rounded-full ${
+                usageStatus.color === "red"
+                  ? "bg-red-500"
+                  : usageStatus.color === "orange"
+                  ? "bg-orange-500"
+                  : "bg-green-500"
+              }`}
+              style={{ width: `${usageRatio}%` }}
+            ></div>
+          </div>
+        )}
       </div>
+
+      {/* ✅ モーダル */}
+      {pendingPlan && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 className="text-lg font-semibold mb-4">プラン変更確認</h2>
+            <p className="mb-6">
+              プランを <strong>{pendingPlan}</strong> に変更しますか？
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setPendingPlan(null)}
+                className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmPlanChange}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                変更する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
