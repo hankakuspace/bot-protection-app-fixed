@@ -1,43 +1,36 @@
 // src/app/api/admin/plan/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { NextResponse } from "next/server";
+import adminDb from "@/lib/firebase"; // firebase-admin (admin SDK)
 
 export const runtime = "nodejs";
 
 // ✅ プラン取得
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const shop = searchParams.get("shop");
-    if (!shop) {
-      return NextResponse.json({ error: "Missing shop" }, { status: 400 });
-    }
+    const shop = searchParams.get("shop") || "demo-shop";
 
-    const shopDoc = await db.collection("shops").doc(shop).get();
-    const plan = shopDoc.exists ? shopDoc.data()?.plan || "Lite" : "Lite";
+    const docRef = adminDb.collection("shops").doc(shop);
+    const snap = await docRef.get();
+    const plan = snap.exists ? snap.data()?.plan || "Lite" : "Lite";
 
-    return NextResponse.json({ shop, plan });
+    return NextResponse.json({ plan });
   } catch (err: any) {
-    console.error("GET plan error:", err);
+    console.error("GET /api/admin/plan error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
 // ✅ プラン更新
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { shop, plan } = body;
+    const { shop = "demo-shop", plan } = await req.json();
 
-    if (!shop || !plan) {
-      return NextResponse.json({ error: "Missing shop or plan" }, { status: 400 });
-    }
+    await adminDb.collection("shops").doc(shop).set({ plan }, { merge: true });
 
-    await db.collection("shops").doc(shop).set({ plan }, { merge: true });
-
-    return NextResponse.json({ success: true, shop, plan });
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("POST plan error:", err);
+    console.error("POST /api/admin/plan error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
