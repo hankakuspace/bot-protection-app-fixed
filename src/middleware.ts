@@ -4,36 +4,26 @@ import type { NextRequest } from "next/server";
 import { getClientIp } from "@/lib/ip-utils";
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname, origin } = req.nextUrl;
 
+  // favicon と API は除外
   if (pathname === "/favicon.ico") return NextResponse.next();
   if (pathname.startsWith("/api/")) return NextResponse.next();
-
-  if (
-    process.env.NODE_ENV === "production" &&
-    req.headers.get("host") !== "be-search.biz"
-  ) {
-    return NextResponse.next();
-  }
 
   // ✅ クライアントIP取得
   const ip = await getClientIp(req);
 
-  // ✅ API URL を req.nextUrl.origin ベースに変更
-  const apiUrl = `${req.nextUrl.origin}/api/admin/check-ip?ip=${ip}`;
-
+  // ✅ APIでブロック確認
   try {
-    const res = await fetch(apiUrl, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    });
+    const apiUrl = `${origin}/api/admin/check-ip?ip=${ip}`;
+    const res = await fetch(apiUrl, { cache: "no-store" });
 
     if (res.ok) {
       const data = await res.json();
       if (data.blocked) {
         console.warn(`[Middleware] Blocked IP detected: ${ip}`);
-        return NextResponse.redirect(new URL("/blocked", req.url));
+        // ✅ 必ず絶対URLでリダイレクト
+        return NextResponse.redirect(`${origin}/blocked`);
       }
     }
   } catch (err) {
@@ -46,5 +36,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/:path*"], // ✅ よりシンプルで確実
 };
