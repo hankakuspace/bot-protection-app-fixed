@@ -30,7 +30,12 @@ export default function LogsPage() {
   const [filterBlocked, setFilterBlocked] = useState("");
   const [filterAdmin, setFilterAdmin] = useState("");
 
-  const fetchLogs = async (from: string, to: string, offset: number, append = false) => {
+  const fetchLogs = async (
+    from: string,
+    to: string,
+    offset: number,
+    append = false
+  ) => {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -50,11 +55,7 @@ export default function LogsPage() {
         setLogs(newLogs);
       }
 
-      if (newLogs.length < 100) {
-        setHasMore(false);
-      } else {
-        setHasMore(true);
-      }
+      setHasMore(newLogs.length === 100);
     } catch (e) {
       console.error("ログ取得失敗:", e);
     } finally {
@@ -71,11 +72,15 @@ export default function LogsPage() {
   const formatDate = (iso: string | null) => {
     if (!iso) return "-";
     const d = new Date(iso);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(
-      d.getDate()
-    ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
-      d.getMinutes()
-    ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}/${String(d.getDate()).padStart(2, "0")} ${String(
+      d.getHours()
+    ).padStart(2, "0")}:${String(d.getMinutes()).padStart(
+      2,
+      "0"
+    )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
   const filteredLogs = logs.filter((log) => {
@@ -91,6 +96,84 @@ export default function LogsPage() {
     <div className="p-6 bg-gray-50 min-h-screen">
       <AdminNav />
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
+
+      {/* from/to + Reload + JSON/CSV */}
+      <div className="flex items-center gap-4 mb-4">
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          className="border rounded px-2 py-1 text-sm"
+        />
+        <span>〜</span>
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          className="border rounded px-2 py-1 text-sm"
+        />
+
+        <button
+          onClick={() => {
+            setOffset(0);
+            fetchLogs(fromDate, toDate, 0, false);
+          }}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+        >
+          🔄 Reload
+        </button>
+
+        <button
+          onClick={() => {
+            const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
+              type: "application/json",
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `logs_${fromDate}_${toDate}.json`;
+            a.click();
+          }}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 text-sm"
+        >
+          ⬇ JSON
+        </button>
+
+        <button
+          onClick={() => {
+            const header = [
+              "timestamp",
+              "ip",
+              "country",
+              "blocked",
+              "allowedCountry",
+              "isAdmin",
+              "userAgent",
+            ];
+            const rows = filteredLogs.map((l) =>
+              [
+                l.timestamp,
+                l.ip,
+                l.country,
+                l.blocked,
+                l.allowedCountry,
+                l.isAdmin,
+                `"${(l.userAgent || "").replace(/"/g, '""')}"`,
+              ].join(",")
+            );
+            const csv = [header.join(","), ...rows].join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `logs_${fromDate}_${toDate}.csv`;
+            a.click();
+          }}
+          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 text-sm"
+        >
+          ⬇ CSV
+        </button>
+      </div>
 
       {loading ? (
         <p>読み込み中...</p>
@@ -111,12 +194,9 @@ export default function LogsPage() {
             <tbody>
               {filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
-                  {/* Timestamp */}
                   <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                     {formatDate(log.timestamp)}
                   </td>
-
-                  {/* IP列 → Blocked状態 */}
                   <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                     <div className="flex items-center gap-2">
                       <span
@@ -127,8 +207,6 @@ export default function LogsPage() {
                       <span>{log.ip}</span>
                     </div>
                   </td>
-
-                  {/* Country列 → Allowed状態 */}
                   <td className="px-4 py-3 border-b border-gray-200 text-xs">
                     <div className="flex items-center gap-2">
                       <span
@@ -139,13 +217,9 @@ export default function LogsPage() {
                       <span>{log.country}</span>
                     </div>
                   </td>
-
-                  {/* isAdmin */}
                   <td className="px-4 py-3 border-b border-gray-200 text-xs text-center">
                     {log.isAdmin ? "👑" : "—"}
                   </td>
-
-                  {/* UserAgent */}
                   <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
                     {log.userAgent}
                   </td>
@@ -154,7 +228,7 @@ export default function LogsPage() {
             </tbody>
           </table>
 
-          {/* Load More ボタン */}
+          {/* Load More */}
           <div className="flex justify-center py-4">
             {hasMore ? (
               <button
