@@ -88,7 +88,7 @@ export default function LogsPage() {
   );
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
       <AdminNav />
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
@@ -97,28 +97,28 @@ export default function LogsPage() {
       ) : filteredLogs.length === 0 ? (
         <p>ログがありません</p>
       ) : (
-        <>
+        <div className="rounded-lg shadow-sm bg-white">
           <Pager />
-          <table className="w-full border-collapse border border-gray-300 text-sm">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-2 py-1">Timestamp</th>
-                <th className="border px-2 py-1">IP</th>
-                <th className="border px-2 py-1">Country</th>
-                <th className="border px-2 py-1">isAdmin</th>
-                <th className="border px-2 py-1">UserAgent</th>
+              <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3">Timestamp</th>
+                <th className="px-4 py-3">IP</th>
+                <th className="px-4 py-3">Country</th>
+                <th className="px-4 py-3">isAdmin</th>
+                <th className="px-4 py-3">UserAgent</th>
               </tr>
             </thead>
             <tbody>
               {filteredLogs.map((log) => (
-                <tr key={log.id}>
+                <tr key={log.id} className="hover:bg-gray-50">
                   {/* Timestamp */}
-                  <td className="border px-2 py-1 text-xs">
+                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                     {formatDate(log.timestamp)}
                   </td>
 
                   {/* IP列 → Blocked状態 */}
-                  <td className="border px-2 py-1 font-mono text-xs">
+                  <td className="px-4 py-3 font-mono text-xs">
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full ${
@@ -129,8 +129,8 @@ export default function LogsPage() {
                     </div>
                   </td>
 
-                  {/* Country列 → Allowed状態 (国旗は削除、コード+ドットのみ) */}
-                  <td className="border px-2 py-1 text-xs">
+                  {/* Country列 → Allowed状態 */}
+                  <td className="px-4 py-3 text-xs">
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full ${
@@ -142,12 +142,12 @@ export default function LogsPage() {
                   </td>
 
                   {/* isAdmin */}
-                  <td className="border px-2 py-1 text-xs">
+                  <td className="px-4 py-3 text-xs text-center">
                     {log.isAdmin ? "👑" : "—"}
                   </td>
 
                   {/* UserAgent */}
-                  <td className="border px-2 py-1 max-w-xs truncate text-xs">
+                  <td className="px-4 py-3 max-w-xs truncate text-xs text-gray-500">
                     {log.userAgent}
                   </td>
                 </tr>
@@ -155,7 +155,7 @@ export default function LogsPage() {
             </tbody>
           </table>
           <Pager />
-        </>
+        </div>
       )}
     </div>
   );
