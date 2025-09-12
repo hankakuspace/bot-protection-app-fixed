@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { clientDb } from "@/lib/firebase";
+import { clientDb } from "@/lib/firebase-client"; // ✅ 修正
+import { doc, getDoc } from "firebase/firestore"; // ✅ Firestore v9 API
 
 export default function DashboardPage() {
   const [plan, setPlan] = useState<string | null>(null);
@@ -12,11 +13,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const shopId = "test-shop"; // TODO: 実際は認証から取得
-      const shopRef = clientDb.collection("shops").doc(shopId);
-      const doc = await shopRef.get();
-      if (doc.exists) {
-        const data = doc.data();
+      const shopId = "test-shop"; // TODO: 認証から取得
+      const shopRef = doc(clientDb, "shops", shopId); // ✅ v9スタイル
+      const snap = await getDoc(shopRef);
+      if (snap.exists()) {
+        const data = snap.data();
         setPlan(data?.plan || null);
         setBillingStatus(data?.billingStatus || null);
         setUsage(data?.usage || 0);
@@ -42,22 +43,23 @@ export default function DashboardPage() {
       <div className="bg-white shadow rounded p-4">
         <h2 className="text-lg font-bold mb-2">現在のプラン</h2>
         <p>{plan ?? "未設定"}</p>
-        <p className="text-sm text-gray-500">課金ステータス: {billingStatus ?? "-"}</p>
+        <p className="text-sm text-gray-500">
+          課金ステータス: {billingStatus ?? "-"}
+        </p>
       </div>
 
       {/* 利用状況 */}
       <div className="bg-white shadow rounded p-4">
         <h2 className="text-lg font-bold mb-2">利用状況</h2>
         <p>利用数: {usage}</p>
-        <p>
-          上限:{" "}
-          {usageLimit === null ? "∞" : usageLimit}
-        </p>
+        <p>上限: {usageLimit === null ? "∞" : usageLimit}</p>
         {usageLimit !== null && (
           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
             <div
               className="bg-blue-500 h-2 rounded-full"
-              style={{ width: `${Math.min((usage / usageLimit) * 100, 100)}%` }}
+              style={{
+                width: `${Math.min((usage / usageLimit) * 100, 100)}%`,
+              }}
             />
           </div>
         )}
