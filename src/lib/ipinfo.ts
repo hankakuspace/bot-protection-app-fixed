@@ -1,5 +1,5 @@
 // src/lib/ipinfo.ts
-export async function getCountryFromIp(ip: string): Promise<string> {
+export async function getCountryFromIp(ip: string) {
   try {
     const token = process.env.IPINFO_TOKEN;
     if (!token) return "UNKNOWN";
