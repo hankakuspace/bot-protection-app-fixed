@@ -12,37 +12,24 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<string>("Lite");
   const [usage, setUsage] = useState<number>(0);
   const [limit, setLimit] = useState<number>(50000);
+  const [billingStatus, setBillingStatus] = useState<string>("trial");
   const [message, setMessage] = useState<string>("");
 
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
   const shop = "demo-shop"; // TODO: 認証から取得
 
-  const getLimit = (plan: string) => {
-    switch (plan) {
-      case "Lite":
-        return 50000;
-      case "Pro":
-        return 250000;
-      case "Enterprise":
-        return Infinity;
-      default:
-        return 0;
-    }
-  };
-
   useEffect(() => {
-    // ✅ プラン取得API
     const fetchPlan = async () => {
       const res = await fetch(`/api/admin/plan?shop=${shop}`);
       const data = await res.json();
       if (data.plan) {
         setPlan(data.plan);
-        setLimit(getLimit(data.plan));
+        setLimit(data.usageLimit ?? 0);
+        setBillingStatus(data.billingStatus ?? "trial");
       }
     };
 
-    // ✅ 利用数取得API
     const fetchUsage = async () => {
       const res = await fetch(`/api/admin/usage?shop=${shop}`);
       const data = await res.json();
@@ -54,22 +41,28 @@ export default function DashboardPage() {
   }, []);
 
   const confirmPlanChange = async (newPlan: string) => {
-    setPendingPlan(null); // 先に閉じる
+    setPendingPlan(null);
     setPlan(newPlan);
-    setLimit(getLimit(newPlan));
 
-    await fetch("/api/admin/plan", {
+    const res = await fetch("/api/admin/plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shop, plan: newPlan }),
     });
+
+    const data = await res.json();
+    if (data.plan) {
+      setLimit(data.usageLimit ?? 0);
+      setBillingStatus("active");
+    }
 
     setMessage(`プランを「${newPlan}」に保存しました`);
     setTimeout(() => setMessage(""), 3000);
   };
 
   const getUsageStatus = () => {
-    if (limit === Infinity) return { color: "green", label: "利用無制限" };
+    if (limit === Infinity || limit === null)
+      return { color: "green", label: "利用無制限" };
     const ratio = usage / limit;
     if (ratio >= 0.9) return { color: "red", label: "危険：上限間近" };
     if (ratio >= 0.7) return { color: "orange", label: "注意：利用が増加中" };
@@ -77,14 +70,24 @@ export default function DashboardPage() {
   };
 
   const usageStatus = getUsageStatus();
-  const usageRatio = limit === Infinity ? 0 : Math.min((usage / limit) * 100, 100);
+  const usageRatio =
+    limit === Infinity || limit === null
+      ? 0
+      : Math.min((usage / limit) * 100, 100);
 
   return (
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold">管理ダッシュボード</h1>
 
+      {/* ✅ 課金ステータス */}
+      <div className="bg-white p-4 rounded-md border shadow-sm">
+        <p className="text-sm text-gray-700">
+          課金ステータス: <strong>{billingStatus}</strong>
+        </p>
+      </div>
+
       {/* ✅ 上限利用警告バナー */}
-      {limit !== Infinity && (
+      {limit && limit !== Infinity && (
         <div
           className={`flex items-center gap-3 p-4 rounded-md border shadow-sm ${
             usageStatus.color === "red"
@@ -129,7 +132,7 @@ export default function DashboardPage() {
             {usage} / {limit === Infinity ? "∞" : limit}
           </span>
         </p>
-        {limit !== Infinity && (
+        {limit && limit !== Infinity && (
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
               className={`h-3 rounded-full ${

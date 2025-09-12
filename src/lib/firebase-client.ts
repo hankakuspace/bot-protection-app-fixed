@@ -12,4 +12,6 @@ const firebaseConfig = {
 };
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// ✅ 名前付き export
+export const clientDb = getFirestore(app);

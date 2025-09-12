@@ -2,7 +2,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-// 🔥 デバッグ用ログ
+// 🔥 デバッグ用ログ（本番では削除推奨）
 console.log("🔥 Firebase env check", {
   projectId: process.env.FIREBASE_PROJECT_ID,
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -23,4 +23,5 @@ const firebaseApp =
       })
     : getApps()[0];
 
-export const db = getFirestore(firebaseApp);
+// ✅ 名前を adminDb に統一
+export const adminDb = getFirestore(firebaseApp);
