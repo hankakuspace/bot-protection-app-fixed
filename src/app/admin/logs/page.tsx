@@ -20,34 +20,53 @@ export default function LogsPage() {
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [logs, setLogs] = useState<AccessLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   // フィルタ state
   const [filterCountry, setFilterCountry] = useState("");
   const [filterBlocked, setFilterBlocked] = useState("");
   const [filterAdmin, setFilterAdmin] = useState("");
 
-  const fetchLogs = async (from: string, to: string, offset: number) => {
-    setLoading(true);
+  const fetchLogs = async (from: string, to: string, offset: number, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const res = await fetch(
-        `/api/admin/logs?from=${from}&to=${to}&offset=${offset}`
+        `/api/admin/logs?from=${from}&to=${to}&offset=${offset}&limit=100`
       );
       const data = await res.json();
-      setLogs(data.logs || []);
-      setHasMore(data.hasMore);
+      const newLogs: AccessLog[] = data.logs || [];
+
+      if (append) {
+        setLogs((prev) => [...prev, ...newLogs]);
+      } else {
+        setLogs(newLogs);
+      }
+
+      if (newLogs.length < 100) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
     } catch (e) {
       console.error("ログ取得失敗:", e);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchLogs(fromDate, toDate, offset);
-  }, [fromDate, toDate, offset]);
+    setOffset(0);
+    fetchLogs(fromDate, toDate, 0, false);
+  }, [fromDate, toDate]);
 
   const formatDate = (iso: string | null) => {
     if (!iso) return "-";
@@ -68,25 +87,6 @@ export default function LogsPage() {
     return true;
   });
 
-  const Pager = () => (
-    <div className="flex justify-between my-4">
-      <button
-        onClick={() => setOffset(Math.max(0, offset - 200))}
-        disabled={offset === 0}
-        className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
-      >
-        ◀ 前の200件
-      </button>
-      <button
-        onClick={() => setOffset(offset + 200)}
-        disabled={!hasMore}
-        className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
-      >
-        次の200件 ▶
-      </button>
-    </div>
-  );
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <AdminNav />
@@ -98,27 +98,26 @@ export default function LogsPage() {
         <p>ログがありません</p>
       ) : (
         <div className="rounded-lg shadow-sm bg-white">
-          <Pager />
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3">Timestamp</th>
-                <th className="px-4 py-3">IP</th>
-                <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">isAdmin</th>
-                <th className="px-4 py-3">UserAgent</th>
+                <th className="px-4 py-3 border-b border-gray-200">Timestamp</th>
+                <th className="px-4 py-3 border-b border-gray-200">IP</th>
+                <th className="px-4 py-3 border-b border-gray-200">Country</th>
+                <th className="px-4 py-3 border-b border-gray-200">isAdmin</th>
+                <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
               </tr>
             </thead>
             <tbody>
               {filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   {/* Timestamp */}
-                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                     {formatDate(log.timestamp)}
                   </td>
 
                   {/* IP列 → Blocked状態 */}
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full ${
@@ -130,7 +129,7 @@ export default function LogsPage() {
                   </td>
 
                   {/* Country列 → Allowed状態 */}
-                  <td className="px-4 py-3 text-xs">
+                  <td className="px-4 py-3 border-b border-gray-200 text-xs">
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full ${
@@ -142,19 +141,39 @@ export default function LogsPage() {
                   </td>
 
                   {/* isAdmin */}
-                  <td className="px-4 py-3 text-xs text-center">
+                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-center">
                     {log.isAdmin ? "👑" : "—"}
                   </td>
 
                   {/* UserAgent */}
-                  <td className="px-4 py-3 max-w-xs truncate text-xs text-gray-500">
+                  <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
                     {log.userAgent}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <Pager />
+
+          {/* Load More ボタン */}
+          <div className="flex justify-center py-4">
+            {hasMore ? (
+              <button
+                onClick={() => {
+                  const newOffset = offset + 100;
+                  setOffset(newOffset);
+                  fetchLogs(fromDate, toDate, newOffset, true);
+                }}
+                disabled={loadingMore}
+                className="px-6 py-2 border rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : "Load More"}
+              </button>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No more logs to show within selected timeline
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
