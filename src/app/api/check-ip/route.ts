@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
       country = await getCountryFromIp(ip);
     }
 
-    const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(ip).get() : null;
-    // ✅ country を String() で強制変換
+    // ✅ Firestoreからブロック対象を取得
+    const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(String(ip)).get() : null;
     const blockedCountriesSnap = await db.collection("blocked_countries").doc(String(country)).get();
 
     const ipBlocked = blockedIpsSnap?.exists ?? false;
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       shop,
-      ip,
+      ip: String(ip),
       country: String(country),
       blocked,
       usageCount,
