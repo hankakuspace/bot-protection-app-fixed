@@ -4,6 +4,12 @@ import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 
+const limits: Record<string, number | null> = {
+  Lite: 50000,
+  Pro: 250000,
+  Enterprise: null,
+};
+
 // ✅ プラン取得
 export async function GET(req: Request) {
   try {
@@ -16,12 +22,17 @@ export async function GET(req: Request) {
     if (!snap.exists) {
       return NextResponse.json({
         plan: "Lite",
-        usageLimit: 50000,
+        usageLimit: limits["Lite"],
         billingStatus: "trial",
       });
     }
 
-    return NextResponse.json(snap.data());
+    const data = snap.data()!;
+    return NextResponse.json({
+      plan: data.plan || "Lite",
+      usageLimit: data.usageLimit ?? limits[data.plan] ?? limits["Lite"],
+      billingStatus: data.billingStatus || "trial",
+    });
   } catch (err: any) {
     console.error("GET /api/admin/plan error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -32,20 +43,13 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const { shop = "demo-shop", plan } = await req.json();
-
-    const limits: Record<string, number | null> = {
-      Lite: 50000,
-      Pro: 250000,
-      Enterprise: null,
-    };
-
-    const usageLimit = limits[plan] ?? 0;
+    const usageLimit = limits[plan] ?? limits["Lite"];
 
     await adminDb.collection("shops").doc(shop).set(
       {
         plan,
         usageLimit,
-        billingStatus: "active",
+        billingStatus: "active", // 仮: 本番ではBilling APIで更新
         updatedAt: new Date(),
       },
       { merge: true }
