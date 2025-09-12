@@ -12,9 +12,8 @@ export default function DashboardPage() {
   const [limit, setLimit] = useState<number>(50000);
   const [message, setMessage] = useState<string>("");
 
-  const shop = "demo-shop"; // TODO: 実際は認証から取得
+  const shop = "demo-shop"; // TODO: 認証から取得
 
-  // プラン上限値
   const getLimit = (plan: string) => {
     switch (plan) {
       case "Lite":
@@ -28,9 +27,8 @@ export default function DashboardPage() {
     }
   };
 
-  // 利用数・プランを取得
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPlan = async () => {
       const shopRef = doc(db, "shops", shop);
       const snap = await getDoc(shopRef);
       if (snap.exists()) {
@@ -40,12 +38,16 @@ export default function DashboardPage() {
           setLimit(getLimit(data.plan));
         }
       }
-
-      // ✅ usage_logs から今月の利用数を取得する想定
-      // 実際は API 呼び出しで集計
-      setUsage(43000); // テスト用
     };
-    fetchData();
+
+    const fetchUsage = async () => {
+      const res = await fetch("/api/admin/usage");
+      const data = await res.json();
+      setUsage(data.usage);
+    };
+
+    fetchPlan();
+    fetchUsage();
   }, []);
 
   const handlePlanChange = async (newPlan: string) => {
@@ -57,7 +59,6 @@ export default function DashboardPage() {
     setTimeout(() => setMessage(""), 3000);
   };
 
-  // ✅ 上限警告レベル判定
   const getUsageStatus = () => {
     if (limit === Infinity) return { color: "green", label: "利用無制限" };
     const ratio = usage / limit;
@@ -72,7 +73,6 @@ export default function DashboardPage() {
     <div className="p-6 space-y-6">
       <h1 className="text-xl font-bold">管理ダッシュボード</h1>
 
-      {/* ✅ 保存通知バナー */}
       {message && (
         <div className="flex items-center gap-2 p-3 rounded-md border bg-green-50 border-green-300 text-green-800">
           <CheckCircleIcon className="h-5 w-5" />
@@ -80,7 +80,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ✅ 上限利用警告バナー */}
       {limit !== Infinity && (
         <div
           className={`flex items-center gap-2 p-3 rounded-md border ${
