@@ -1,12 +1,12 @@
 // src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getClientIp } from "@/lib/check-ip";
+import { getClientIp } from "@/lib/check-ip"; // ✅ Firebase依存なしの関数のみ使う
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 🚫 favicon は除外
+  // 🚫 favicon
   if (pathname === "/favicon.ico") return NextResponse.next();
 
   // 🚫 API 完全除外（OAuth含む）
@@ -20,10 +20,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ クライアントIP取得のみ（Firestore参照は不可：Edge Runtime制約）
+  // ✅ クライアントIP取得のみ
   const ip = await getClientIp(req);
 
-  // 👉 将来的に API を叩いてブロック判定する仕組みに差し替える予定
+  // ❌ Firestore参照はできない（Edge制約のため削除済み）
+
   const res = NextResponse.next();
   res.headers.set("x-client-ip", ip);
   return res;
