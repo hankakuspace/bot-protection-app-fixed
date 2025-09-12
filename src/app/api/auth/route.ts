@@ -2,7 +2,7 @@
 // GET /api/auth?shop=<shop>.myshopify.com
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 
 const SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || "").trim();
 const SCOPES = (process.env.SHOPIFY_SCOPES || "").trim();

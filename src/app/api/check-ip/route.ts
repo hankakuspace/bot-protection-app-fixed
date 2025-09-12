@@ -1,6 +1,6 @@
 // src/app/api/check-ip/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
 import { verifyAppProxySignature } from "@/lib/verifyAppProxy"; // ✅ 復活

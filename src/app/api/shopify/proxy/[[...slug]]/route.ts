@@ -1,7 +1,7 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getClientIp } from "@/lib/check-ip";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 

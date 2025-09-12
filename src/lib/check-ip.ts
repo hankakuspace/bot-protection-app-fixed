@@ -1,7 +1,7 @@
 // src/lib/check-ip.ts
 import type { NextRequest } from "next/server";
 import requestIp from "request-ip";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 
 /**
  * クライアントIPを正規化して取得（必ずIPv4優先。なければIPv6を保存）

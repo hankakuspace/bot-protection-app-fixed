@@ -1,6 +1,6 @@
 // src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 import { getClientIp } from "@/lib/check-ip";
 
 export const runtime = "nodejs";

@@ -1,6 +1,6 @@
 // src/app/api/admin/delete-ip/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs"; // ←追加
 

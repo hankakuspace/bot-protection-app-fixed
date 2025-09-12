@@ -1,6 +1,6 @@
 // src/app/api/admin/ips/route.ts
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 

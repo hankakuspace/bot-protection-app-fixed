@@ -1,6 +1,6 @@
 // src/app/api/admin/add-ip/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 import admin from "firebase-admin";
 
 export const runtime = "nodejs";

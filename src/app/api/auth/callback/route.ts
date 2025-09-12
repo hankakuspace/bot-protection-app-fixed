@@ -1,6 +1,6 @@
 // src/app/api/auth/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
