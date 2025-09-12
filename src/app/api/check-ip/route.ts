@@ -12,19 +12,16 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
 
-    // ✅ Shopify Proxy署名検証
     const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
     if (!result.ok) {
       return NextResponse.json({ error: result.reason || "Invalid signature" }, { status: 401 });
     }
 
-    // ✅ shop を抽出
     const shop = url.searchParams.get("shop");
     if (!shop) {
       return NextResponse.json({ error: "Missing shop" }, { status: 400 });
     }
 
-    // ✅ 利用数カウント更新
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const usageRef = db.collection("usage_logs").doc(`${shop}_${yearMonth}`);
@@ -43,16 +40,15 @@ export async function GET(req: NextRequest) {
     const usageData = usageSnap.data();
     const usageCount = usageData?.count ?? 0;
 
-    // ✅ クライアントIP取得
     const ip = getClientIp(req);
 
     // ✅ 国コード判定 (ipinfo.io)
     let country = "UNKNOWN";
     if (ip) {
-      country = await getCountryFromIp(ip);
+      const result = await getCountryFromIp(ip);
+      country = result as string;
     }
 
-    // ✅ Firestoreからブロック対象を取得
     const blockedIpsSnap = ip ? await db.collection("blocked_ips").doc(ip).get() : null;
     const blockedCountriesSnap = await db.collection("blocked_countries").doc(country).get();
 
@@ -66,7 +62,7 @@ export async function GET(req: NextRequest) {
       country,
       blocked,
       usageCount,
-      limit: 50000, // 仮：Lite プランの上限
+      limit: 50000,
     });
   } catch (err: any) {
     console.error("check-ip error:", err);
