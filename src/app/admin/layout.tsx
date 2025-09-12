@@ -32,14 +32,14 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-gray-50">
       {/* ✅ モバイル用ハンバーガーボタン */}
       <button
-        className="md:hidden absolute top-4 left-4 z-50 flex items-center p-2 rounded-md border bg-white shadow-sm"
+        className="md:hidden fixed top-4 left-4 z-50 flex items-center p-2 rounded-md border bg-white shadow-sm"
         onClick={() => setSidebarOpen(true)}
       >
         <Bars3Icon className="h-6 w-6 text-gray-700" />
       </button>
 
-      {/* ✅ サイドバー（デスクトップ） */}
-      <aside className="hidden md:flex w-64 bg-white border-r shadow-sm flex-col">
+      {/* ✅ サイドバー（デスクトップ固定） */}
+      <aside className="hidden md:flex md:w-64 shrink-0 bg-white border-r shadow-sm flex-col">
         <div className="p-6 border-b">
           <h1 className="text-lg font-bold text-indigo-600">BOTガードMAN</h1>
           <p className="text-xs text-gray-500">管理画面</p>
@@ -94,7 +94,7 @@ export default function AdminLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setSidebarOpen(false)} // ✅ 選択したら閉じる
+                    onClick={() => setSidebarOpen(false)} // ✅ 選択後に閉じる
                     className={`flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${
                       active
                         ? "bg-indigo-600 text-white shadow-sm"
@@ -112,7 +112,7 @@ export default function AdminLayout({
       )}
 
       {/* ✅ メインコンテンツ */}
-      <main className="flex-1 p-6 md:ml-64">{children}</main>
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }
