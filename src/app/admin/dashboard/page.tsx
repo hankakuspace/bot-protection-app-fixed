@@ -11,13 +11,13 @@ import {
 export default function DashboardPage() {
   const [plan, setPlan] = useState<string>("Lite");
   const [usage, setUsage] = useState<number>(0);
-  const [limit, setLimit] = useState<number>(50000);
+  const [limit, setLimit] = useState<number | null>(50000);
   const [billingStatus, setBillingStatus] = useState<string>("trial");
   const [message, setMessage] = useState<string>("");
 
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
 
-  const shop = "demo-shop"; // TODO: 認証から取得
+  const shop = "ruhra-store.myshopify.com"; // TODO: 認証から取得
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.plan) {
         setPlan(data.plan);
-        setLimit(data.usageLimit ?? 0);
+        setLimit(data.usageLimit ?? null);
         setBillingStatus(data.billingStatus ?? "trial");
       }
     };
@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
     const data = await res.json();
     if (data.plan) {
-      setLimit(data.usageLimit ?? 0);
+      setLimit(data.usageLimit ?? null);
       setBillingStatus("active");
     }
 
@@ -61,8 +61,7 @@ export default function DashboardPage() {
   };
 
   const getUsageStatus = () => {
-    if (limit === Infinity || limit === null)
-      return { color: "green", label: "利用無制限" };
+    if (limit === null) return { color: "green", label: "利用無制限" };
     const ratio = usage / limit;
     if (ratio >= 0.9) return { color: "red", label: "危険：上限間近" };
     if (ratio >= 0.7) return { color: "orange", label: "注意：利用が増加中" };
@@ -70,10 +69,7 @@ export default function DashboardPage() {
   };
 
   const usageStatus = getUsageStatus();
-  const usageRatio =
-    limit === Infinity || limit === null
-      ? 0
-      : Math.min((usage / limit) * 100, 100);
+  const usageRatio = limit === null ? 0 : Math.min((usage / limit) * 100, 100);
 
   return (
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
@@ -87,7 +83,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ✅ 上限利用警告バナー */}
-      {limit && limit !== Infinity && (
+      {limit !== undefined && (
         <div
           className={`flex items-center gap-3 p-4 rounded-md border shadow-sm ${
             usageStatus.color === "red"
@@ -99,7 +95,7 @@ export default function DashboardPage() {
         >
           <ExclamationTriangleIcon className="h-6 w-6 flex-shrink-0" />
           <span className="font-medium">
-            {usageStatus.label}（{usage} / {limit === Infinity ? "∞" : limit}）
+            {usageStatus.label}（{usage} / {limit === null ? "∞" : limit}）
           </span>
         </div>
       )}
@@ -129,10 +125,10 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-700">
           今月の利用数:{" "}
           <span className="font-semibold">
-            {usage} / {limit === Infinity ? "∞" : limit}
+            {usage} / {limit === null ? "∞" : limit}
           </span>
         </p>
-        {limit && limit !== Infinity && (
+        {limit !== null && (
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
               className={`h-3 rounded-full ${
