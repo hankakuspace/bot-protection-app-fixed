@@ -1,18 +1,14 @@
-// src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getClientIp } from "@/lib/check-ip"; // ✅ Firebase依存なしの関数のみ使う
+import { getClientIp } from "@/lib/ip-utils"; // ✅ Edge対応だけ
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 🚫 favicon
-  if (pathname === "/favicon.ico") return NextResponse.next();
+  if (pathname === "/favicon.ico" || pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
 
-  // 🚫 API 完全除外（OAuth含む）
-  if (pathname.startsWith("/api/")) return NextResponse.next();
-
-  // 🚫 host チェックは本番のみ
   if (
     process.env.NODE_ENV === "production" &&
     req.headers.get("host") !== "be-search.biz"
@@ -20,10 +16,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ クライアントIP取得のみ
   const ip = await getClientIp(req);
-
-  // ❌ Firestore参照はできない（Edge制約のため削除済み）
 
   const res = NextResponse.next();
   res.headers.set("x-client-ip", ip);
