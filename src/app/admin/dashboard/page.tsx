@@ -12,7 +12,8 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<string>("Lite");
   const [usage, setUsage] = useState<number>(0);
   const [limit, setLimit] = useState<number | null>(50000);
-  const [billingStatus, setBillingStatus] = useState<string>("trial");
+  // ✅ 初期値を "trial" → null に修正
+  const [billingStatus, setBillingStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
 
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export default function DashboardPage() {
       {/* ✅ 課金ステータス */}
       <div className="bg-white p-4 rounded-md border shadow-sm">
         <p className="text-sm text-gray-700">
-          課金ステータス: <strong>{billingStatus}</strong>
+          課金ステータス: <strong>{billingStatus ?? "-"}</strong>
         </p>
       </div>
 
