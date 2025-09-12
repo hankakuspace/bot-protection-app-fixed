@@ -46,10 +46,10 @@ export async function GET(req: NextRequest) {
     // ✅ クライアントIP取得
     const ip = getClientIp(req);
 
-    // ✅ 国コード判定 (ipinfo.io) ※型を強制的に string 扱いにする
+    // ✅ 国コード判定 (ipinfo.io)
     let country: string = "UNKNOWN";
     if (ip) {
-      country = (await getCountryFromIp(ip)) as unknown as string;
+      country = await getCountryFromIp(ip); // ← アサーション削除
     }
 
     // ✅ Firestoreからブロック対象を取得
