@@ -12,7 +12,7 @@ interface AccessLog {
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
-  isBot?: boolean; // 👈 追加
+  isBot?: boolean; // BOT判定結果（列では表示しないが使用する）
   timestamp: string | null;
 }
 
@@ -30,7 +30,7 @@ export default function LogsPage() {
   const [filterCountry, setFilterCountry] = useState("");
   const [filterBlocked, setFilterBlocked] = useState("");
   const [filterAdmin, setFilterAdmin] = useState("");
-  const [filterBot, setFilterBot] = useState(""); // 👈 追加
+  const [filterBot, setFilterBot] = useState(""); // isBot列は消すがフィルタは残す
 
   const fetchLogs = async (
     from: string,
@@ -91,7 +91,7 @@ export default function LogsPage() {
     if (filterBlocked === "false" && log.blocked) return false;
     if (filterAdmin === "true" && !log.isAdmin) return false;
     if (filterAdmin === "false" && log.isAdmin) return false;
-    if (filterBot === "true" && !log.isBot) return false; // 👈 BOTフィルタ
+    if (filterBot === "true" && !log.isBot) return false;
     if (filterBot === "false" && log.isBot) return false;
     return true;
   });
@@ -152,7 +152,7 @@ export default function LogsPage() {
               "blocked",
               "allowedCountry",
               "isAdmin",
-              "isBot", // 👈 CSV出力に追加
+              "isBot", // 👈 CSVには残す
               "userAgent",
             ];
             const rows = filteredLogs.map((l) =>
@@ -194,7 +194,6 @@ export default function LogsPage() {
                 <th className="px-4 py-3 border-b border-gray-200">IP</th>
                 <th className="px-4 py-3 border-b border-gray-200">Country</th>
                 <th className="px-4 py-3 border-b border-gray-200">isAdmin</th>
-                <th className="px-4 py-3 border-b border-gray-200">isBot</th> {/* 👈 追加 */}
                 <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
               </tr>
             </thead>
@@ -212,6 +211,11 @@ export default function LogsPage() {
                         }`}
                       />
                       <span>{log.ip}</span>
+                      {log.isBot && (
+                        <span className="ml-2 px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-700">
+                          BOT
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 text-xs">
@@ -226,9 +230,6 @@ export default function LogsPage() {
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 text-xs text-center">
                     {log.isAdmin ? "👑" : "—"}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-center">
-                    {log.isBot ? "👾" : "—"}
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
                     {log.userAgent}
