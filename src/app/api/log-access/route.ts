@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { getClientIp } from "@/lib/check-ip";
+import { isBotUserAgent } from "@/lib/check-useragent"; // 👈 追加
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,7 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const ip = await getClientIp(req); // ← await を追加
+    const ip = await getClientIp(req);
 
     const { country, allowed } = await getCountryFromIp(ip);
 
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
       blocked: body.blocked ?? false,
       isAdmin: body.isAdmin ?? false,
       userAgent,
+      isBot: isBotUserAgent(userAgent), // 👈 BOT判定を追加
       host: req.headers.get("host") || null,
       createdAt: new Date(),
       clientTime,
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const ip = await getClientIp(req); // ← await を追加
+    const ip = await getClientIp(req);
 
     const { country, allowed } = await getCountryFromIp(ip);
 
@@ -72,6 +74,7 @@ export async function GET(req: NextRequest) {
       blocked: searchParams.get("blocked") === "true",
       isAdmin: searchParams.get("isAdmin") === "true",
       userAgent,
+      isBot: isBotUserAgent(userAgent), // 👈 BOT判定を追加
       host: req.headers.get("host") || null,
       createdAt: new Date(),
       clientTime,
