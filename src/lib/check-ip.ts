@@ -58,10 +58,23 @@ export async function getClientIp(req: NextRequest): Promise<string> {
  */
 export async function isIpBlocked(ip: string): Promise<boolean> {
   try {
-    const doc = await adminDb.collection("block_ips").doc(ip).get(); // ✅ コレクション名を統一
+    const doc = await adminDb.collection("block_ips").doc(ip).get();
     return doc.exists;
   } catch (e) {
     console.error("Error checking if IP is blocked:", e);
+    return false;
+  }
+}
+
+/**
+ * 管理者IPかどうかを判定
+ */
+export async function isAdminIp(ip: string): Promise<boolean> {
+  try {
+    const doc = await adminDb.collection("admin_ips").doc(ip).get();
+    return doc.exists;
+  } catch (e) {
+    console.error("Error checking if IP is admin:", e);
     return false;
   }
 }

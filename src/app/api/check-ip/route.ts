@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import { getClientIp } from "@/lib/check-ip";
-import { verifyAppProxySignature } from "@/lib/verifyAppProxy"; // ✅ 復活
+import { getClientIp, isAdminIp } from "@/lib/check-ip";
+import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
 import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
 
-    // ✅ Shopify Proxy署名検証（復活）
+    // ✅ Shopify Proxy署名検証
     const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
     if (!result.ok) {
       return NextResponse.json(
@@ -47,28 +47,45 @@ export async function GET(req: NextRequest) {
     const usageCount = usageData?.count ?? 0;
 
     // ✅ クライアントIP取得
-    const ip = getClientIp(req);
+    const ip = await getClientIp(req);
 
-    // ✅ 国コード判定 (ipinfo.io)
-    let country: any = "UNKNOWN";
+    // ✅ 国コード判定
+    let country: string = "UNKNOWN";
     if (ip) {
-      // @ts-ignore
       country = await getCountryFromIp(ip);
     }
 
     // ✅ Firestoreからブロック対象を取得
-    const blockedIpsSnap = ip ? await adminDb.collection("blocked_ips").doc(String(ip)).get() : null;
-    const blockedCountriesSnap = await adminDb.collection("blocked_countries").doc(String(country)).get();
+    const blockedIpDoc = ip ? await adminDb.collection("blocked_ips").doc(String(ip)).get() : null;
+    const blockedCountryDoc = await adminDb.collection("blocked_countries").doc(String(country)).get();
 
-    const ipBlocked = blockedIpsSnap?.exists ?? false;
-    const countryBlocked = blockedCountriesSnap.exists;
+    const ipBlocked = blockedIpDoc?.exists ?? false;
+    const countryBlocked = blockedCountryDoc.exists;
     const blocked = ipBlocked || countryBlocked;
+
+    // ✅ 管理者IP判定
+    const isAdmin = ip ? await isAdminIp(String(ip)) : false;
+
+    // ✅ UserAgent 取得
+    const userAgent = req.headers.get("user-agent") || "";
+
+    // ✅ アクセスログ保存
+    await adminDb.collection("access_logs").add({
+      ip: String(ip),
+      country: String(country),
+      allowedCountry: !countryBlocked,
+      blocked,
+      isAdmin,
+      userAgent,
+      timestamp: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       shop,
       ip: String(ip),
       country: String(country),
       blocked,
+      isAdmin,
       usageCount,
       limit: 50000, // 仮：Lite プランの上限
     });
