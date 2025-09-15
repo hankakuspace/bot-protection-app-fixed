@@ -67,7 +67,7 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 }
 
 /**
- * 管理者IPかどうかを判定（正規化比較）
+ * 管理者IPかどうかを判定（IPv6表記揺れ対応）
  */
 export async function isAdminIp(ip: string): Promise<boolean> {
   try {
@@ -77,7 +77,14 @@ export async function isAdminIp(ip: string): Promise<boolean> {
     return snap.docs.some((doc) => {
       const data = doc.data();
       if (!data.ip) return false;
-      return String(data.ip).trim().toLowerCase() === normalized;
+      const target = String(data.ip).trim().toLowerCase();
+
+      // ✅ 完全一致 or 部分一致（ゼロ圧縮などを考慮）
+      return (
+        target === normalized ||
+        target.startsWith(normalized) ||
+        normalized.startsWith(target)
+      );
     });
   } catch (e) {
     console.error("Error checking if IP is admin:", e);
