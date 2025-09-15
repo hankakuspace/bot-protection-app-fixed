@@ -15,24 +15,19 @@ export function getClientIp(req: any): string {
 export async function isAdminIp(ip: string): Promise<boolean> {
   if (!ip) return false;
 
-  // Firestoreの admin_ips コレクションを取得
   const snapshot = await adminDb.collection("admin_ips").get();
   const adminIps = snapshot.docs.map((doc) => doc.id);
 
-  // デバッグログ
   console.log("🔥 DEBUG isAdminIp check", { requestIp: ip, adminIps });
 
-  // IPv4-mapped IPv6 を正規化
   const normalizedIp = ip.replace(/^::ffff:/, "");
 
   return adminIps.some((adminIp) => {
-    // IPv6同士なら /64 プレフィックス比較
     if (normalizedIp.includes(":") && adminIp.includes(":")) {
       const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
       const prefixAdmin = adminIp.split(":").slice(0, 4).join(":");
       return prefixReq === prefixAdmin;
     }
-    // IPv4なら完全一致
     return normalizedIp === adminIp;
   });
 }
@@ -45,16 +40,17 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
   return doc.exists;
 }
 
-// ✅ 指定IPをブロックリストに追加
-export async function blockIp(ip: string): Promise<void> {
+// ✅ 指定IPをブロックリストに追加（呼び出し元をオプション保存）
+export async function blockIp(ip: string, source: string = "manual"): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).set({
     createdAt: new Date().toISOString(),
+    source,
   });
 }
 
 // ✅ 指定IPをブロックリストから解除
-export async function unblockIp(ip: string): Promise<void> {
+export async function unblockIp(ip: string, source: string = "manual"): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).delete();
 }
