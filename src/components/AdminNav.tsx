@@ -11,7 +11,9 @@ export default function AdminNav() {
     { href: "/admin/add-ip", label: "IP追加" },
     { href: "/admin/list-ip", label: "ブロックリスト" },
     { href: "/admin/logs", label: "アクセスログ" },
-    { href: "/admin/blocked", label: "ブロック設定" }, // ← 新規追加
+    { href: "/admin/blocked", label: "ブロック設定" },
+    { href: "/admin/add-admin-ip", label: "管理者IP追加" }, // ✅ 追加
+    { href: "/admin/list-admin-ip", label: "管理者リスト" }, // ✅ 追加
   ];
 
   return (
