@@ -67,12 +67,17 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 }
 
 /**
- * 管理者IPかどうかを判定
+ * 管理者IPかどうかを判定（フィールド検索版）
  */
 export async function isAdminIp(ip: string): Promise<boolean> {
   try {
-    const doc = await adminDb.collection("admin_ips").doc(ip).get();
-    return doc.exists;
+    const snap = await adminDb
+      .collection("admin_ips")
+      .where("ip", "==", ip)
+      .limit(1)
+      .get();
+
+    return !snap.empty;
   } catch (e) {
     console.error("Error checking if IP is admin:", e);
     return false;
