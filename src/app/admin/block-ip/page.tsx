@@ -1,31 +1,31 @@
-// src/app/admin/admin-ip/page.tsx
+// src/app/admin/block-ip/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 
-interface AdminIp {
+interface BlockIp {
   id: string;
   ip: string;
   note: string;
   createdAt?: string;
 }
 
-export default function AdminIpPage() {
+export default function BlockIpPage() {
   const [ip, setIp] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
-  const [ips, setIps] = useState<AdminIp[]>([]);
+  const [ips, setIps] = useState<BlockIp[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/admin/add-admin-ip", {
+    const res = await fetch("/api/admin/add-ip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ip, note }),
     });
     const data = await res.json();
     if (data.ok) {
-      setMessage("管理者IPを登録しました");
+      setMessage("ブロックIPを登録しました");
       setIp("");
       setNote("");
       fetchIps();
@@ -35,7 +35,7 @@ export default function AdminIpPage() {
   };
 
   const fetchIps = async () => {
-    const res = await fetch("/api/admin/list-admin-ip");
+    const res = await fetch("/api/admin/list-ip");
     const data = await res.json();
     setIps(data);
   };
@@ -46,7 +46,7 @@ export default function AdminIpPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">管理者IP</h1>
+      <h1 className="text-xl font-bold">ブロックIP</h1>
 
       {/* 追加フォーム */}
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
@@ -66,7 +66,7 @@ export default function AdminIpPage() {
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
         >
           登録
         </button>
