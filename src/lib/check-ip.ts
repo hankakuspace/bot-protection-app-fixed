@@ -26,13 +26,13 @@ export async function getClientIp(req: NextRequest): Promise<string> {
     ip = ip.replace("::ffff:", "");
   }
 
-  // IPv4 正規表現
+  // IPv4正規表現
   const ipv4Regex =
     /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
   if (ipv4Regex.test(ip)) return ip;
 
-  // IPv6 → IPv4 変換を ipinfo で試みる
+  // IPv6を持っている場合 → ipinfoで変換を試みる
   try {
     const token = process.env.IPINFO_TOKEN;
     if (token && ip !== "UNKNOWN") {
@@ -40,7 +40,7 @@ export async function getClientIp(req: NextRequest): Promise<string> {
       if (res.ok) {
         const data = await res.json();
         if (data.ip && ipv4Regex.test(data.ip)) {
-          return data.ip; // IPv4 に変換成功
+          return data.ip; // 変換成功
         }
       }
     }
@@ -52,7 +52,7 @@ export async function getClientIp(req: NextRequest): Promise<string> {
 }
 
 /**
- * 指定されたIPがブロックされているかを判定
+ * 指定されたIPがブロックされているかどうかを判定
  */
 export async function isIpBlocked(ip: string): Promise<boolean> {
   try {
@@ -65,12 +65,18 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 }
 
 /**
- * 管理者IPかどうかを判定（Firestore値のクオート除去 & IPv6表記揺れ対応）
+ * 管理者IPかどうかを判定（IPv6は/64プレフィックスで比較）
  */
 export async function isAdminIp(ip: string): Promise<boolean> {
   try {
     const snap = await adminDb.collection("admin_ips").get();
     const normalized = ip.trim().toLowerCase();
+
+    // IPv6なら前半64bitをプレフィックスとして切り出し
+    const isIpv6 = normalized.includes(":");
+    const ipPrefix = isIpv6
+      ? normalized.split(":").slice(0, 4).join(":") // 先頭4ブロック
+      : normalized;
 
     let result = false;
 
@@ -83,14 +89,19 @@ export async function isAdminIp(ip: string): Promise<boolean> {
         .trim()
         .toLowerCase();
 
-      console.error("🔥 DEBUG isAdminIp compare:", { normalized, target });
-
-      if (
-        target === normalized ||
-        target.startsWith(normalized) ||
-        normalized.startsWith(target)
-      ) {
-        result = true;
+      if (isIpv6) {
+        // IPv6はプレフィックス比較
+        const targetPrefix = target.split(":").slice(0, 4).join(":");
+        console.error("🔥 DEBUG isAdminIp compare IPv6:", { ipPrefix, targetPrefix });
+        if (targetPrefix === ipPrefix) {
+          result = true;
+        }
+      } else {
+        // IPv4は完全一致
+        console.error("🔥 DEBUG isAdminIp compare IPv4:", { ipPrefix, target });
+        if (target === ipPrefix) {
+          result = true;
+        }
       }
     });
 
