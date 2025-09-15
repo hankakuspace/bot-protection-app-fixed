@@ -1,126 +1,98 @@
-// src/lib/check-ip.ts
-import type { NextRequest } from "next/server";
-import requestIp from "request-ip";
+// src/app/api/check-ip/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
+import { FieldValue } from "firebase-admin/firestore";
+import { getClientIp, isAdminIp } from "@/lib/check-ip";
+import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
+import { getCountryFromIp } from "@/lib/ipinfo";
 
-/**
- * クライアントIPを正規化して取得（必ずIPv4優先。なければIPv6を保存）
- */
-export async function getClientIp(req: NextRequest): Promise<string> {
-  const headers = req.headers;
+export const runtime = "nodejs";
 
-  const cf = headers.get("cf-connecting-ip");
-  const shopify = headers.get("x-shopify-client-ip");
-  const xff = headers.get("x-forwarded-for")?.split(",")[0].trim();
-  const xri = headers.get("x-real-ip");
-
-  let ip =
-    cf ||
-    shopify ||
-    xff ||
-    xri ||
-    requestIp.getClientIp(req as any) ||
-    "UNKNOWN";
-
-  if (ip.startsWith("::ffff:")) {
-    ip = ip.replace("::ffff:", "");
-  }
-
-  // IPv4正規表現
-  const ipv4Regex =
-    /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-
-  if (ipv4Regex.test(ip)) return ip;
-
+export async function GET(req: NextRequest) {
   try {
-    const token = process.env.IPINFO_TOKEN;
-    if (token && ip !== "UNKNOWN") {
-      const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ip && ipv4Regex.test(data.ip)) {
-          return data.ip;
-        }
-      }
+    const url = new URL(req.url);
+
+    // ✅ Shopify Proxy署名検証
+    const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.reason || "Invalid signature" },
+        { status: 401 }
+      );
     }
-  } catch (e) {
-    console.error("IPv6 to IPv4 lookup failed:", e);
-  }
 
-  return ip;
-}
+    // ✅ shop を抽出
+    const shop = url.searchParams.get("shop");
+    if (!shop) {
+      return NextResponse.json({ error: "Missing shop" }, { status: 400 });
+    }
 
-/**
- * 指定されたIPがブロックされているかどうかを判定
- */
-export async function isIpBlocked(ip: string): Promise<boolean> {
-  try {
-    const doc = await adminDb.collection("block_ips").doc(ip).get();
-    return doc.exists;
-  } catch (e) {
-    console.error("Error checking if IP is blocked:", e);
-    return false;
-  }
-}
+    // ✅ 利用数カウント更新
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const usageRef = adminDb.collection("usage_logs").doc(`${shop}_${yearMonth}`);
 
-/**
- * 管理者IPかどうかを判定（Firestore値のクオート除去 & IPv6表記揺れ対応）
- */
-export async function isAdminIp(ip: string): Promise<boolean> {
-  try {
-    const snap = await adminDb.collection("admin_ips").get();
-    const normalized = ip.trim().toLowerCase();
+    await usageRef.set(
+      {
+        shop,
+        yearMonth,
+        count: FieldValue.increment(1),
+        updatedAt: new Date(),
+      },
+      { merge: true }
+    );
 
-    let result = false;
+    const usageSnap = await usageRef.get();
+    const usageData = usageSnap.data();
+    const usageCount = usageData?.count ?? 0;
 
-    snap.docs.forEach((doc) => {
-      const data = doc.data();
-      if (!data.ip) return;
-      const target = String(data.ip)
-        .replace(/^"+|"+$/g, "")
-        .trim()
-        .toLowerCase();
+    // ✅ クライアントIP取得
+    const ip = await getClientIp(req);
+    console.error("🔥 DEBUG check-ip ip:", ip);
 
-      console.log("DEBUG isAdminIp compare:", { normalized, target });
+    // ✅ 国コード判定
+    let country: string = "UNKNOWN";
+    if (ip) {
+      country = await getCountryFromIp(ip);
+    }
 
-      if (
-        target === normalized ||
-        target.startsWith(normalized) ||
-        normalized.startsWith(target)
-      ) {
-        result = true;
-      }
+    // ✅ Firestoreからブロック対象を取得
+    const blockedIpDoc = ip ? await adminDb.collection("blocked_ips").doc(String(ip)).get() : null;
+    const blockedCountryDoc = await adminDb.collection("blocked_countries").doc(String(country)).get();
+
+    const ipBlocked = blockedIpDoc?.exists ?? false;
+    const countryBlocked = blockedCountryDoc.exists;
+    const blocked = ipBlocked || countryBlocked;
+
+    // ✅ 管理者IP判定
+    const isAdmin = ip ? await isAdminIp(String(ip)) : false;
+    console.error("🔥 DEBUG check-ip result:", { ip, isAdmin });
+
+    // ✅ UserAgent 取得
+    const userAgent = req.headers.get("user-agent") || "";
+
+    // ✅ アクセスログ保存
+    await adminDb.collection("access_logs").add({
+      ip: String(ip),
+      country: String(country),
+      allowedCountry: !countryBlocked,
+      blocked,
+      isAdmin,
+      userAgent,
+      timestamp: new Date().toISOString(),
     });
 
-    return result;
-  } catch (e) {
-    console.error("Error checking if IP is admin:", e);
-    return false;
-  }
-}
-
-/**
- * IPをブロックリストに追加
- */
-export async function blockIp(ip: string, reason: string = "manual"): Promise<void> {
-  try {
-    await adminDb.collection("block_ips").doc(ip).set({
-      blocked: true,
-      reason,
-      createdAt: new Date().toISOString(),
+    return NextResponse.json({
+      shop,
+      ip: String(ip),
+      country: String(country),
+      blocked,
+      isAdmin,
+      usageCount,
+      limit: 50000, // 仮：Lite プランの上限
     });
-  } catch (e) {
-    console.error("Error blocking IP:", e);
-  }
-}
-
-/**
- * IPをブロックリストから解除
- */
-export async function unblockIp(ip: string, reason: string = "manual"): Promise<void> {
-  try {
-    await adminDb.collection("block_ips").doc(ip).delete();
-  } catch (e) {
-    console.error("Error unblocking IP:", e);
+  } catch (err: any) {
+    console.error("check-ip error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
