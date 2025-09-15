@@ -19,7 +19,16 @@ export default function BlockIpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+
     try {
+      // 管理者IPをブロックしないチェック
+      const adminRes = await fetch("/api/admin/admin-ip/list");
+      const adminIps = await adminRes.json();
+      if (adminIps.some((a: any) => a.ip === ip)) {
+        alert("管理者IPはブロックIPに登録できません");
+        return;
+      }
+
       const res = await fetch("/api/admin/block-ip/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,26 +46,6 @@ export default function BlockIpPage() {
     } catch (err) {
       console.error("ブロックIP登録エラー:", err);
       setMessage("エラーが発生しました");
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("本当に削除しますか？")) return;
-    try {
-      const res = await fetch("/api/admin/delete-ip", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, type: "block" }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        fetchIps();
-      } else {
-        alert("削除失敗: " + (data.error || "不明なエラー"));
-      }
-    } catch (err) {
-      console.error("ブロックIP削除エラー:", err);
-      alert("削除時にエラー発生");
     }
   };
 
@@ -111,13 +100,12 @@ export default function BlockIpPage() {
             <th className="p-2 border">IP</th>
             <th className="p-2 border">Note</th>
             <th className="p-2 border">登録日</th>
-            <th className="p-2 border">操作</th>
           </tr>
         </thead>
         <tbody>
           {ips.length === 0 ? (
             <tr>
-              <td colSpan={4} className="p-4 text-center text-gray-500">
+              <td colSpan={3} className="p-4 text-center text-gray-500">
                 登録されたブロックIPはありません
               </td>
             </tr>
@@ -130,14 +118,6 @@ export default function BlockIpPage() {
                   {item.createdAt
                     ? new Date(item.createdAt).toLocaleString("ja-JP")
                     : "-"}
-                </td>
-                <td className="p-2 border text-center">
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    削除
-                  </button>
                 </td>
               </tr>
             ))

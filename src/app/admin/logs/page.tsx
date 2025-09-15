@@ -244,8 +244,16 @@ export default function LogsPage() {
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                     <div className="flex items-center gap-2">
-                      {log.isAdmin && (
+                      {log.isAdmin ? (
+                        // 管理者IPは青だけ
                         <span className="w-2 h-2 rounded-full bg-blue-500" />
+                      ) : (
+                        // 通常IPは赤/緑
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            log.blocked ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
                       )}
                       <span>{log.ip}</span>
                       {log.isBot && (
@@ -256,14 +264,7 @@ export default function LogsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          log.blocked ? "bg-red-500" : "bg-green-500"
-                        }`}
-                      />
-                      <span>{log.country}</span>
-                    </div>
+                    <span>{log.country}</span>
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
                     {log.userAgent}
