@@ -9,6 +9,8 @@ import {
   PlusCircleIcon,
   ListBulletIcon,
   ChartBarSquareIcon,
+  ShieldCheckIcon,
+  UserCircleIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -26,7 +28,34 @@ export default function AdminLayout({
     { name: "IP追加", href: "/admin/add-ip", icon: PlusCircleIcon },
     { name: "IPリスト", href: "/admin/list-ip", icon: ListBulletIcon },
     { name: "アクセスログ", href: "/admin/logs", icon: ChartBarSquareIcon },
+    { name: "ブロック設定", href: "/admin/blocked", icon: ShieldCheckIcon }, // ✅ 追加
+    { name: "管理者IP追加", href: "/admin/add-admin-ip", icon: UserCircleIcon }, // ✅ 追加
+    { name: "管理者リスト", href: "/admin/list-admin-ip", icon: UserCircleIcon }, // ✅ 追加
   ];
+
+  const renderNav = (closeSidebar?: () => void) => (
+    <nav className="p-4 space-y-1 flex-1">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const active = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => closeSidebar && closeSidebar()} // モバイル時は閉じる
+            className={`flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${
+              active
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Icon className="h-5 w-5" />
+            {item.name}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -44,37 +73,17 @@ export default function AdminLayout({
           <h1 className="text-lg font-bold text-indigo-600">BOTガードMAN</h1>
           <p className="text-xs text-gray-500">管理画面</p>
         </div>
-        <nav className="p-4 space-y-1 flex-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${
-                  active
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
+        {renderNav()}
       </aside>
 
       {/* ✅ サイドバー（モバイルスライドイン） */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
-          {/* 背景の黒いオーバーレイ */}
+          {/* 背景オーバーレイ */}
           <div
             className="fixed inset-0 bg-black/40"
             onClick={() => setSidebarOpen(false)}
-          ></div>
-
+          />
           {/* スライドインパネル */}
           <aside className="relative w-64 bg-white shadow-lg flex flex-col z-50">
             <div className="flex items-center justify-between p-6 border-b">
@@ -86,27 +95,7 @@ export default function AdminLayout({
                 <XMarkIcon className="h-6 w-6 text-gray-700" />
               </button>
             </div>
-            <nav className="p-4 space-y-1 flex-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)} // ✅ 選択後に閉じる
-                    className={`flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${
-                      active
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </nav>
+            {renderNav(() => setSidebarOpen(false))}
           </aside>
         </div>
       )}
