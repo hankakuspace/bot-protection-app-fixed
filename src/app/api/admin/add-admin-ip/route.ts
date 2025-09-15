@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing IP" }, { status: 400 });
     }
 
-    await adminDb.collection("admin_ips").doc(ip).set({
+    // ✅ 自動IDで複数件登録できるように変更
+    await adminDb.collection("admin_ips").add({
       ip,
       note: note || "",
       isAdmin: true,
