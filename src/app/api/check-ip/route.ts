@@ -66,6 +66,9 @@ export async function GET(req: NextRequest) {
     // ✅ 管理者IP判定
     const isAdmin = ip ? await isAdminIp(String(ip)) : false;
 
+    // ✅ デバッグログ
+    console.log("DEBUG check-ip:", { ip, isAdmin });
+
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
