@@ -4,7 +4,6 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { clientDb } from "@/lib/firebase-client"; // ✅ 修正: db → clientDb
-import AdminNav from "@/components/AdminNav";
 
 type BlockCountry = {
   id: string;
@@ -31,7 +30,6 @@ export default function BlockedPage() {
 
   return (
     <div className="flex">
-      <AdminNav />
       <main className="flex-1 p-6">
         <h1 className="text-xl font-bold mb-4">ブロック国リスト</h1>
         <table className="w-full border">

@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import AdminNav from "@/components/AdminNav"; // ← 共通ナビ追加
 
 export default function ListIpPage() {
   const [ips, setIps] = useState<string[]>([]);
@@ -23,7 +22,6 @@ export default function ListIpPage() {
   return (
     <div className="p-6">
       {/* 共通ナビ */}
-      <AdminNav />
 
       <h1 className="text-xl font-bold mb-4">登録済みIP一覧</h1>
       {ips.length > 0 ? (

@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminNav from "@/components/AdminNav";
 import { RefreshCw, Code, Download } from "lucide-react"; // 👈 アイコン追加
 
 interface AccessLog {
@@ -144,7 +143,6 @@ export default function LogsPage() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <AdminNav />
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
       {/* from/to + Reload + JSON/CSV */}
