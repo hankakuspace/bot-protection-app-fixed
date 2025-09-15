@@ -18,26 +18,37 @@ export default function BlockIpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/admin/add-ip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ip, note }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      setMessage("ブロックIPを登録しました");
-      setIp("");
-      setNote("");
-      fetchIps();
-    } else {
-      setMessage("エラー: " + (data.error || "登録に失敗"));
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/admin/add-ip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip, note }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage("ブロックIPを登録しました");
+        setIp("");
+        setNote("");
+        fetchIps(); // ✅ 登録後に一覧更新
+      } else {
+        setMessage("エラー: " + (data.error || "登録に失敗"));
+      }
+    } catch (err) {
+      console.error("ブロックIP登録エラー:", err);
+      setMessage("エラーが発生しました");
     }
   };
 
   const fetchIps = async () => {
-    const res = await fetch("/api/admin/list-ip");
-    const data = await res.json();
-    setIps(data);
+    try {
+      const res = await fetch("/api/admin/list-ip");
+      const data = await res.json();
+      setIps(data);
+    } catch (err) {
+      console.error("ブロックIP一覧取得エラー:", err);
+    }
   };
 
   useEffect(() => {
@@ -83,13 +94,25 @@ export default function BlockIpPage() {
           </tr>
         </thead>
         <tbody>
-          {ips.map((item) => (
-            <tr key={item.id}>
-              <td className="p-2 border">{item.ip}</td>
-              <td className="p-2 border">{item.note}</td>
-              <td className="p-2 border">{item.createdAt || "-"}</td>
+          {ips.length === 0 ? (
+            <tr>
+              <td colSpan={3} className="p-4 text-center text-gray-500">
+                登録されたブロックIPはありません
+              </td>
             </tr>
-          ))}
+          ) : (
+            ips.map((item) => (
+              <tr key={item.id}>
+                <td className="p-2 border">{item.ip}</td>
+                <td className="p-2 border">{item.note}</td>
+                <td className="p-2 border">
+                  {item.createdAt
+                    ? new Date(item.createdAt).toLocaleString("ja-JP")
+                    : "-"}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
