@@ -84,7 +84,7 @@ export async function isAdminIp(ip: string): Promise<boolean> {
         .trim()
         .toLowerCase();
 
-      // ✅ デバッグログ出力
+      // ✅ デバッグログ
       console.log("DEBUG isAdminIp compare:", { normalized, target });
 
       if (
@@ -102,6 +102,7 @@ export async function isAdminIp(ip: string): Promise<boolean> {
     return false;
   }
 }
+
 
 /**
  * IPをブロックリストに追加
