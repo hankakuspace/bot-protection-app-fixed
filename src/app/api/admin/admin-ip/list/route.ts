@@ -6,12 +6,18 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   try {
-    const snapshot = await adminDb.collection("admin_ips").orderBy("createdAt", "desc").get();
+    const snapshot = await adminDb
+      .collection("admin_ips")
+      .orderBy("createdAt", "desc")
+      .get();
+
     const ips = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.().toISOString() || null,
     }));
+
+    // ✅ 配列だけ返す
     return NextResponse.json(ips);
   } catch (err: any) {
     console.error("list-admin-ip error:", err);
