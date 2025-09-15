@@ -13,11 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing IP" }, { status: 400 });
     }
 
-    await adminDb.collection("blocked_ips").doc(ip).set({
+    await adminDb.collection("admin_ips").doc(ip).set({
       ip,
       note: note || "",
       isAdmin: true,
-      blocked: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
