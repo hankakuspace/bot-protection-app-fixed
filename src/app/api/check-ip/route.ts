@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp, isAdminIp } from "@/lib/check-ip";
-import { verifyAppProxySignature } from "@/lib/verifyAppProxy";
+// import { verifyAppProxySignature } from "@/lib/verifyAppProxy"; // ✅ デバッグ用にコメントアウト
 import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
 
-    // ✅ Shopify Proxy署名検証
+    // ✅ デバッグのため署名検証をスキップ
+    /*
     const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
     if (!result.ok) {
       return NextResponse.json(
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
+    */
 
     // ✅ shop を抽出
     const shop = url.searchParams.get("shop");
@@ -48,6 +50,7 @@ export async function GET(req: NextRequest) {
 
     // ✅ クライアントIP取得
     const ip = await getClientIp(req);
+    console.error("🔥 DEBUG check-ip ip:", ip);
 
     // ✅ 国コード判定
     let country: string = "UNKNOWN";
@@ -65,9 +68,7 @@ export async function GET(req: NextRequest) {
 
     // ✅ 管理者IP判定
     const isAdmin = ip ? await isAdminIp(String(ip)) : false;
-
-    // ✅ デバッグログ
-    console.log("DEBUG check-ip:", { ip, isAdmin });
+    console.error("🔥 DEBUG check-ip result:", { ip, isAdmin });
 
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
