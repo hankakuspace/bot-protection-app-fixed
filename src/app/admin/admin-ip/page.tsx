@@ -21,34 +21,42 @@ export default function AdminIpPage() {
     setMessage("");
 
     try {
-      const res = await fetch("/api/admin/add-admin-ip", {
+      const res = await fetch("/api/admin/admin-ip/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ip, note }),
       });
-
       const data = await res.json();
       if (data.ok) {
         setMessage("管理者IPを登録しました");
         setIp("");
         setNote("");
-        fetchIps(); // 登録後にリスト更新
+        fetchIps();
       } else {
         setMessage(data.error || "登録に失敗しました");
       }
     } catch (err) {
-      console.error(err);
+      console.error("管理者IP登録エラー:", err);
       setMessage("エラーが発生しました");
     }
   };
 
   const fetchIps = async () => {
     try {
-      const res = await fetch("/api/admin/list-admin-ip");
+      const res = await fetch("/api/admin/admin-ip/list");
       const data = await res.json();
-      setIps(data);
+      console.log("管理者IP一覧:", data);
+
+      if (Array.isArray(data)) {
+        setIps(data);
+      } else if (Array.isArray(data.ips)) {
+        setIps(data.ips);
+      } else {
+        setIps([]);
+      }
     } catch (err) {
       console.error("管理者IP一覧取得エラー:", err);
+      setIps([]);
     }
   };
 
@@ -83,7 +91,7 @@ export default function AdminIpPage() {
           登録
         </button>
       </form>
-      {message && <p className="mt-4">{message}</p>}
+      {message && <p>{message}</p>}
 
       {/* 一覧テーブル */}
       <table className="w-full border">

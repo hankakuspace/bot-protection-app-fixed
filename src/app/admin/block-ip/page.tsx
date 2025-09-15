@@ -21,7 +21,7 @@ export default function BlockIpPage() {
     setMessage("");
 
     try {
-      const res = await fetch("/api/admin/add-ip", {
+      const res = await fetch("/api/admin/block-ip/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ip, note }),
@@ -31,7 +31,7 @@ export default function BlockIpPage() {
         setMessage("ブロックIPを登録しました");
         setIp("");
         setNote("");
-        fetchIps(); // ✅ 登録後にリスト更新
+        fetchIps();
       } else {
         setMessage("エラー: " + (data.error || "登録に失敗"));
       }
@@ -43,14 +43,15 @@ export default function BlockIpPage() {
 
   const fetchIps = async () => {
     try {
-      const res = await fetch("/api/admin/list-ip");
+      const res = await fetch("/api/admin/block-ip/list");
       const data = await res.json();
       console.log("ブロックIP一覧:", data);
 
       if (Array.isArray(data)) {
         setIps(data);
+      } else if (Array.isArray(data.ips)) {
+        setIps(data.ips);
       } else {
-        console.error("list-ip API が配列を返していません:", data);
         setIps([]);
       }
     } catch (err) {
@@ -92,7 +93,7 @@ export default function BlockIpPage() {
       </form>
       {message && <p>{message}</p>}
 
-      {/* 一覧 */}
+      {/* 一覧テーブル */}
       <table className="w-full border">
         <thead>
           <tr className="bg-gray-100">
@@ -102,7 +103,13 @@ export default function BlockIpPage() {
           </tr>
         </thead>
         <tbody>
-          {Array.isArray(ips) && ips.length > 0 ? (
+          {ips.length === 0 ? (
+            <tr>
+              <td colSpan={3} className="p-4 text-center text-gray-500">
+                登録されたブロックIPはありません
+              </td>
+            </tr>
+          ) : (
             ips.map((item) => (
               <tr key={item.id}>
                 <td className="p-2 border">{item.ip}</td>
@@ -114,12 +121,6 @@ export default function BlockIpPage() {
                 </td>
               </tr>
             ))
-          ) : (
-            <tr>
-              <td colSpan={3} className="p-4 text-center text-gray-500">
-                登録されたブロックIPはありません
-              </td>
-            </tr>
           )}
         </tbody>
       </table>
