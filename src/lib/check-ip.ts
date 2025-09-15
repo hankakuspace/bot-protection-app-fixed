@@ -1,139 +1,46 @@
 // src/lib/check-ip.ts
-import type { NextRequest } from "next/server";
-import requestIp from "request-ip";
 import { adminDb } from "@/lib/firebase";
 
-/**
- * クライアントIPを正規化して取得（必ずIPv4優先。なければIPv6を保存）
- */
-export async function getClientIp(req: NextRequest): Promise<string> {
-  const headers = req.headers;
-
-  const cf = headers.get("cf-connecting-ip");
-  const shopify = headers.get("x-shopify-client-ip");
-  const xff = headers.get("x-forwarded-for")?.split(",")[0].trim();
-  const xri = headers.get("x-real-ip");
-
-  let ip =
-    cf ||
-    shopify ||
-    xff ||
-    xri ||
-    requestIp.getClientIp(req as any) ||
-    "UNKNOWN";
-
+// ✅ クライアントIP正規化
+export function getClientIp(req: any): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  let ip = forwarded ? forwarded.split(",")[0].trim() : req.ip ?? "";
   if (ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
   }
-
-  // IPv4正規表現
-  const ipv4Regex =
-    /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-
-  if (ipv4Regex.test(ip)) return ip;
-
-  // IPv6を持っている場合 → ipinfoで変換を試みる
-  try {
-    const token = process.env.IPINFO_TOKEN;
-    if (token && ip !== "UNKNOWN") {
-      const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ip && ipv4Regex.test(data.ip)) {
-          return data.ip; // 変換成功
-        }
-      }
-    }
-  } catch (e) {
-    console.error("IPv6 to IPv4 lookup failed:", e);
-  }
-
   return ip;
 }
 
-/**
- * 指定されたIPがブロックされているかどうかを判定
- */
-export async function isIpBlocked(ip: string): Promise<boolean> {
-  try {
-    const doc = await adminDb.collection("block_ips").doc(ip).get();
-    return doc.exists;
-  } catch (e) {
-    console.error("Error checking if IP is blocked:", e);
-    return false;
-  }
-}
-
-/**
- * 管理者IPかどうかを判定（IPv6は/64プレフィックスで比較）
- */
+// ✅ 管理者IP判定
 export async function isAdminIp(ip: string): Promise<boolean> {
-  try {
-    const snap = await adminDb.collection("admin_ips").get();
-    const normalized = ip.trim().toLowerCase();
+  if (!ip) return false;
 
-    // IPv6なら前半64bitをプレフィックスとして切り出し
-    const isIpv6 = normalized.includes(":");
-    const ipPrefix = isIpv6
-      ? normalized.split(":").slice(0, 4).join(":") // 先頭4ブロック
-      : normalized;
+  // Firestoreの admin_ips コレクションを取得
+  const snapshot = await adminDb.collection("admin_ips").get();
+  const adminIps = snapshot.docs.map((doc) => doc.id);
 
-    let result = false;
+  // デバッグログ
+  console.log("🔥 DEBUG isAdminIp check", { requestIp: ip, adminIps });
 
-    snap.docs.forEach((doc) => {
-      const data = doc.data();
-      if (!data.ip) return;
+  // IPv4-mapped IPv6 を正規化
+  const normalizedIp = ip.replace(/^::ffff:/, "");
 
-      const target = String(data.ip)
-        .replace(/^"+|"+$/g, "")
-        .trim()
-        .toLowerCase();
-
-      if (isIpv6) {
-        // IPv6はプレフィックス比較
-        const targetPrefix = target.split(":").slice(0, 4).join(":");
-        console.error("🔥 DEBUG isAdminIp compare IPv6:", { ipPrefix, targetPrefix });
-        if (targetPrefix === ipPrefix) {
-          result = true;
-        }
-      } else {
-        // IPv4は完全一致
-        console.error("🔥 DEBUG isAdminIp compare IPv4:", { ipPrefix, target });
-        if (target === ipPrefix) {
-          result = true;
-        }
-      }
-    });
-
-    return result;
-  } catch (e) {
-    console.error("Error checking if IP is admin:", e);
-    return false;
-  }
+  return adminIps.some((adminIp) => {
+    // IPv6同士なら /64 プレフィックス比較
+    if (normalizedIp.includes(":") && adminIp.includes(":")) {
+      const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
+      const prefixAdmin = adminIp.split(":").slice(0, 4).join(":");
+      return prefixReq === prefixAdmin;
+    }
+    // IPv4なら完全一致
+    return normalizedIp === adminIp;
+  });
 }
 
-/**
- * IPをブロックリストに追加
- */
-export async function blockIp(ip: string, reason: string = "manual"): Promise<void> {
-  try {
-    await adminDb.collection("block_ips").doc(ip).set({
-      blocked: true,
-      reason,
-      createdAt: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.error("Error blocking IP:", e);
-  }
-}
-
-/**
- * IPをブロックリストから解除
- */
-export async function unblockIp(ip: string, reason: string = "manual"): Promise<void> {
-  try {
-    await adminDb.collection("block_ips").doc(ip).delete();
-  } catch (e) {
-    console.error("Error unblocking IP:", e);
-  }
+// ✅ ブロックIP判定
+export async function isIpBlocked(ip: string): Promise<boolean> {
+  if (!ip) return false;
+  const ref = adminDb.collection("blocked_ips").doc(ip);
+  const doc = await ref.get();
+  return doc.exists;
 }
