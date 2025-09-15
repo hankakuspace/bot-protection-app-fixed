@@ -45,15 +45,7 @@ export default function BlockIpPage() {
     try {
       const res = await fetch("/api/admin/block-ip/list");
       const data = await res.json();
-      console.log("ブロックIP一覧:", data);
-
-      if (Array.isArray(data)) {
-        setIps(data);
-      } else if (Array.isArray(data.ips)) {
-        setIps(data.ips);
-      } else {
-        setIps([]);
-      }
+      setIps(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("ブロックIP一覧取得エラー:", err);
       setIps([]);

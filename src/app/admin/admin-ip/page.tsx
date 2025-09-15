@@ -45,15 +45,7 @@ export default function AdminIpPage() {
     try {
       const res = await fetch("/api/admin/admin-ip/list");
       const data = await res.json();
-      console.log("管理者IP一覧:", data);
-
-      if (Array.isArray(data)) {
-        setIps(data);
-      } else if (Array.isArray(data.ips)) {
-        setIps(data.ips);
-      } else {
-        setIps([]);
-      }
+      setIps(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("管理者IP一覧取得エラー:", err);
       setIps([]);
