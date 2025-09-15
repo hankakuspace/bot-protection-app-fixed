@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, Code, Download } from "lucide-react"; // 👈 アイコン追加
+import { RefreshCw, Code, Download } from "lucide-react";
 
 interface AccessLog {
   id: string;
@@ -30,7 +30,6 @@ export default function LogsPage() {
   const [filterCountry, setFilterCountry] = useState("");
   const [filterBlocked, setFilterBlocked] = useState("");
   const [filterAdmin, setFilterAdmin] = useState("");
-  const [filterBot, setFilterBot] = useState("");
 
   const fetchLogs = async (
     from: string,
@@ -38,11 +37,8 @@ export default function LogsPage() {
     offset: number,
     append = false
   ) => {
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
+    if (append) setLoadingMore(true);
+    else setLoading(true);
 
     try {
       const res = await fetch(
@@ -51,11 +47,8 @@ export default function LogsPage() {
       const data = await res.json();
       const newLogs: AccessLog[] = data.logs || [];
 
-      if (append) {
-        setLogs((prev) => [...prev, ...newLogs]);
-      } else {
-        setLogs(newLogs);
-      }
+      if (append) setLogs((prev) => [...prev, ...newLogs]);
+      else setLogs(newLogs);
 
       setHasMore(newLogs.length === 100);
     } catch (e) {
@@ -91,12 +84,10 @@ export default function LogsPage() {
     if (filterBlocked === "false" && log.blocked) return false;
     if (filterAdmin === "true" && !log.isAdmin) return false;
     if (filterAdmin === "false" && log.isAdmin) return false;
-    if (filterBot === "true" && !log.isBot) return false;
-    if (filterBot === "false" && log.isBot) return false;
     return true;
   });
 
-  // JSONダウンロード処理
+  // JSONダウンロード
   const handleDownloadJson = () => {
     const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
       type: "application/json",
@@ -108,7 +99,7 @@ export default function LogsPage() {
     a.click();
   };
 
-  // CSVダウンロード処理
+  // CSVダウンロード
   const handleDownloadCsv = () => {
     const header = [
       "timestamp",
@@ -141,12 +132,17 @@ export default function LogsPage() {
     a.click();
   };
 
+  // 国リスト作成
+  const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(
+    Boolean
+  );
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
-      {/* from/to + Reload + JSON/CSV */}
-      <div className="flex items-center gap-4 mb-4">
+      {/* 日付 + Reload + JSON/CSV */}
+      <div className="flex flex-wrap items-center gap-4 mb-4">
         <input
           type="date"
           value={fromDate}
@@ -189,6 +185,42 @@ export default function LogsPage() {
         </button>
       </div>
 
+      {/* フィルタ */}
+      <div className="flex flex-wrap gap-4 mb-4 text-sm">
+        <select
+          value={filterCountry}
+          onChange={(e) => setFilterCountry(e.target.value)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="">全ての国</option>
+          {countryOptions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterBlocked}
+          onChange={(e) => setFilterBlocked(e.target.value)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="">Blocked/Allowed 全て</option>
+          <option value="true">Blocked のみ</option>
+          <option value="false">Allowed のみ</option>
+        </select>
+
+        <select
+          value={filterAdmin}
+          onChange={(e) => setFilterAdmin(e.target.value)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="">管理者/非管理者 全て</option>
+          <option value="true">管理者のみ</option>
+          <option value="false">非管理者のみ</option>
+        </select>
+      </div>
+
       {loading ? (
         <p>読み込み中...</p>
       ) : filteredLogs.length === 0 ? (
@@ -201,7 +233,6 @@ export default function LogsPage() {
                 <th className="px-4 py-3 border-b border-gray-200">Timestamp</th>
                 <th className="px-4 py-3 border-b border-gray-200">IP</th>
                 <th className="px-4 py-3 border-b border-gray-200">Country</th>
-                <th className="px-4 py-3 border-b border-gray-200">isAdmin</th>
                 <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
               </tr>
             </thead>
@@ -213,11 +244,9 @@ export default function LogsPage() {
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          log.blocked ? "bg-red-500" : "bg-green-500"
-                        }`}
-                      />
+                      {log.isAdmin && (
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                      )}
                       <span>{log.ip}</span>
                       {log.isBot && (
                         <span className="ml-2 px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">
@@ -230,14 +259,11 @@ export default function LogsPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full ${
-                          log.allowedCountry ? "bg-green-500" : "bg-red-500"
+                          log.blocked ? "bg-red-500" : "bg-green-500"
                         }`}
                       />
                       <span>{log.country}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-center">
-                    {log.isAdmin ? "👑" : "—"}
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
                     {log.userAgent}
