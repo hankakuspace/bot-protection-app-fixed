@@ -17,6 +17,9 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("delete-ip error:", err);
-    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
+    return NextResponse.json(
+      { error: err?.message || String(err) },
+      { status: 500 }
+    );
   }
 }
