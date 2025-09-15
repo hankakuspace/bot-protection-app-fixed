@@ -1,20 +1,31 @@
-// src/app/api/admin/list-admin-ip/route.ts
+// src/app/api/admin/add-admin-ip/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
+import admin from "firebase-admin";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const snapshot = await adminDb.collection("admin_ips").orderBy("createdAt", "desc").get();
-    const ips = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate().toISOString() || null,
-    }));
-    return NextResponse.json(ips);
+    const { ip, note } = await req.json();
+
+    if (!ip) {
+      return NextResponse.json({ error: "Missing IP" }, { status: 400 });
+    }
+
+    await adminDb.collection("admin_ips").doc(ip).set({
+      ip,
+      note: note || "",
+      isAdmin: true,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("list-admin-ip error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("add-admin-ip error:", err);
+    return NextResponse.json(
+      { error: err?.message || String(err) },
+      { status: 500 }
+    );
   }
 }
