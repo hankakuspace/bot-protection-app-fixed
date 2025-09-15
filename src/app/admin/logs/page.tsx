@@ -265,7 +265,7 @@ export default function LogsPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`w-2 h-2 rounded-full ${
-                          log.blocked ? "bg-red-500" : "bg-green-500"
+                          log.allowedCountry === false ? "bg-red-500" : "bg-green-500"
                         }`}
                       />
                       <span>{log.country}</span>

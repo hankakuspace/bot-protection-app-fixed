@@ -67,17 +67,18 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 }
 
 /**
- * 管理者IPかどうかを判定（フィールド検索版）
+ * 管理者IPかどうかを判定（正規化比較）
  */
 export async function isAdminIp(ip: string): Promise<boolean> {
   try {
-    const snap = await adminDb
-      .collection("admin_ips")
-      .where("ip", "==", ip)
-      .limit(1)
-      .get();
+    const snap = await adminDb.collection("admin_ips").get();
+    const normalized = ip.trim().toLowerCase();
 
-    return !snap.empty;
+    return snap.docs.some((doc) => {
+      const data = doc.data();
+      if (!data.ip) return false;
+      return String(data.ip).trim().toLowerCase() === normalized;
+    });
   } catch (e) {
     console.error("Error checking if IP is admin:", e);
     return false;
