@@ -67,29 +67,36 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 }
 
 /**
- * 管理者IPかどうかを判定（Firestore値のクオート除去 & IPv6表記揺れ対応）
+ * 管理者IPかどうかを判定（デバッグログ付き）
  */
 export async function isAdminIp(ip: string): Promise<boolean> {
   try {
     const snap = await adminDb.collection("admin_ips").get();
     const normalized = ip.trim().toLowerCase();
 
-    return snap.docs.some((doc) => {
-      const data = doc.data();
-      if (!data.ip) return false;
+    let result = false;
 
-      // Firestoreに保存されている値を正規化（前後のクオート除去 + 小文字化）
+    snap.docs.forEach((doc) => {
+      const data = doc.data();
+      if (!data.ip) return;
       const target = String(data.ip)
-        .replace(/^"+|"+$/g, "") // 余分なダブルクオートを削除
+        .replace(/^"+|"+$/g, "")
         .trim()
         .toLowerCase();
 
-      return (
+      // ✅ デバッグログ出力
+      console.log("DEBUG isAdminIp compare:", { normalized, target });
+
+      if (
         target === normalized ||
         target.startsWith(normalized) ||
         normalized.startsWith(target)
-      );
+      ) {
+        result = true;
+      }
     });
+
+    return result;
   } catch (e) {
     console.error("Error checking if IP is admin:", e);
     return false;
