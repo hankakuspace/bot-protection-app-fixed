@@ -4,18 +4,23 @@ import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const ip = searchParams.get("ip");
-    if (!ip) return NextResponse.json({ error: "Missing ip" }, { status: 400 });
+    const { ip } = await req.json();
+    if (!ip) {
+      return NextResponse.json({ error: "Missing IP" }, { status: 400 });
+    }
 
-    const snap = await adminDb.collection("blocked_ips").doc(ip).get();
-    const blocked = snap.exists;
+    const blocked = await adminDb.collection("blocked_ips").doc(ip).get();
+    const adminIp = await adminDb.collection("admin_ips").doc(ip).get();
 
-    return NextResponse.json({ ip, blocked });
+    return NextResponse.json({
+      ip,
+      isBlocked: blocked.exists,
+      isAdmin: adminIp.exists,
+    });
   } catch (err: any) {
     console.error("check-ip error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
 }

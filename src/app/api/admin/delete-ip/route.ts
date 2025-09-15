@@ -4,16 +4,19 @@ import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+export async function DELETE(req: NextRequest) {
   try {
-    const { ip } = await req.json();
-    if (!ip) return NextResponse.json({ error: "Missing ip" }, { status: 400 });
+    const { id, type } = await req.json(); // type: "admin" | "block"
+    if (!id || !type) {
+      return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    }
 
-    await adminDb.collection("blocked_ips").doc(ip).delete();
+    const collection = type === "admin" ? "admin_ips" : "blocked_ips";
+    await adminDb.collection(collection).doc(id).delete();
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("delete-ip error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
 }
