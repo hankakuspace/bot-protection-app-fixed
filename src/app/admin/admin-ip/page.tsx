@@ -1,12 +1,20 @@
-// src/app/admin/add-admin-ip/page.tsx
+// src/app/admin/admin-ip/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function AddAdminIpPage() {
+interface AdminIp {
+  id: string;
+  ip: string;
+  note: string;
+  createdAt?: string;
+}
+
+export default function AdminIpPage() {
   const [ip, setIp] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
+  const [ips, setIps] = useState<AdminIp[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +32,7 @@ export default function AddAdminIpPage() {
         setMessage("管理者IPを登録しました");
         setIp("");
         setNote("");
+        fetchIps(); // 登録後にリスト更新
       } else {
         setMessage(data.error || "登録に失敗しました");
       }
@@ -33,10 +42,26 @@ export default function AddAdminIpPage() {
     }
   };
 
+  const fetchIps = async () => {
+    try {
+      const res = await fetch("/api/admin/list-admin-ip");
+      const data = await res.json();
+      setIps(data);
+    } catch (err) {
+      console.error("管理者IP一覧取得エラー:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchIps();
+  }, []);
+
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">管理者IP登録</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold">管理者IP</h1>
+
+      {/* 追加フォーム */}
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
         <input
           type="text"
           value={ip}
@@ -59,6 +84,38 @@ export default function AddAdminIpPage() {
         </button>
       </form>
       {message && <p className="mt-4">{message}</p>}
+
+      {/* 一覧テーブル */}
+      <table className="w-full border">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2 border">IP</th>
+            <th className="p-2 border">Note</th>
+            <th className="p-2 border">登録日</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ips.length === 0 ? (
+            <tr>
+              <td colSpan={3} className="p-4 text-center text-gray-500">
+                登録された管理者IPはありません
+              </td>
+            </tr>
+          ) : (
+            ips.map((item) => (
+              <tr key={item.id}>
+                <td className="p-2 border">{item.ip}</td>
+                <td className="p-2 border">{item.note}</td>
+                <td className="p-2 border">
+                  {item.createdAt
+                    ? new Date(item.createdAt).toLocaleString("ja-JP")
+                    : "-"}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
