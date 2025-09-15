@@ -67,7 +67,7 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
 }
 
 /**
- * 管理者IPかどうかを判定（IPv6表記揺れ対応）
+ * 管理者IPかどうかを判定（Firestore値のクオート除去 & IPv6表記揺れ対応）
  */
 export async function isAdminIp(ip: string): Promise<boolean> {
   try {
@@ -77,9 +77,13 @@ export async function isAdminIp(ip: string): Promise<boolean> {
     return snap.docs.some((doc) => {
       const data = doc.data();
       if (!data.ip) return false;
-      const target = String(data.ip).trim().toLowerCase();
 
-      // ✅ 完全一致 or 部分一致（ゼロ圧縮などを考慮）
+      // Firestoreに保存されている値を正規化（前後のクオート除去 + 小文字化）
+      const target = String(data.ip)
+        .replace(/^"+|"+$/g, "") // 余分なダブルクオートを削除
+        .trim()
+        .toLowerCase();
+
       return (
         target === normalized ||
         target.startsWith(normalized) ||
