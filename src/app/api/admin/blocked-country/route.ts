@@ -5,33 +5,26 @@ import admin from "firebase-admin";
 
 export const runtime = "nodejs";
 
-/**
- * 国ブロック登録API
- * - リクエスト: { id: string, note?: string }
- */
 export async function POST(req: NextRequest) {
   try {
     const { id, note } = await req.json();
 
     if (!id || typeof id !== "string" || !/^[A-Z]{2}$/.test(id)) {
       return NextResponse.json(
-        { ok: false, error: "Invalid country code (must be 2 letters)" },
+        { ok: false, error: "Invalid country code" },
         { status: 400 }
       );
     }
 
-    // ✅ db → adminDb に修正
     await adminDb.collection("blocked_countries").doc(id).set({
       enabled: true,
       note: note || "",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.log("[API] blocked-country added:", id);
-
     return NextResponse.json({ ok: true, id });
-  } catch (err) {
-    console.error("[API] Error in blocked-country POST:", err);
+  } catch (err: any) {
+    console.error("blocked-country error:", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

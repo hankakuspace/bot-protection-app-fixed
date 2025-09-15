@@ -2,18 +2,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 
-export const runtime = "nodejs"; // ←追加
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { ip } = body;
+    const { ip } = await req.json();
+    if (!ip) return NextResponse.json({ error: "Missing ip" }, { status: 400 });
 
     await adminDb.collection("blocked_ips").doc(ip).delete();
 
-    return NextResponse.json({ ok: true, deleted: ip });
-  } catch (error) {
-    console.error("Error in delete-ip:", error);
-    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("delete-ip error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

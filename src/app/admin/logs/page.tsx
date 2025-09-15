@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import AdminNav from "@/components/AdminNav";
+import { RefreshCw, Code, Download } from "lucide-react"; // 👈 アイコン追加
 
 interface AccessLog {
   id: string;
@@ -12,7 +13,7 @@ interface AccessLog {
   blocked?: boolean;
   isAdmin?: boolean;
   userAgent?: string;
-  isBot?: boolean; // BOT判定結果（列では表示しないが使用する）
+  isBot?: boolean;
   timestamp: string | null;
 }
 
@@ -30,7 +31,7 @@ export default function LogsPage() {
   const [filterCountry, setFilterCountry] = useState("");
   const [filterBlocked, setFilterBlocked] = useState("");
   const [filterAdmin, setFilterAdmin] = useState("");
-  const [filterBot, setFilterBot] = useState(""); // isBot列は消すがフィルタは残す
+  const [filterBot, setFilterBot] = useState("");
 
   const fetchLogs = async (
     from: string,
@@ -96,6 +97,51 @@ export default function LogsPage() {
     return true;
   });
 
+  // JSONダウンロード処理
+  const handleDownloadJson = () => {
+    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs_${fromDate}_${toDate}.json`;
+    a.click();
+  };
+
+  // CSVダウンロード処理
+  const handleDownloadCsv = () => {
+    const header = [
+      "timestamp",
+      "ip",
+      "country",
+      "blocked",
+      "allowedCountry",
+      "isAdmin",
+      "isBot",
+      "userAgent",
+    ];
+    const rows = filteredLogs.map((l) =>
+      [
+        l.timestamp,
+        l.ip,
+        l.country,
+        l.blocked,
+        l.allowedCountry,
+        l.isAdmin,
+        l.isBot,
+        `"${(l.userAgent || "").replace(/"/g, '""')}"`,
+      ].join(",")
+    );
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs_${fromDate}_${toDate}.csv`;
+    a.click();
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <AdminNav />
@@ -122,62 +168,26 @@ export default function LogsPage() {
             setOffset(0);
             fetchLogs(fromDate, toDate, 0, false);
           }}
-          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200"
+          className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
         >
-          🔄 Reload
+          <RefreshCw size={14} className="text-gray-600" />
+          Reload
         </button>
 
         <button
-          onClick={() => {
-            const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
-              type: "application/json",
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `logs_${fromDate}_${toDate}.json`;
-            a.click();
-          }}
-          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 text-sm"
+          onClick={handleDownloadJson}
+          className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
         >
-          ⬇ JSON
+          <Code size={14} className="text-gray-600" />
+          JSON
         </button>
 
         <button
-          onClick={() => {
-            const header = [
-              "timestamp",
-              "ip",
-              "country",
-              "blocked",
-              "allowedCountry",
-              "isAdmin",
-              "isBot", // 👈 CSVには残す
-              "userAgent",
-            ];
-            const rows = filteredLogs.map((l) =>
-              [
-                l.timestamp,
-                l.ip,
-                l.country,
-                l.blocked,
-                l.allowedCountry,
-                l.isAdmin,
-                l.isBot,
-                `"${(l.userAgent || "").replace(/"/g, '""')}"`,
-              ].join(",")
-            );
-            const csv = [header.join(","), ...rows].join("\n");
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `logs_${fromDate}_${toDate}.csv`;
-            a.click();
-          }}
-          className="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 text-sm"
+          onClick={handleDownloadCsv}
+          className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
         >
-          ⬇ CSV
+          <Download size={14} className="text-gray-600" />
+          CSV
         </button>
       </div>
 
@@ -203,21 +213,21 @@ export default function LogsPage() {
                   <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                     {formatDate(log.timestamp)}
                   </td>
-                <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-  <div className="flex items-center gap-2">
-    <span
-      className={`w-2 h-2 rounded-full ${
-        log.blocked ? "bg-red-500" : "bg-green-500"
-      }`}
-    />
-    <span>{log.ip}</span>
-    {log.isBot && (
-      <span className="ml-2 px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">
-        BOT
-      </span>
-    )}
-  </div>
-</td>
+                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          log.blocked ? "bg-red-500" : "bg-green-500"
+                        }`}
+                      />
+                      <span>{log.ip}</span>
+                      {log.isBot && (
+                        <span className="ml-2 px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">
+                          BOT
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 border-b border-gray-200 text-xs">
                     <div className="flex items-center gap-2">
                       <span

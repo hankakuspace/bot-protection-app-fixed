@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing IP" }, { status: 400 });
     }
 
-    // Firestore に保存 (admin SDK は .doc().set を使用)
     await adminDb.collection("blocked_ips").doc(ip).set({
       ip,
       note: note || "",

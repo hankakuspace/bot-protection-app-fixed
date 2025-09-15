@@ -5,29 +5,20 @@ import admin from "firebase-admin";
 
 export const runtime = "nodejs";
 
-/**
- * IPブロック登録API
- * - リクエスト: { id: string, note?: string }
- */
 export async function POST(req: NextRequest) {
   try {
-    const { id, note } = await req.json();
+    const { ip, note } = await req.json();
+    if (!ip) return NextResponse.json({ error: "Missing ip" }, { status: 400 });
 
-    if (!id || typeof id !== "string") {
-      return NextResponse.json({ ok: false, error: "IP is required" }, { status: 400 });
-    }
-
-    await adminDb.collection("block_ips").doc(id).set({
-      enabled: true,
+    await adminDb.collection("blocked_ips").doc(ip).set({
+      ip,
       note: note || "",
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.log("[API] blocked-ip added:", id);
-
-    return NextResponse.json({ ok: true, id });
-  } catch (err) {
-    console.error("[API] Error in blocked-ip POST:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    return NextResponse.json({ ok: true, ip });
+  } catch (err: any) {
+    console.error("blocked-ip error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
