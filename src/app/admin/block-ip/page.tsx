@@ -31,7 +31,7 @@ export default function BlockIpPage() {
         setMessage("ブロックIPを登録しました");
         setIp("");
         setNote("");
-        fetchIps(); // ✅ 登録後に一覧更新
+        fetchIps(); // ✅ 登録後にリスト更新
       } else {
         setMessage("エラー: " + (data.error || "登録に失敗"));
       }
@@ -45,9 +45,17 @@ export default function BlockIpPage() {
     try {
       const res = await fetch("/api/admin/list-ip");
       const data = await res.json();
-      setIps(data);
+      console.log("ブロックIP一覧:", data);
+
+      if (Array.isArray(data)) {
+        setIps(data);
+      } else {
+        console.error("list-ip API が配列を返していません:", data);
+        setIps([]);
+      }
     } catch (err) {
       console.error("ブロックIP一覧取得エラー:", err);
+      setIps([]);
     }
   };
 
@@ -94,13 +102,7 @@ export default function BlockIpPage() {
           </tr>
         </thead>
         <tbody>
-          {ips.length === 0 ? (
-            <tr>
-              <td colSpan={3} className="p-4 text-center text-gray-500">
-                登録されたブロックIPはありません
-              </td>
-            </tr>
-          ) : (
+          {Array.isArray(ips) && ips.length > 0 ? (
             ips.map((item) => (
               <tr key={item.id}>
                 <td className="p-2 border">{item.ip}</td>
@@ -112,6 +114,12 @@ export default function BlockIpPage() {
                 </td>
               </tr>
             ))
+          ) : (
+            <tr>
+              <td colSpan={3} className="p-4 text-center text-gray-500">
+                登録されたブロックIPはありません
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
