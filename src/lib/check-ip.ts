@@ -44,3 +44,17 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
   const doc = await ref.get();
   return doc.exists;
 }
+
+// ✅ 指定IPをブロックリストに追加
+export async function blockIp(ip: string): Promise<void> {
+  if (!ip) return;
+  await adminDb.collection("blocked_ips").doc(ip).set({
+    createdAt: new Date().toISOString(),
+  });
+}
+
+// ✅ 指定IPをブロックリストから解除
+export async function unblockIp(ip: string): Promise<void> {
+  if (!ip) return;
+  await adminDb.collection("blocked_ips").doc(ip).delete();
+}
