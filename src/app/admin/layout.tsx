@@ -1,153 +1,52 @@
 // src/app/admin/layout.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   HomeIcon,
   ChartBarSquareIcon,
-  PlusCircleIcon,
-  ListBulletIcon,
-  ShieldCheckIcon,
   UserCircleIcon,
+  ShieldExclamationIcon,
+  ShieldCheckIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // 展開中メニュー
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
-
-  const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  // ページ遷移時に該当メニューを自動展開
-  useEffect(() => {
-    if (pathname.startsWith("/admin/add-")) {
-      setOpenMenus((prev) => ({ ...prev, ["IP追加"]: true }));
-    }
-    if (pathname.startsWith("/admin/list-")) {
-      setOpenMenus((prev) => ({ ...prev, ["IPリスト"]: true }));
-    }
-  }, [pathname]);
-
-  const navGroups = [
-    {
-      title: null,
-      items: [
-        { name: "ダッシュボード", href: "/admin/dashboard", icon: HomeIcon },
-        { name: "アクセスログ", href: "/admin/logs", icon: ChartBarSquareIcon },
-      ],
-    },
-    {
-      title: "IP追加",
-      icon: PlusCircleIcon,
-      children: [
-        { name: "管理者", href: "/admin/add-admin-ip" },
-        { name: "ブロック", href: "/admin/add-ip" },
-      ],
-    },
-    {
-      title: "IPリスト",
-      icon: ListBulletIcon,
-      children: [
-        { name: "管理者", href: "/admin/list-admin-ip" },
-        { name: "ブロック", href: "/admin/list-ip" },
-      ],
-    },
-    {
-      title: null,
-      items: [
-        { name: "ブロック設定", href: "/admin/blocked", icon: ShieldCheckIcon },
-      ],
-    },
+  const navItems = [
+    { name: "ダッシュボード", href: "/admin/dashboard", icon: HomeIcon },
+    { name: "アクセスログ", href: "/admin/logs", icon: ChartBarSquareIcon },
+    { name: "管理者IP", href: "/admin/admin-ip", icon: UserCircleIcon },
+    { name: "ブロックIP", href: "/admin/block-ip", icon: ShieldExclamationIcon },
+    { name: "ブロック設定", href: "/admin/blocked", icon: ShieldCheckIcon },
   ];
 
   const renderNav = (closeSidebar?: () => void) => (
-    <nav className="p-4 space-y-4 flex-1">
-      {navGroups.map((group, idx) => (
-        <div key={idx}>
-          {/* 単独メニュー */}
-          {group.items &&
-            group.items.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => closeSidebar && closeSidebar()}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${
-                    active
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-
-          {/* グループメニュー */}
-          {group.title && (
-            <div>
-              {(() => {
-                const childActive = group.children?.some(
-                  (c) => pathname === c.href
-                );
-                const isActive = !!childActive;
-
-                return (
-                  <button
-                    onClick={() => toggleMenu(group.title!)}
-                    className={`flex items-center gap-2 px-4 py-2 w-full font-semibold rounded-md transition ${
-                      isActive
-                        ? "bg-indigo-100 text-indigo-700"
-                        : "text-gray-800 hover:bg-gray-100"
-                    }`}
-                  >
-                    {group.icon && <group.icon className="h-5 w-5" />}
-                    {group.title}
-                  </button>
-                );
-              })()}
-
-              {openMenus[group.title] && (
-                <ul className="ml-10 mt-1 space-y-1">
-                  {group.children?.map((child) => {
-                    const active = pathname === child.href;
-                    return (
-                      <li key={child.href}>
-                        <Link
-                          href={child.href}
-                          onClick={() => closeSidebar && closeSidebar()}
-                          className={`block px-2 py-1 rounded-md text-sm transition ${
-                            active
-                              ? "text-indigo-600 font-semibold"
-                              : "text-gray-700 hover:text-gray-900"
-                          }`}
-                        >
-                          {child.name}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+    <nav className="p-4 space-y-2 flex-1">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const active = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={() => closeSidebar && closeSidebar()}
+            className={`flex items-center gap-3 px-4 py-2 rounded-md font-medium transition ${
+              active
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Icon className="h-5 w-5" />
+            {item.name}
+          </Link>
+        );
+      })}
     </nav>
   );
 
@@ -170,7 +69,7 @@ export default function AdminLayout({
         {renderNav()}
       </aside>
 
-      {/* サイドバー（モバイル） */}
+      {/* サイドバー（モバイルスライドイン） */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
           <div
