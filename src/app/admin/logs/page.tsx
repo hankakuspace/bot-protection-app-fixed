@@ -203,21 +203,21 @@ export default function LogsPage() {
                   <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                     {formatDate(log.timestamp)}
                   </td>
-                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          log.blocked ? "bg-red-500" : "bg-green-500"
-                        }`}
-                      />
-                      <span>{log.ip}</span>
-                      {log.isBot && (
-                        <span className="ml-2 px-2 py-0.5 text-xs rounded bg-gray-200 text-gray-700">
-                          BOT
-                        </span>
-                      )}
-                    </div>
-                  </td>
+                <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+  <div className="flex items-center gap-2">
+    <span
+      className={`w-2 h-2 rounded-full ${
+        log.blocked ? "bg-red-500" : "bg-green-500"
+      }`}
+    />
+    <span>{log.ip}</span>
+    {log.isBot && (
+      <span className="ml-2 px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">
+        BOT
+      </span>
+    )}
+  </div>
+</td>
                   <td className="px-4 py-3 border-b border-gray-200 text-xs">
                     <div className="flex items-center gap-2">
                       <span
