@@ -55,15 +55,7 @@ export async function GET(req: NextRequest) {
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
-    // ✅ デバッグログ（保存前）
-    console.log("🔥 DEBUG 保存処理 reached", {
-      ip,
-      country,
-      isAdmin,
-      now: new Date().toISOString(),
-    });
-
-    // ✅ アクセスログ保存（createdAt と timestamp の両方を保存）
+    // ✅ アクセスログ保存（createdAt と logTimestamp の両方を保存）
     const ref = await adminDb.collection("access_logs").add({
       shop,
       ip: String(ip),
@@ -73,10 +65,9 @@ export async function GET(req: NextRequest) {
       isAdmin,
       userAgent,
       createdAt: FieldValue.serverTimestamp(),   // Firestore Timestamp
-      timestamp: new Date().toISOString(),       // UI表示用
+      logTimestamp: new Date().toISOString(),   // ISO文字列に統一
     });
 
-    // ✅ 保存完了ログ
     console.log("🔥 DEBUG Firestore 保存完了", { docId: ref.id });
 
     // ✅ レスポンス

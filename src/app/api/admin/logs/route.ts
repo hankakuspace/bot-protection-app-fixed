@@ -13,16 +13,14 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0", 10);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 
-    // ✅ createdAt を基準にソート
-    let query = adminDb.collection("access_logs").orderBy("createdAt", "desc");
+    // ✅ logTimestamp に統一
+    let query = adminDb.collection("access_logs").orderBy("logTimestamp", "desc");
 
     if (from) {
-      query = query.where("createdAt", ">=", new Date(from));
+      query = query.where("logTimestamp", ">=", from);
     }
     if (to) {
-      const toDate = new Date(to);
-      toDate.setDate(toDate.getDate() + 1);
-      query = query.where("createdAt", "<=", toDate);
+      query = query.where("logTimestamp", "<=", to);
     }
 
     const snapshot = await query.offset(offset).limit(limit).get();
@@ -33,7 +31,6 @@ export async function GET(req: NextRequest) {
         const ip = data.ip || "";
         let isAdmin = data.isAdmin ?? false;
 
-        // ✅ 再判定して補正
         if (ip) {
           const check = await isAdminIp(ip);
           if (check) {
@@ -45,6 +42,8 @@ export async function GET(req: NextRequest) {
           id: doc.id,
           ...data,
           isAdmin,
+          // ✅ 既存 createdAt を fallback に使用
+          logTimestamp: data.logTimestamp || (data.createdAt?.toDate?.().toISOString() ?? null),
         };
       })
     );
