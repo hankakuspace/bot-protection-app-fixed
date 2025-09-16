@@ -1,13 +1,21 @@
 // src/lib/check-ip.ts
 import { adminDb } from "@/lib/firebase";
 
-// ✅ クライアントIP正規化
+// ✅ クライアントIP正規化（Cloudflare対応）
 export function getClientIp(req: any): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  let ip = forwarded ? forwarded.split(",")[0].trim() : req.ip ?? "";
-  if (ip.startsWith("::ffff:")) {
+  // Cloudflare 経由の場合は CF-Connecting-IP を優先
+  let ip = req.headers.get("cf-connecting-ip");
+
+  if (!ip) {
+    // fallback: x-forwarded-for → req.ip
+    const forwarded = req.headers.get("x-forwarded-for");
+    ip = forwarded ? forwarded.split(",")[0].trim() : req.ip ?? "";
+  }
+
+  if (ip && ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
   }
+
   return ip;
 }
 
