@@ -13,7 +13,6 @@ interface AccessLog {
   isAdmin?: boolean | string;
   userAgent?: string;
   isBot?: boolean;
-  createdAt?: string | null;
   logTimestamp?: string | null;
 }
 
@@ -111,7 +110,6 @@ export default function LogsPage() {
   const handleDownloadCsv = () => {
     const header = [
       "logTimestamp",
-      "createdAt",
       "ip",
       "country",
       "blocked",
@@ -123,7 +121,6 @@ export default function LogsPage() {
     const rows = filteredLogs.map((l) =>
       [
         l.logTimestamp,
-        l.createdAt,
         l.ip,
         l.country,
         l.blocked,
@@ -240,7 +237,6 @@ export default function LogsPage() {
             <thead>
               <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
                 <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
-                <th className="px-4 py-3 border-b border-gray-200">CreatedAt</th>
                 <th className="px-4 py-3 border-b border-gray-200">IP</th>
                 <th className="px-4 py-3 border-b border-gray-200">Country</th>
                 <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
@@ -251,9 +247,6 @@ export default function LogsPage() {
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                     {formatDate(log.logTimestamp || null)}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                    {formatDate(log.createdAt || null)}
                   </td>
                   <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                     <div className="flex items-center gap-2">
