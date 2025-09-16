@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
     const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const offset = parseInt(searchParams.get("offset") || "0", 10);
 
     let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
@@ -23,8 +24,8 @@ export async function GET(req: NextRequest) {
       query = query.where("createdAt", "<=", toDate);
     }
 
-    // ✅ createdAt でソート
-    query = query.orderBy("createdAt", "desc").limit(limit);
+    // ✅ createdAt でソート + offset + limit
+    query = query.orderBy("createdAt", "desc").offset(offset).limit(limit);
 
     const snapshot = await query.get();
 
@@ -45,8 +46,8 @@ export async function GET(req: NextRequest) {
           id: doc.id,
           ...data,
           isAdmin,
-          // ✅ logTimestamp を優先、無ければ createdAt を ISO に変換
-          logTimestamp: data.logTimestamp || (data.createdAt?.toDate?.().toISOString() ?? null),
+          logTimestamp:
+            data.logTimestamp || data.createdAt?.toDate?.().toISOString() || null,
         };
       })
     );
