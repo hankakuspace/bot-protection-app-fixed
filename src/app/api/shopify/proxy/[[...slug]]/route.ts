@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const ip = getClientIp(req);
-    const isAdmin = isAdminIp(ip);
+    const isAdmin = !!isAdminIp(ip); // ✅ boolean化してFirestoreに保存可能にする
     const { country, allowed } = await getCountryFromIp(ip);
 
     // ✅ 保存前のデータをオブジェクト化
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     // 保存直後のデータを取得
     const saved = await ref.get();
 
-    // 🔥 書き込み比較ログ（JSON化してフィールド欠落を見つけやすくする）
+    // 🔥 書き込み比較ログ
     console.log("🔥 DEBUG proxy log-access 保存比較", {
       written: writtenLog,
       saved: saved.data(),
