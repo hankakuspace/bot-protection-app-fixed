@@ -55,6 +55,14 @@ export async function GET(req: NextRequest) {
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
+    // ✅ デバッグログ
+    console.log("🔥 DEBUG 保存処理 reached", {
+      ip,
+      country,
+      isAdmin,
+      now: new Date().toISOString(),
+    });
+
     // ✅ アクセスログ保存（createdAt と timestamp の両方を保存）
     await adminDb.collection("access_logs").add({
       shop,
