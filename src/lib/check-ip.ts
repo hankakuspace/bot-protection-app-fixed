@@ -1,7 +1,6 @@
 // src/lib/check-ip.ts
 import { adminDb } from "@/lib/firebase";
 
-// ✅ クライアントIP取得（Cloudflare専用: cf-connecting-ip を必ず利用）
 export function getClientIp(req: any): string {
   let ip = req.headers.get("cf-connecting-ip") || "";
 
@@ -17,30 +16,28 @@ export function getClientIp(req: any): string {
   return ip;
 }
 
-// ✅ 管理者IP判定（IPv6 /64 プレフィックス対応）
+// ✅ 管理者IP判定（IPv6 /64対応強化版）
 export async function isAdminIp(ip: string): Promise<boolean> {
   if (!ip) return false;
 
   const snapshot = await adminDb.collection("admin_ips").get();
-  // Firestoreの保存形式に合わせて doc.id or doc.data().ip を考慮
-  const adminIps = snapshot.docs.map((doc) => doc.id || doc.data().ip);
+  const adminIps = snapshot.docs.map((doc) => doc.data().ip as string);
 
   console.log("🔥 DEBUG isAdminIp check", { requestIp: ip, adminIps });
 
   const normalizedIp = ip.replace(/^::ffff:/, "");
 
-  return adminIps.some((adminIpRaw) => {
-    if (!adminIpRaw) return false;
-    const adminIp = String(adminIpRaw);
+  return adminIps.some((adminIp) => {
+    if (!adminIp) return false;
 
-    // ✅ IPv6 /64 プレフィックス登録に対応
-    if (adminIp.includes("/64")) {
+    // ✅ IPv6 /64 プレフィックス登録の場合
+    if (adminIp.endsWith("/64")) {
       const prefixAdmin = adminIp.replace("/64", "").replace(/:+$/, "");
       const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
-      return prefixReq.startsWith(prefixAdmin);
+      return prefixReq === prefixAdmin;
     }
 
-    // ✅ IPv6同士なら先頭4ブロックで比較
+    // ✅ IPv6同士なら先頭4ブロック比較
     if (normalizedIp.includes(":") && adminIp.includes(":")) {
       const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
       const prefixAdmin = adminIp.split(":").slice(0, 4).join(":");
@@ -52,7 +49,6 @@ export async function isAdminIp(ip: string): Promise<boolean> {
   });
 }
 
-// ✅ ブロックIP判定
 export async function isIpBlocked(ip: string): Promise<boolean> {
   if (!ip) return false;
   const ref = adminDb.collection("blocked_ips").doc(ip);
@@ -60,7 +56,6 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
   return doc.exists;
 }
 
-// ✅ 指定IPをブロックリストに追加
 export async function blockIp(ip: string, source: string = "manual"): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).set({
@@ -69,7 +64,6 @@ export async function blockIp(ip: string, source: string = "manual"): Promise<vo
   });
 }
 
-// ✅ 指定IPをブロックリストから解除
 export async function unblockIp(ip: string, source: string = "manual"): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).delete();
