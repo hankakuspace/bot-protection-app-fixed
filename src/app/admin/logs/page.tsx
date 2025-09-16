@@ -93,17 +93,30 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ 常に log.ip と adminIps で判定（Firestoreの isAdmin は無視）
+  // ✅ ipaddr.js + デバッグ強化
   const isDynamicAdmin = (ip: string): boolean => {
     try {
+      console.log("🔥 DEBUG raw log.ip", ip);
       const parsedIp = ipaddr.parse(ip);
+      console.log("🔥 DEBUG parsed log.ip", parsedIp.toNormalizedString());
 
       return adminIps.some((adminIp) => {
         if (adminIp.includes("/")) {
           const range = ipaddr.parseCIDR(adminIp);
-          return parsedIp.match(range);
+          const match = parsedIp.match(range);
+
+          console.log("🔥 DEBUG CIDR check", {
+            adminIp,
+            logIp: parsedIp.toNormalizedString(),
+            range: [range[0].toNormalizedString(), range[1]], // [address, prefixLength]
+            match,
+          });
+
+          return match;
         } else {
-          return ip === adminIp;
+          const eq = ip === adminIp;
+          console.log("🔥 DEBUG exact check", { adminIp, logIp: ip, eq });
+          return eq;
         }
       });
     } catch (err) {
