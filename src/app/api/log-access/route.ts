@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { getClientIp } from "@/lib/check-ip";
-import { isBotUserAgent } from "@/lib/check-useragent"; // 👈 追加
+import { isBotUserAgent } from "@/lib/check-useragent";
 
 export const runtime = "nodejs";
 
@@ -29,11 +29,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const ip = await getClientIp(req);
-
     const { country, allowed } = await getCountryFromIp(ip);
 
     const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
-    const clientTime = body.clientTime || null;
 
     await adminDb.collection("access_logs").add({
       ip,
@@ -42,10 +40,10 @@ export async function POST(req: NextRequest) {
       blocked: body.blocked ?? false,
       isAdmin: body.isAdmin ?? false,
       userAgent,
-      isBot: isBotUserAgent(userAgent), // 👈 BOT判定を追加
+      isBot: isBotUserAgent(userAgent),
       host: req.headers.get("host") || null,
       createdAt: new Date(),
-      clientTime,
+      logTimestamp: new Date().toISOString(), // ✅ logTimestamp に統一
     });
 
     return NextResponse.json({ ok: true });
@@ -61,11 +59,9 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const ip = await getClientIp(req);
-
     const { country, allowed } = await getCountryFromIp(ip);
 
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
-    const clientTime = searchParams.get("t") || null;
 
     await adminDb.collection("access_logs").add({
       ip,
@@ -74,10 +70,10 @@ export async function GET(req: NextRequest) {
       blocked: searchParams.get("blocked") === "true",
       isAdmin: searchParams.get("isAdmin") === "true",
       userAgent,
-      isBot: isBotUserAgent(userAgent), // 👈 BOT判定を追加
+      isBot: isBotUserAgent(userAgent),
       host: req.headers.get("host") || null,
       createdAt: new Date(),
-      clientTime,
+      logTimestamp: new Date().toISOString(), // ✅ logTimestamp に統一
     });
 
     return NextResponse.json({ ok: true, country, allowedCountry: allowed });
