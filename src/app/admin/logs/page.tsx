@@ -38,6 +38,7 @@ export default function LogsPage() {
       const res = await fetch("/api/admin/list-ip");
       const data = await res.json();
       const ips: string[] = (data.ips || []).map((d: any) => d.ip);
+      console.log("🔥 DEBUG adminIps (from Firestore)", ips);
       setAdminIps(ips);
     } catch (e) {
       console.error("管理者IP取得失敗:", e);
@@ -92,15 +93,29 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ 動的管理者判定（/64 対応）
+  // ✅ 動的管理者判定（/64対応 + デバッグログ付き）
   const isDynamicAdmin = (ip: string): boolean => {
     return adminIps.some((adminIp) => {
       if (adminIp.endsWith("/64") && ip.includes(":")) {
         const prefixAdmin = adminIp.replace("/64", "").replace(/:+$/, "");
         const prefixLog = ip.split(":").slice(0, 4).join(":");
+
+        console.log("🔥 DEBUG match check", {
+          adminIp,
+          prefixAdmin,
+          ip,
+          prefixLog,
+          match: prefixLog === prefixAdmin,
+        });
+
         return prefixLog === prefixAdmin;
       }
-      return ip === adminIp;
+
+      const eq = ip === adminIp;
+      if (eq) {
+        console.log("🔥 DEBUG exact match", { adminIp, ip });
+      }
+      return eq;
     });
   };
 
