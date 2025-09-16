@@ -88,6 +88,12 @@ export default function AdminIpPage() {
           placeholder="例: 192.168.0.1 または IPv6"
           className="border rounded p-2 w-full"
         />
+        {/* ✅ IPv6の/64保存に関する説明 */}
+        <p className="text-xs text-gray-500">
+          IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
+          （例: 2405:6583:9640:d500::/64）。
+        </p>
+
         <input
           type="text"
           value={note}
