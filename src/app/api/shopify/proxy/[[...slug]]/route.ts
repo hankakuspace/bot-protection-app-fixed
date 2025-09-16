@@ -46,9 +46,9 @@ export async function POST(req: NextRequest, context: any) {
         blocked: body.blocked ?? false,
         isAdmin: body.isAdmin ?? false,
         userAgent,
-        url: body.url || null,                          // ✅ ページURL
-        host: body.host || req.headers.get("host"),     // ✅ 実際のホスト名を優先
-        referrer: body.referrer || null,                // ✅ リファラ
+        url: body.url || null,
+        host: body.host || req.headers.get("host"),
+        referrer: body.referrer || null,
         createdAt: new Date(),
         clientTime,
       });
@@ -67,10 +67,28 @@ export async function POST(req: NextRequest, context: any) {
 }
 
 /**
- * GET: 確認用
+ * GET: /apps/.../check-ip → 内部APIにフォワード
  */
 export async function GET(req: NextRequest, context: any) {
   const slug = context.params?.slug?.join("/") || "";
+
+  // ✅ check-ip なら内部APIにフォワード
+  if (slug === "check-ip") {
+    const targetUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/check-ip`);
+    req.nextUrl.searchParams.forEach((value, key) => {
+      targetUrl.searchParams.set(key, value);
+    });
+
+    const res = await fetch(targetUrl.toString(), {
+      headers: req.headers,
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+    return NextResponse.json(data);
+  }
+
+  // それ以外はデバッグ用レスポンス
   return NextResponse.json({
     ok: true,
     method: "GET",
