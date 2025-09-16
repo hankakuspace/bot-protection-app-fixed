@@ -42,7 +42,7 @@ export async function isAdminIp(ip: string): Promise<boolean> {
       return prefixReq === prefixAdmin;
     }
 
-    // IPv6 同士 → 先頭4ブロック比較（従来通り）
+    // IPv6 同士 → 先頭4ブロック比較
     if (normalizedIp.includes(":") && adminIp.includes(":")) {
       const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
       const prefixAdmin = adminIp.split(":").slice(0, 4).join(":");
@@ -53,11 +53,41 @@ export async function isAdminIp(ip: string): Promise<boolean> {
   });
 }
 
+// ✅ ブロックIP判定（IPv6 /64対応、IPv4は完全一致のみ）
 export async function isIpBlocked(ip: string): Promise<boolean> {
   if (!ip) return false;
-  const ref = adminDb.collection("blocked_ips").doc(ip);
-  const doc = await ref.get();
-  return doc.exists;
+
+  const snapshot = await adminDb.collection("blocked_ips").get();
+  const blockedIps = snapshot.docs.map((doc) => doc.data().ip as string);
+
+  console.log("🔥 DEBUG isIpBlocked check", { requestIp: ip, blockedIps });
+
+  const normalizedIp = ip.replace(/^::ffff:/, "");
+
+  return blockedIps.some((blockedIp) => {
+    if (!blockedIp) return false;
+
+    // IPv4 同士 → 完全一致のみ
+    if (normalizedIp.includes(".") && blockedIp.includes(".")) {
+      return normalizedIp === blockedIp;
+    }
+
+    // IPv6 /64 プレフィックス登録の場合
+    if (blockedIp.endsWith("/64") && normalizedIp.includes(":")) {
+      const prefixBlocked = blockedIp.replace("/64", "").replace(/:+$/, "");
+      const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
+      return prefixReq === prefixBlocked;
+    }
+
+    // IPv6 同士 → 先頭4ブロック比較
+    if (normalizedIp.includes(":") && blockedIp.includes(":")) {
+      const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
+      const prefixBlocked = blockedIp.split(":").slice(0, 4).join(":");
+      return prefixReq === prefixBlocked;
+    }
+
+    return false;
+  });
 }
 
 export async function blockIp(
