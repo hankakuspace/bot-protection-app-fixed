@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const ip = getClientIp(req);
-    const isAdmin = !!isAdminIp(ip); // ✅ boolean化してFirestoreに保存可能にする
+
+    // ✅ isAdmin を確実に boolean にする
+    const rawIsAdmin = isAdminIp(ip);
+    const isAdmin = rawIsAdmin === true;
+
     const { country, allowed } = await getCountryFromIp(ip);
 
     // ✅ 保存前のデータをオブジェクト化
