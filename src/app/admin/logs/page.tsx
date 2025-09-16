@@ -10,7 +10,7 @@ interface AccessLog {
   country: string;
   allowedCountry?: boolean;
   blocked?: boolean | string;
-  isAdmin?: boolean | string;
+  isAdmin?: boolean | string; // Firestore保存時の参考値
   userAgent?: string;
   isBot?: boolean;
   logTimestamp?: string | null;
@@ -29,6 +29,20 @@ export default function LogsPage() {
   const [filterCountry, setFilterCountry] = useState("");
   const [filterBlocked, setFilterBlocked] = useState("");
   const [filterAdmin, setFilterAdmin] = useState("");
+
+  const [adminIps, setAdminIps] = useState<string[]>([]);
+
+  // 管理者IP一覧を取得
+  const fetchAdminIps = async () => {
+    try {
+      const res = await fetch("/api/admin/list-ip");
+      const data = await res.json();
+      const ips: string[] = (data.ips || []).map((d: any) => d.ip);
+      setAdminIps(ips);
+    } catch (e) {
+      console.error("管理者IP取得失敗:", e);
+    }
+  };
 
   const fetchLogs = async (
     from: string,
@@ -61,6 +75,7 @@ export default function LogsPage() {
   useEffect(() => {
     setOffset(0);
     fetchLogs(fromDate, toDate, 0, false);
+    fetchAdminIps();
   }, [fromDate, toDate]);
 
   const formatDate = (iso: string | null) => {
@@ -81,16 +96,12 @@ export default function LogsPage() {
     if (filterCountry && log.country !== filterCountry) return false;
     if (filterBlocked === "true" && !log.blocked) return false;
     if (filterBlocked === "false" && log.blocked) return false;
-    if (
-      filterAdmin === "true" &&
-      !(log.isAdmin === true || log.isAdmin === "true")
-    )
-      return false;
-    if (
-      filterAdmin === "false" &&
-      (log.isAdmin === true || log.isAdmin === "true")
-    )
-      return false;
+
+    const dynamicIsAdmin = adminIps.includes(log.ip);
+
+    if (filterAdmin === "true" && !dynamicIsAdmin) return false;
+    if (filterAdmin === "false" && dynamicIsAdmin) return false;
+
     return true;
   });
 
@@ -114,7 +125,7 @@ export default function LogsPage() {
       "country",
       "blocked",
       "allowedCountry",
-      "isAdmin",
+      "isAdmin(dynamic)",
       "isBot",
       "userAgent",
     ];
@@ -125,7 +136,7 @@ export default function LogsPage() {
         l.country,
         l.blocked,
         l.allowedCountry,
-        l.isAdmin,
+        adminIps.includes(l.ip), // 動的判定
         l.isBot,
         `"${(l.userAgent || "").replace(/"/g, '""')}"`,
       ].join(",")
@@ -167,6 +178,7 @@ export default function LogsPage() {
           onClick={() => {
             setOffset(0);
             fetchLogs(fromDate, toDate, 0, false);
+            fetchAdminIps();
           }}
           className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
         >
@@ -236,56 +248,61 @@ export default function LogsPage() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
+                <th className="px-4 py-3 border-b border-gray-200">
+                  LogTimestamp
+                </th>
                 <th className="px-4 py-3 border-b border-gray-200">IP</th>
                 <th className="px-4 py-3 border-b border-gray-200">Country</th>
                 <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                    {formatDate(log.logTimestamp || null)}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      {log.isAdmin === true || log.isAdmin === "true" ? (
-                        <span className="w-2 h-2 rounded-full bg-blue-500" />
-                      ) : (
+              {filteredLogs.map((log) => {
+                const dynamicIsAdmin = adminIps.includes(log.ip);
+                return (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {formatDate(log.logTimestamp || null)}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        {dynamicIsAdmin ? (
+                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        ) : (
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              log.blocked === true || log.blocked === "true"
+                                ? "bg-red-500"
+                                : "bg-green-500"
+                            }`}
+                          />
+                        )}
+                        <span>{log.ip}</span>
+                        {log.isBot && (
+                          <span className="ml-2 px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">
+                            BOT
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                      <div className="flex items-center gap-2">
                         <span
                           className={`w-2 h-2 rounded-full ${
-                            log.blocked === true || log.blocked === "true"
+                            log.allowedCountry === false
                               ? "bg-red-500"
                               : "bg-green-500"
                           }`}
                         />
-                      )}
-                      <span>{log.ip}</span>
-                      {log.isBot && (
-                        <span className="ml-2 px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700">
-                          BOT
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          log.allowedCountry === false
-                            ? "bg-red-500"
-                            : "bg-green-500"
-                        }`}
-                      />
-                      <span>{log.country}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
-                    {log.userAgent}
-                  </td>
-                </tr>
-              ))}
+                        <span>{log.country}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
+                      {log.userAgent}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
