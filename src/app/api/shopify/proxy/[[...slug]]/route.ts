@@ -1,6 +1,6 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getClientIp } from "@/lib/check-ip";
+import { getClientIp, isAdminIp } from "@/lib/check-ip";
 import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
@@ -39,12 +39,15 @@ export async function POST(req: NextRequest, context: any) {
       const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
       const clientTime = body.t || null;
 
+      // ✅ 管理者判定を isAdminIp() で行う
+      const isAdmin = await isAdminIp(ip);
+
       await adminDb.collection("access_logs").add({
         ip,
         country,
         allowedCountry: allowed,
         blocked: body.blocked ?? false,
-        isAdmin: body.isAdmin ?? false,
+        isAdmin,   // ← 判定済みの値を保存
         userAgent,
         url: body.url || null,
         host: body.host || req.headers.get("host"),
@@ -72,7 +75,6 @@ export async function POST(req: NextRequest, context: any) {
 export async function GET(req: NextRequest, context: any) {
   const slug = context.params?.slug?.join("/") || "";
 
-  // ✅ check-ip なら内部APIにフォワード
   if (slug === "check-ip") {
     const targetUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/check-ip`);
     req.nextUrl.searchParams.forEach((value, key) => {
@@ -88,7 +90,6 @@ export async function GET(req: NextRequest, context: any) {
     return NextResponse.json(data);
   }
 
-  // それ以外はデバッグ用レスポンス
   return NextResponse.json({
     ok: true,
     method: "GET",
