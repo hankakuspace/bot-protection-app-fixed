@@ -10,11 +10,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 
-    // ✅ Fallback: logTimestamp が無い場合は createdAt で拾う
-    let query = adminDb.collection("access_logs");
+    let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
     if (from) {
       query = query.where("createdAt", ">=", new Date(from));
@@ -25,7 +23,8 @@ export async function GET(req: NextRequest) {
       query = query.where("createdAt", "<=", toDate);
     }
 
-    query = query.orderBy("createdAt", "desc").limit(limit).offset(offset);
+    // ✅ createdAt でソート
+    query = query.orderBy("createdAt", "desc").limit(limit);
 
     const snapshot = await query.get();
 
@@ -46,7 +45,7 @@ export async function GET(req: NextRequest) {
           id: doc.id,
           ...data,
           isAdmin,
-          // ✅ logTimestamp があれば優先、無ければ createdAt を ISO 文字列化
+          // ✅ logTimestamp を優先、無ければ createdAt を ISO に変換
           logTimestamp: data.logTimestamp || (data.createdAt?.toDate?.().toISOString() ?? null),
         };
       })
