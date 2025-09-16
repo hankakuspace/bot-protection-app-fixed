@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp, isAdminIp } from "@/lib/check-ip";
 import { getCountryFromIp } from "@/lib/ipinfo";
+import admin from "firebase-admin";
 
 export const runtime = "nodejs";
 
@@ -59,16 +60,7 @@ export async function GET(req: NextRequest) {
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
-    // ✅ デバッグ用にヘッダー全部出す
-    const headers: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-
-    // ✅ アクセスログ保存前にデバッグ出力
-    console.log("🔥 保存するisAdminの値:", isAdmin, "型:", typeof isAdmin);
-
-    // ✅ アクセスログ保存
+    // ✅ アクセスログ保存 (Timestampを使用)
     await adminDb.collection("access_logs").add({
       ip: String(ip),
       country: String(country),
@@ -76,18 +68,17 @@ export async function GET(req: NextRequest) {
       blocked: false,
       isAdmin,
       userAgent,
-      timestamp: new Date().toISOString(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), // ✅ Timestamp
     });
 
-    // ✅ デバッグ情報を含めてレスポンス
+    // ✅ レスポンス
     return NextResponse.json({
       shop,
       requestIp: String(ip),
       country: String(country),
       isAdmin,
       usageCount,
-      adminIps, // Firestoreに保存されている管理者IPリスト
-      headers,  // リクエストヘッダー全部
+      adminIps,
     });
   } catch (err: any) {
     console.error("check-ip error:", err);
