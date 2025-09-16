@@ -10,7 +10,7 @@ interface AccessLog {
   country: string;
   allowedCountry?: boolean;
   blocked?: boolean | string;
-  isAdmin?: boolean | string; // Firestore保存時の参考値
+  isAdmin?: boolean | string; // Firestore保存時の参考値（今回は使わない）
   userAgent?: string;
   isBot?: boolean;
   logTimestamp?: string | null;
@@ -93,7 +93,7 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ 動的管理者判定（/64対応 + デバッグログ付き）
+  // ✅ log.ip を基準に動的に管理者判定（requestIpは使わない）
   const isDynamicAdmin = (ip: string): boolean => {
     return adminIps.some((adminIp) => {
       if (adminIp.endsWith("/64") && ip.includes(":")) {
