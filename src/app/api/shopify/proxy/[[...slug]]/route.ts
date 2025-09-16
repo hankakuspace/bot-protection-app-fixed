@@ -55,11 +55,12 @@ export async function POST(req: NextRequest) {
     // 保存直後のデータを取得
     const saved = await ref.get();
 
-    // 🔥 書き込み比較ログ
+    // 🔥 書き込み比較ログ（JSON化してフィールド欠落を見つけやすくする）
     console.log("🔥 DEBUG proxy log-access 保存比較", {
       written: writtenLog,
       saved: saved.data(),
     });
+    console.log("🔥 Firestore saved raw JSON", JSON.stringify(saved.data(), null, 2));
 
     return NextResponse.json({ ok: true, id: ref.id });
   } catch (error) {
