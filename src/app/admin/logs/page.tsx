@@ -94,26 +94,28 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ ipaddr.js を使った動的管理者判定
+  // ✅ ipaddr.js + デバッグログ付き管理者判定
   const isDynamicAdmin = (ip: string): boolean => {
     try {
+      console.log("🔥 DEBUG raw log.ip", ip);
       const parsedIp = ipaddr.parse(ip);
+      console.log("🔥 DEBUG parsed log.ip", parsedIp.toNormalizedString());
 
       return adminIps.some((adminIp) => {
         if (adminIp.includes("/")) {
-          // CIDR 表記 (例: /64)
           const range = ipaddr.parseCIDR(adminIp);
           const match = parsedIp.match(range);
-          if (match) {
-            console.log("🔥 DEBUG CIDR match", { adminIp, ip });
-          }
+
+          console.log("🔥 DEBUG CIDR check", {
+            adminIp,
+            logIp: parsedIp.toNormalizedString(),
+            match,
+          });
+
           return match;
         } else {
-          // 完全一致
           const eq = ip === adminIp;
-          if (eq) {
-            console.log("🔥 DEBUG exact match", { adminIp, ip });
-          }
+          console.log("🔥 DEBUG exact check", { adminIp, logIp: ip, eq });
           return eq;
         }
       });
