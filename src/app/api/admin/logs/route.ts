@@ -15,16 +15,19 @@ export async function GET(req: NextRequest) {
 
     let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
+    // ✅ from ～ to の日付範囲を正しく設定
     if (from) {
-      query = query.where("createdAt", ">=", new Date(from));
+      const fromDate = new Date(from);
+      fromDate.setHours(0, 0, 0, 0); // 当日00:00:00から
+      query = query.where("createdAt", ">=", fromDate);
     }
     if (to) {
       const toDate = new Date(to);
-      toDate.setDate(toDate.getDate() + 1);
+      toDate.setHours(23, 59, 59, 999); // 当日23:59:59.999まで
       query = query.where("createdAt", "<=", toDate);
     }
 
-    // ✅ createdAt でソート + offset + limit
+    // ✅ createdAt 降順 + offset + limit
     query = query.orderBy("createdAt", "desc").offset(offset).limit(limit);
 
     const snapshot = await query.get();
@@ -35,6 +38,7 @@ export async function GET(req: NextRequest) {
         const ip = data.ip || "";
         let isAdmin = data.isAdmin ?? false;
 
+        // Firestoreに保存されているisAdminは無視、動的判定を優先
         if (ip) {
           const check = await isAdminIp(ip);
           if (check) {
@@ -46,6 +50,7 @@ export async function GET(req: NextRequest) {
           id: doc.id,
           ...data,
           isAdmin,
+          // ✅ logTimestamp を優先、無ければ createdAt を ISO に変換
           logTimestamp:
             data.logTimestamp || data.createdAt?.toDate?.().toISOString() || null,
         };
