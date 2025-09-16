@@ -1,32 +1,20 @@
 // src/lib/check-ip.ts
 import { adminDb } from "@/lib/firebase";
 
-// ✅ クライアントIP正規化（IPv4優先）
+// ✅ クライアントIP取得（Cloudflare専用: cf-connecting-ip を必ず利用）
 export function getClientIp(req: any): string {
-  // Cloudflare 経由の場合は cf-connecting-ip を優先
+  // Cloudflareが付与するオリジナルのクライアントIPを信頼
   let ip = req.headers.get("cf-connecting-ip") || "";
 
-  // fallback: x-forwarded-for → req.ip
+  // fallback: 念のため（通常は不要）
   if (!ip) {
     const forwarded = req.headers.get("x-forwarded-for");
     ip = forwarded ? forwarded.split(",")[0].trim() : req.ip ?? "";
   }
 
+  // IPv4-mapped IPv6 を正規化
   if (ip && ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
-  }
-
-  // ✅ IPv6が来ている場合でも、x-forwarded-for/forwarded に IPv4 があればそちらを優先
-  if (ip.includes(":")) {
-    const forwarded = req.headers.get("x-forwarded-for") || req.headers.get("forwarded");
-    if (forwarded) {
-      const ipv4Candidate = forwarded
-        .split(/[ ,]/) // カンマ or スペース区切り
-        .find((addr: string) => addr.match(/\d+\.\d+\.\d+\.\d+/));
-      if (ipv4Candidate) {
-        ip = ipv4Candidate.replace("for=", "").trim();
-      }
-    }
   }
 
   return ip;
@@ -61,7 +49,7 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
   return doc.exists;
 }
 
-// ✅ 指定IPをブロックリストに追加（呼び出し元をオプション保存）
+// ✅ 指定IPをブロックリストに追加
 export async function blockIp(ip: string, source: string = "manual"): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).set({
