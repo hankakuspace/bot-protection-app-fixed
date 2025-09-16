@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
-    // ✅ アクセスログ保存（createdAt を Firestore Timestamp で保存）
+    // ✅ アクセスログ保存（createdAt と timestamp の両方を保存）
     await adminDb.collection("access_logs").add({
       shop,
       ip: String(ip),
@@ -64,7 +64,8 @@ export async function GET(req: NextRequest) {
       blocked: false,
       isAdmin,
       userAgent,
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),   // Firestore Timestamp
+      timestamp: new Date().toISOString(),       // UI表示用
     });
 
     // ✅ レスポンス
