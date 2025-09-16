@@ -27,7 +27,7 @@ export default function AdminIpPage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setMessage("管理者IPを登録しました");
+        setMessage(`✅ 管理者IPを登録しました（保存値: ${data.ip}）`);
         setIp("");
         setNote("");
         fetchIps();
@@ -85,7 +85,7 @@ export default function AdminIpPage() {
           type="text"
           value={ip}
           onChange={(e) => setIp(e.target.value)}
-          placeholder="例: 192.168.0.1"
+          placeholder="例: 192.168.0.1 または IPv6"
           className="border rounded p-2 w-full"
         />
         <input
@@ -102,14 +102,14 @@ export default function AdminIpPage() {
           登録
         </button>
       </form>
-      {message && <p>{message}</p>}
+      {message && <p className="text-sm mt-2">{message}</p>}
 
       {/* 一覧テーブル */}
-      <table className="w-full border">
+      <table className="w-full border text-sm">
         <thead>
           <tr className="bg-gray-100">
-            <th className="p-2 border">IP</th>
-            <th className="p-2 border">Note</th>
+            <th className="p-2 border">保存されたIP</th>
+            <th className="p-2 border">メモ</th>
             <th className="p-2 border">登録日</th>
             <th className="p-2 border">操作</th>
           </tr>
@@ -124,7 +124,7 @@ export default function AdminIpPage() {
           ) : (
             ips.map((item) => (
               <tr key={item.id}>
-                <td className="p-2 border">{item.ip}</td>
+                <td className="p-2 border font-mono">{item.ip}</td>
                 <td className="p-2 border">{item.note}</td>
                 <td className="p-2 border">
                   {item.createdAt
