@@ -17,7 +17,11 @@ interface AccessLog {
 }
 
 export default function LogsPage() {
-  const today = new Date().toISOString().slice(0, 10);
+  // ✅ JST基準の今日を初期値にする
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const today = jst.toISOString().slice(0, 10);
+
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [logs, setLogs] = useState<AccessLog[]>([]);
@@ -37,9 +41,7 @@ export default function LogsPage() {
     try {
       const res = await fetch("/api/admin/admin-ip/list");
       const data = await res.json();
-      // APIの戻り値は配列そのものなので data.ips ではなく data
       const ips: string[] = (data || []).map((d: any) => d.ip);
-      console.log("🔥 DEBUG adminIps (from Firestore API)", ips);
       setAdminIps(ips);
     } catch (e) {
       console.error("管理者IP取得失敗:", e);
@@ -102,24 +104,12 @@ export default function LogsPage() {
       return adminIps.some((adminIp) => {
         if (adminIp.includes("/")) {
           const range = ipaddr.parseCIDR(adminIp);
-          const match = parsedIp.match(range);
-
-          console.log("🔥 DEBUG CIDR check", {
-            adminIp,
-            logIp: parsedIp.toNormalizedString(),
-            range: [range[0].toNormalizedString(), range[1]],
-            match,
-          });
-
-          return match;
+          return parsedIp.match(range);
         } else {
-          const eq = ip === adminIp;
-          console.log("🔥 DEBUG exact check", { adminIp, logIp: ip, eq });
-          return eq;
+          return ip === adminIp;
         }
       });
-    } catch (err) {
-      console.error("⚠️ IP parse error", ip, err);
+    } catch {
       return false;
     }
   };
@@ -130,7 +120,6 @@ export default function LogsPage() {
     if (filterBlocked === "false" && log.blocked) return false;
 
     const dynamicIsAdmin = isDynamicAdmin(log.ip);
-
     if (filterAdmin === "true" && !dynamicIsAdmin) return false;
     if (filterAdmin === "false" && dynamicIsAdmin) return false;
 
