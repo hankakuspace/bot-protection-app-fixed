@@ -1,6 +1,6 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getClientIp, isAdminIp } from "@/lib/check-ip";
+import { getClientIp, isAdminIp, isIpBlocked } from "@/lib/check-ip";
 import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
@@ -33,8 +33,10 @@ export async function POST(req: NextRequest) {
     const ip = getClientIp(req);
 
     // ✅ isAdmin を非同期で評価して boolean 化
-    const rawIsAdmin = await isAdminIp(ip);
-    const isAdmin = rawIsAdmin === true;
+    const isAdmin = await isAdminIp(ip);
+
+    // ✅ isBlocked をCIDR対応で評価
+    const blocked = await isIpBlocked(ip);
 
     const { country, allowed } = await getCountryFromIp(ip);
 
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
       ip,
       country,
       allowedCountry: allowed,
-      blocked: body.blocked ?? false,
+      blocked, // ← CIDR対応の結果を保存
       isAdmin,
       userAgent: req.headers.get("user-agent") || null,
       url: body.url || null,

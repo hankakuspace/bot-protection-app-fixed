@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import { getClientIp, isAdminIp } from "@/lib/check-ip";
+import { getClientIp, isAdminIp, isIpBlocked } from "@/lib/check-ip";
 import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
@@ -52,6 +52,9 @@ export async function GET(req: NextRequest) {
     // ✅ 管理者IP判定
     const isAdmin = await isAdminIp(ip);
 
+    // ✅ ブロックIP判定（CIDR対応）
+    const blocked = await isIpBlocked(ip);
+
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
@@ -61,11 +64,11 @@ export async function GET(req: NextRequest) {
       ip: String(ip),
       country: String(country),
       allowedCountry: true,
-      blocked: false,
+      blocked, // ← CIDR対応の結果を保存
       isAdmin,
       userAgent,
-      createdAt: FieldValue.serverTimestamp(),   // Firestore Timestamp
-      logTimestamp: new Date().toISOString(),   // ISO文字列に統一
+      createdAt: FieldValue.serverTimestamp(),
+      logTimestamp: new Date().toISOString(),
     });
 
     // ✅ 保存直後のドキュメントを読み込み
@@ -78,6 +81,7 @@ export async function GET(req: NextRequest) {
       requestIp: String(ip),
       country: String(country),
       isAdmin,
+      blocked,
       usageCount,
     });
   } catch (err: any) {
