@@ -35,10 +35,11 @@ export default function LogsPage() {
   // 管理者IP一覧を取得
   const fetchAdminIps = async () => {
     try {
-      const res = await fetch("/api/admin/list-ip");
+      const res = await fetch("/api/admin/admin-ip/list");
       const data = await res.json();
-      const ips: string[] = (data.ips || []).map((d: any) => d.ip);
-      console.log("🔥 DEBUG adminIps (from Firestore)", ips);
+      // APIの戻り値は配列そのものなので data.ips ではなく data
+      const ips: string[] = (data || []).map((d: any) => d.ip);
+      console.log("🔥 DEBUG adminIps (from Firestore API)", ips);
       setAdminIps(ips);
     } catch (e) {
       console.error("管理者IP取得失敗:", e);
@@ -93,12 +94,10 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ ipaddr.js + デバッグ強化
+  // ✅ ipaddr.js を使った動的管理者判定
   const isDynamicAdmin = (ip: string): boolean => {
     try {
-      console.log("🔥 DEBUG raw log.ip", ip);
       const parsedIp = ipaddr.parse(ip);
-      console.log("🔥 DEBUG parsed log.ip", parsedIp.toNormalizedString());
 
       return adminIps.some((adminIp) => {
         if (adminIp.includes("/")) {
@@ -108,7 +107,7 @@ export default function LogsPage() {
           console.log("🔥 DEBUG CIDR check", {
             adminIp,
             logIp: parsedIp.toNormalizedString(),
-            range: [range[0].toNormalizedString(), range[1]], // [address, prefixLength]
+            range: [range[0].toNormalizedString(), range[1]],
             match,
           });
 
