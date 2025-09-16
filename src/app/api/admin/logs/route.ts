@@ -15,13 +15,12 @@ export async function GET(req: NextRequest) {
 
     let query = adminDb.collection("access_logs").orderBy("timestamp", "desc");
 
+    // ✅ string (ISO文字列) で比較する
     if (from) {
-      query = query.where("timestamp", ">=", new Date(from));
+      query = query.where("timestamp", ">=", from);
     }
     if (to) {
-      const toDate = new Date(to);
-      toDate.setDate(toDate.getDate() + 1);
-      query = query.where("timestamp", "<=", toDate);
+      query = query.where("timestamp", "<=", to);
     }
 
     const snapshot = await query.offset(offset).limit(limit).get();
