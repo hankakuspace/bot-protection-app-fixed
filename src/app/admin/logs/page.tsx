@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCw, Code, Download } from "lucide-react";
+import * as ipaddr from "ipaddr.js";
 
 interface AccessLog {
   id: string;
@@ -10,7 +11,7 @@ interface AccessLog {
   country: string;
   allowedCountry?: boolean;
   blocked?: boolean | string;
-  isAdmin?: boolean | string; // Firestore保存時の参考値（今回は使わない）
+  isAdmin?: boolean | string;
   userAgent?: string;
   isBot?: boolean;
   logTimestamp?: string | null;
@@ -93,32 +94,33 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ log.ip を基準に動的に管理者判定（IPv6 /64対応を修正）
+  // ✅ ipaddr.js を使った動的管理者判定
   const isDynamicAdmin = (ip: string): boolean => {
-    return adminIps.some((adminIp) => {
-      // IPv6 /64 判定
-      if (adminIp.endsWith("/64") && ip.includes(":")) {
-        const prefixAdmin = adminIp.replace("/64", "").split(":").slice(0, 4).join(":");
-        const prefixLog = ip.split(":").slice(0, 4).join(":");
+    try {
+      const parsedIp = ipaddr.parse(ip);
 
-        console.log("🔥 DEBUG match check", {
-          adminIp,
-          prefixAdmin,
-          ip,
-          prefixLog,
-          match: prefixLog === prefixAdmin,
-        });
-
-        return prefixLog === prefixAdmin;
-      }
-
-      // IPv4 または IPv6 完全一致
-      const eq = ip === adminIp;
-      if (eq) {
-        console.log("🔥 DEBUG exact match", { adminIp, ip });
-      }
-      return eq;
-    });
+      return adminIps.some((adminIp) => {
+        if (adminIp.includes("/")) {
+          // CIDR 表記 (例: /64)
+          const range = ipaddr.parseCIDR(adminIp);
+          const match = parsedIp.match(range);
+          if (match) {
+            console.log("🔥 DEBUG CIDR match", { adminIp, ip });
+          }
+          return match;
+        } else {
+          // 完全一致
+          const eq = ip === adminIp;
+          if (eq) {
+            console.log("🔥 DEBUG exact match", { adminIp, ip });
+          }
+          return eq;
+        }
+      });
+    } catch (err) {
+      console.error("⚠️ IP parse error", ip, err);
+      return false;
+    }
   };
 
   const filteredLogs = logs.filter((log) => {
