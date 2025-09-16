@@ -1,12 +1,13 @@
 // src/app/api/shopify/proxy/[[...slug]]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getClientIp, isAdminIp, isIpBlocked } from "@/lib/check-ip";
+import { getClientIp, isAdminIp, isIpBlocked, isCountryBlocked } from "@/lib/check-ip";
 import { adminDb } from "@/lib/firebase";
 
 export const runtime = "nodejs";
 
 /**
  * IPから国情報を取得
+ * Firestore の blocked_countries を参照して allowed 判定する
  */
 async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
   try {
@@ -18,8 +19,12 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
 
     const data = await res.json();
     const country = data.country || "UNKNOWN";
-    return { country, allowed: country === "JP" };
-  } catch {
+
+    // ✅ Firestore の blocked_countries を参照
+    const blocked = await isCountryBlocked(country);
+    return { country, allowed: !blocked };
+  } catch (err) {
+    console.error("getCountryFromIp error:", err);
     return { country: "UNKNOWN", allowed: false };
   }
 }
@@ -32,12 +37,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const ip = getClientIp(req);
 
-    // ✅ isAdmin を非同期で評価して boolean 化
+    // ✅ 管理者IP判定
     const isAdmin = await isAdminIp(ip);
 
-    // ✅ isBlocked をCIDR対応で評価
+    // ✅ IPブロック判定
     const blocked = await isIpBlocked(ip);
 
+    // ✅ 国コード判定（Firestoreの blocked_countries を参照）
     const { country, allowed } = await getCountryFromIp(ip);
 
     // ✅ 保存前のデータをオブジェクト化
@@ -45,7 +51,7 @@ export async function POST(req: NextRequest) {
       ip,
       country,
       allowedCountry: allowed,
-      blocked, // ← CIDR対応の結果を保存
+      blocked,
       isAdmin,
       userAgent: req.headers.get("user-agent") || null,
       url: body.url || null,
