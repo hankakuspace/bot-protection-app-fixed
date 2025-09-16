@@ -33,18 +33,20 @@ export async function POST(req: NextRequest) {
 
     const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
 
-    await adminDb.collection("access_logs").add({
-      ip,
-      country,
-      allowedCountry: allowed,
-      blocked: body.blocked ?? false,
-      isAdmin: body.isAdmin ?? false,
-      userAgent,
-      isBot: isBotUserAgent(userAgent),
-      host: req.headers.get("host") || null,
-      createdAt: new Date(),
-      logTimestamp: new Date().toISOString(), // ✅ clientTime 廃止 → logTimestamp に統一
-    });
+
+await adminDb.collection("access_logs").add({
+  ip,
+  country,
+  allowedCountry: allowed,
+  blocked: body.blocked ?? false,
+  isAdmin: body.isAdmin ?? false,
+  userAgent,
+  isBot: isBotUserAgent(userAgent),
+  host: req.headers.get("host") || null,
+  createdAt: new Date(),
+  logTimestamp: new Date().toISOString(), // ✅ clientTime を廃止
+});
+
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
