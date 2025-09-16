@@ -13,14 +13,16 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0", 10);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 
-    let query = adminDb.collection("access_logs").orderBy("timestamp", "desc");
+    // ✅ createdAt を基準にソート
+    let query = adminDb.collection("access_logs").orderBy("createdAt", "desc");
 
-    // ✅ string (ISO文字列) で比較する
     if (from) {
-      query = query.where("timestamp", ">=", from);
+      query = query.where("createdAt", ">=", new Date(from));
     }
     if (to) {
-      query = query.where("timestamp", "<=", to);
+      const toDate = new Date(to);
+      toDate.setDate(toDate.getDate() + 1);
+      query = query.where("createdAt", "<=", toDate);
     }
 
     const snapshot = await query.offset(offset).limit(limit).get();
