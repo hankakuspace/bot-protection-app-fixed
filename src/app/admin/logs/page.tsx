@@ -35,6 +35,7 @@ export default function LogsPage() {
   const [filterAdmin, setFilterAdmin] = useState("");
 
   const [adminIps, setAdminIps] = useState<string[]>([]);
+  const [blockedIps, setBlockedIps] = useState<string[]>([]);
 
   // 管理者IP一覧を取得
   const fetchAdminIps = async () => {
@@ -45,6 +46,18 @@ export default function LogsPage() {
       setAdminIps(ips);
     } catch (e) {
       console.error("管理者IP取得失敗:", e);
+    }
+  };
+
+  // ブロックIP一覧を取得
+  const fetchBlockedIps = async () => {
+    try {
+      const res = await fetch("/api/admin/block-ip/list");
+      const data = await res.json();
+      const ips: string[] = (data || []).map((d: any) => d.ip);
+      setBlockedIps(ips);
+    } catch (e) {
+      console.error("ブロックIP取得失敗:", e);
     }
   };
 
@@ -80,6 +93,7 @@ export default function LogsPage() {
     setOffset(0);
     fetchLogs(fromDate, toDate, 0, false);
     fetchAdminIps();
+    fetchBlockedIps();
   }, [fromDate, toDate]);
 
   const formatDate = (iso: string | null) => {
@@ -100,7 +114,6 @@ export default function LogsPage() {
   const isDynamicAdmin = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
-
       return adminIps.some((adminIp) => {
         if (adminIp.includes("/")) {
           const range = ipaddr.parseCIDR(adminIp);
@@ -114,12 +127,30 @@ export default function LogsPage() {
     }
   };
 
+  // ✅ ipaddr.js を使った動的ブロック判定
+  const isDynamicBlocked = (ip: string): boolean => {
+    try {
+      const parsedIp = ipaddr.parse(ip);
+      return blockedIps.some((blockedIp) => {
+        if (blockedIp.includes("/")) {
+          const range = ipaddr.parseCIDR(blockedIp);
+          return parsedIp.match(range);
+        } else {
+          return ip === blockedIp;
+        }
+      });
+    } catch {
+      return false;
+    }
+  };
+
   const filteredLogs = logs.filter((log) => {
     if (filterCountry && log.country !== filterCountry) return false;
-    if (filterBlocked === "true" && !log.blocked) return false;
-    if (filterBlocked === "false" && log.blocked) return false;
+    if (filterBlocked === "true" && !isDynamicBlocked(log.ip)) return false;
+    if (filterBlocked === "false" && isDynamicBlocked(log.ip)) return false;
 
     const dynamicIsAdmin = isDynamicAdmin(log.ip);
+
     if (filterAdmin === "true" && !dynamicIsAdmin) return false;
     if (filterAdmin === "false" && dynamicIsAdmin) return false;
 
@@ -144,7 +175,7 @@ export default function LogsPage() {
       "logTimestamp",
       "ip",
       "country",
-      "blocked",
+      "blocked(dynamic)",
       "allowedCountry",
       "isAdmin(dynamic)",
       "isBot",
@@ -155,7 +186,7 @@ export default function LogsPage() {
         l.logTimestamp,
         l.ip,
         l.country,
-        l.blocked,
+        isDynamicBlocked(l.ip),
         l.allowedCountry,
         isDynamicAdmin(l.ip),
         l.isBot,
@@ -200,6 +231,7 @@ export default function LogsPage() {
             setOffset(0);
             fetchLogs(fromDate, toDate, 0, false);
             fetchAdminIps();
+            fetchBlockedIps();
           }}
           className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
         >
@@ -280,6 +312,7 @@ export default function LogsPage() {
             <tbody>
               {filteredLogs.map((log) => {
                 const dynamicIsAdmin = isDynamicAdmin(log.ip);
+                const dynamicIsBlocked = isDynamicBlocked(log.ip);
                 return (
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
@@ -289,14 +322,10 @@ export default function LogsPage() {
                       <div className="flex items-center gap-2">
                         {dynamicIsAdmin ? (
                           <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        ) : dynamicIsBlocked ? (
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
                         ) : (
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              log.blocked === true || log.blocked === "true"
-                                ? "bg-red-500"
-                                : "bg-green-500"
-                            }`}
-                          />
+                          <span className="w-2 h-2 rounded-full bg-green-500" />
                         )}
                         <span>{log.ip}</span>
                         {log.isBot && (
