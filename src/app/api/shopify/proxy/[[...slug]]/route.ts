@@ -37,7 +37,6 @@ export async function POST(req: NextRequest, context: any) {
       const { country, allowed } = await getCountryFromIp(ip);
 
       const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
-      const clientTime = body.t || null;
 
       // ✅ 管理者判定を isAdminIp() で行う
       const isAdmin = await isAdminIp(ip);
@@ -53,7 +52,7 @@ export async function POST(req: NextRequest, context: any) {
         host: body.host || req.headers.get("host"),
         referrer: body.referrer || null,
         createdAt: new Date(),
-        clientTime,
+        logTimestamp: new Date().toISOString(), // ✅ clientTime を廃止 → logTimestamp に統一
       });
 
       return NextResponse.json({ ok: true });
