@@ -93,11 +93,12 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ log.ip を基準に動的に管理者判定（requestIpは使わない）
+  // ✅ log.ip を基準に動的に管理者判定（IPv6 /64対応を修正）
   const isDynamicAdmin = (ip: string): boolean => {
     return adminIps.some((adminIp) => {
+      // IPv6 /64 判定
       if (adminIp.endsWith("/64") && ip.includes(":")) {
-        const prefixAdmin = adminIp.replace("/64", "").replace(/:+$/, "");
+        const prefixAdmin = adminIp.replace("/64", "").split(":").slice(0, 4).join(":");
         const prefixLog = ip.split(":").slice(0, 4).join(":");
 
         console.log("🔥 DEBUG match check", {
@@ -111,6 +112,7 @@ export default function LogsPage() {
         return prefixLog === prefixAdmin;
       }
 
+      // IPv4 または IPv6 完全一致
       const eq = ip === adminIp;
       if (eq) {
         console.log("🔥 DEBUG exact match", { adminIp, ip });
