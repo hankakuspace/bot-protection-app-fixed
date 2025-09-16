@@ -155,10 +155,15 @@ export default function BlockIpPage() {
       const res = await fetch("/api/admin/logs?limit=500");
       const data = await res.json();
       const logs = data.logs || [];
-      const uniqueCountries = Array.from(
-        new Set(logs.map((l: any) => l.country).filter(Boolean))
-      );
-      setAvailableCountries(uniqueCountries);
+    const uniqueCountries: string[] = Array.from(
+  new Set(
+    logs
+      .map((l: any) => String(l.country || "")) // countryをstringにキャスト
+      .filter(Boolean)
+  )
+);
+setAvailableCountries(uniqueCountries);
+
     } catch (err) {
       console.error("利用可能国一覧取得エラー:", err);
     }
