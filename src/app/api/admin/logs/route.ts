@@ -15,15 +15,13 @@ export async function GET(req: NextRequest) {
 
     let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
-    // ✅ from ～ to の日付範囲を正しく設定
+    // ✅ JST → UTC 変換して Firestore に渡す
     if (from) {
-      const fromDate = new Date(from);
-      fromDate.setHours(0, 0, 0, 0); // 当日00:00:00から
+      const fromDate = new Date(`${from}T00:00:00+09:00`); // JST当日00:00
       query = query.where("createdAt", ">=", fromDate);
     }
     if (to) {
-      const toDate = new Date(to);
-      toDate.setHours(23, 59, 59, 999); // 当日23:59:59.999まで
+      const toDate = new Date(`${to}T23:59:59.999+09:00`); // JST当日23:59:59
       query = query.where("createdAt", "<=", toDate);
     }
 
