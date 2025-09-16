@@ -90,6 +90,19 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
   });
 }
 
+// ✅ 国ブロック判定（Firestoreの blocked_countries を参照）
+export async function isCountryBlocked(country: string): Promise<boolean> {
+  if (!country) return false;
+
+  try {
+    const doc = await adminDb.collection("blocked_countries").doc(country).get();
+    return doc.exists && doc.data()?.blocked === true;
+  } catch (err) {
+    console.error("isCountryBlocked error:", err);
+    return false;
+  }
+}
+
 export async function blockIp(
   ip: string,
   source: string = "manual"
