@@ -21,7 +21,6 @@ export default function BlockIpPage() {
     setMessage("");
 
     try {
-      // 管理者IPをブロックしないチェック
       const adminRes = await fetch("/api/admin/admin-ip/list");
       const adminIps = await adminRes.json();
       if (adminIps.some((a: any) => a.ip === ip)) {
@@ -36,12 +35,12 @@ export default function BlockIpPage() {
       });
       const data = await res.json();
       if (data.ok) {
-        setMessage("ブロックIPを登録しました");
+        setMessage("✅ ブロックIPを登録しました");
         setIp("");
         setNote("");
         fetchIps();
       } else {
-        setMessage("エラー: " + (data.error || "登録に失敗"));
+        setMessage(data.error || "登録に失敗しました");
       }
     } catch (err) {
       console.error("ブロックIP登録エラー:", err);
@@ -60,6 +59,27 @@ export default function BlockIpPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("本当に削除しますか？")) return;
+
+    try {
+      const res = await fetch("/api/admin/delete-ip", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type: "block" }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        fetchIps();
+      } else {
+        alert("削除失敗: " + (data.error || "不明なエラー"));
+      }
+    } catch (err) {
+      console.error("ブロックIP削除エラー:", err);
+      alert("削除時にエラー発生");
+    }
+  };
+
   useEffect(() => {
     fetchIps();
   }, []);
@@ -74,7 +94,7 @@ export default function BlockIpPage() {
           type="text"
           value={ip}
           onChange={(e) => setIp(e.target.value)}
-          placeholder="例: 192.168.0.1"
+          placeholder="例: 192.168.0.1 または IPv6"
           className="border rounded p-2 w-full"
         />
         <input
@@ -91,33 +111,42 @@ export default function BlockIpPage() {
           登録
         </button>
       </form>
-      {message && <p>{message}</p>}
+      {message && <p className="text-sm mt-2">{message}</p>}
 
       {/* 一覧テーブル */}
-      <table className="w-full border">
+      <table className="w-full border text-sm">
         <thead>
           <tr className="bg-gray-100">
-            <th className="p-2 border">IP</th>
-            <th className="p-2 border">Note</th>
+            <th className="p-2 border">保存されたIP</th>
+            <th className="p-2 border">メモ</th>
             <th className="p-2 border">登録日</th>
+            <th className="p-2 border">操作</th>
           </tr>
         </thead>
         <tbody>
           {ips.length === 0 ? (
             <tr>
-              <td colSpan={3} className="p-4 text-center text-gray-500">
+              <td colSpan={4} className="p-4 text-center text-gray-500">
                 登録されたブロックIPはありません
               </td>
             </tr>
           ) : (
             ips.map((item) => (
               <tr key={item.id}>
-                <td className="p-2 border">{item.ip}</td>
+                <td className="p-2 border font-mono">{item.ip}</td>
                 <td className="p-2 border">{item.note}</td>
                 <td className="p-2 border">
                   {item.createdAt
                     ? new Date(item.createdAt).toLocaleString("ja-JP")
                     : "-"}
+                </td>
+                <td className="p-2 border text-center">
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    削除
+                  </button>
                 </td>
               </tr>
             ))
