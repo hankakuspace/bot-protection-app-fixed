@@ -92,12 +92,24 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
+  // ✅ 動的管理者判定（/64 対応）
+  const isDynamicAdmin = (ip: string): boolean => {
+    return adminIps.some((adminIp) => {
+      if (adminIp.endsWith("/64") && ip.includes(":")) {
+        const prefixAdmin = adminIp.replace("/64", "").replace(/:+$/, "");
+        const prefixLog = ip.split(":").slice(0, 4).join(":");
+        return prefixLog === prefixAdmin;
+      }
+      return ip === adminIp;
+    });
+  };
+
   const filteredLogs = logs.filter((log) => {
     if (filterCountry && log.country !== filterCountry) return false;
     if (filterBlocked === "true" && !log.blocked) return false;
     if (filterBlocked === "false" && log.blocked) return false;
 
-    const dynamicIsAdmin = adminIps.includes(log.ip);
+    const dynamicIsAdmin = isDynamicAdmin(log.ip);
 
     if (filterAdmin === "true" && !dynamicIsAdmin) return false;
     if (filterAdmin === "false" && dynamicIsAdmin) return false;
@@ -136,7 +148,7 @@ export default function LogsPage() {
         l.country,
         l.blocked,
         l.allowedCountry,
-        adminIps.includes(l.ip), // 動的判定
+        isDynamicAdmin(l.ip),
         l.isBot,
         `"${(l.userAgent || "").replace(/"/g, '""')}"`,
       ].join(",")
@@ -258,7 +270,7 @@ export default function LogsPage() {
             </thead>
             <tbody>
               {filteredLogs.map((log) => {
-                const dynamicIsAdmin = adminIps.includes(log.ip);
+                const dynamicIsAdmin = isDynamicAdmin(log.ip);
                 return (
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
