@@ -13,17 +13,21 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0", 10);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 
-    // ✅ logTimestamp に統一
-    let query = adminDb.collection("access_logs").orderBy("logTimestamp", "desc");
+    // ✅ Fallback: logTimestamp が無い場合は createdAt で拾う
+    let query = adminDb.collection("access_logs");
 
     if (from) {
-      query = query.where("logTimestamp", ">=", from);
+      query = query.where("createdAt", ">=", new Date(from));
     }
     if (to) {
-      query = query.where("logTimestamp", "<=", to);
+      const toDate = new Date(to);
+      toDate.setDate(toDate.getDate() + 1);
+      query = query.where("createdAt", "<=", toDate);
     }
 
-    const snapshot = await query.offset(offset).limit(limit).get();
+    query = query.orderBy("createdAt", "desc").limit(limit).offset(offset);
+
+    const snapshot = await query.get();
 
     const logs = await Promise.all(
       snapshot.docs.map(async (doc) => {
@@ -42,7 +46,7 @@ export async function GET(req: NextRequest) {
           id: doc.id,
           ...data,
           isAdmin,
-          // ✅ 既存 createdAt を fallback に使用
+          // ✅ logTimestamp があれば優先、無ければ createdAt を ISO 文字列化
           logTimestamp: data.logTimestamp || (data.createdAt?.toDate?.().toISOString() ?? null),
         };
       })
