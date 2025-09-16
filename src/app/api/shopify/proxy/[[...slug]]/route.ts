@@ -38,22 +38,26 @@ export async function POST(req: NextRequest, context: any) {
 
       const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
 
-      // ✅ 管理者判定を isAdminIp() で行う
+      // ✅ 管理者判定
       const isAdmin = await isAdminIp(ip);
 
-      await adminDb.collection("access_logs").add({
+      const ref = await adminDb.collection("access_logs").add({
         ip,
         country,
         allowedCountry: allowed,
         blocked: body.blocked ?? false,
-        isAdmin,   // ← 判定済みの値を保存
+        isAdmin,
         userAgent,
         url: body.url || null,
         host: body.host || req.headers.get("host"),
         referrer: body.referrer || null,
         createdAt: new Date(),
-        logTimestamp: new Date().toISOString(), // ✅ clientTime を廃止 → logTimestamp に統一
+        logTimestamp: new Date().toISOString(), // ✅ clientTime → logTimestamp
       });
+
+      // ✅ 保存直後の確認
+      const saved = await ref.get();
+      console.log("🔥 DEBUG proxy log-access 保存直後", saved.data());
 
       return NextResponse.json({ ok: true });
     } catch (err: any) {
