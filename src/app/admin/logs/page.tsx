@@ -81,11 +81,12 @@ export default function LogsPage() {
     if (filterCountry && log.country !== filterCountry) return false;
     if (filterBlocked === "true" && !log.blocked) return false;
     if (filterBlocked === "false" && log.blocked) return false;
-    if (filterAdmin === "true" && !log.isAdmin) return false;
-    if (filterAdmin === "false" && log.isAdmin) return false;
+    if (filterAdmin === "true" && !(log.isAdmin === true || log.isAdmin === "true")) return false;
+    if (filterAdmin === "false" && (log.isAdmin === true || log.isAdmin === "true")) return false;
     return true;
   });
 
+  // JSONダウンロード
   const handleDownloadJson = () => {
     const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
       type: "application/json",
@@ -97,6 +98,7 @@ export default function LogsPage() {
     a.click();
   };
 
+  // CSVダウンロード
   const handleDownloadCsv = () => {
     const header = [
       "timestamp",
