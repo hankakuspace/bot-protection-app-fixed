@@ -65,6 +65,9 @@ export async function GET(req: NextRequest) {
       headers[key] = value;
     });
 
+    // ✅ アクセスログ保存前にデバッグ出力
+    console.log("🔥 保存するisAdminの値:", isAdmin, "型:", typeof isAdmin);
+
     // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
       ip: String(ip),
