@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       isBot: isBotUserAgent(userAgent),
       host: req.headers.get("host") || null,
       createdAt: new Date(),
-      logTimestamp: new Date().toISOString(), // ✅ logTimestamp に統一
+      logTimestamp: new Date().toISOString(), // ✅ clientTime 廃止 → logTimestamp に統一
     });
 
     return NextResponse.json({ ok: true });
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
       isBot: isBotUserAgent(userAgent),
       host: req.headers.get("host") || null,
       createdAt: new Date(),
-      logTimestamp: new Date().toISOString(), // ✅ logTimestamp に統一
+      logTimestamp: new Date().toISOString(), // ✅ clientTime 廃止 → logTimestamp に統一
     });
 
     return NextResponse.json({ ok: true, country, allowedCountry: allowed });
