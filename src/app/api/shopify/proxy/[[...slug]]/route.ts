@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const ip = getClientIp(req);
 
-    // ✅ isAdmin を確実に boolean にする
-    const rawIsAdmin = isAdminIp(ip);
+    // ✅ isAdmin を非同期で評価して boolean 化
+    const rawIsAdmin = await isAdminIp(ip);
     const isAdmin = rawIsAdmin === true;
 
     const { country, allowed } = await getCountryFromIp(ip);
