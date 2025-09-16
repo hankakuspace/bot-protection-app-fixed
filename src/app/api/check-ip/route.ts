@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
-    // ✅ デバッグログ
+    // ✅ デバッグログ（保存前）
     console.log("🔥 DEBUG 保存処理 reached", {
       ip,
       country,
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     });
 
     // ✅ アクセスログ保存（createdAt と timestamp の両方を保存）
-    await adminDb.collection("access_logs").add({
+    const ref = await adminDb.collection("access_logs").add({
       shop,
       ip: String(ip),
       country: String(country),
@@ -75,6 +75,9 @@ export async function GET(req: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),   // Firestore Timestamp
       timestamp: new Date().toISOString(),       // UI表示用
     });
+
+    // ✅ 保存完了ログ
+    console.log("🔥 DEBUG Firestore 保存完了", { docId: ref.id });
 
     // ✅ レスポンス
     return NextResponse.json({
