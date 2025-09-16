@@ -1,19 +1,32 @@
 // src/lib/check-ip.ts
 import { adminDb } from "@/lib/firebase";
 
-// ✅ クライアントIP正規化（Cloudflare対応）
+// ✅ クライアントIP正規化（IPv4優先）
 export function getClientIp(req: any): string {
-  // Cloudflare 経由の場合は CF-Connecting-IP を優先
-  let ip = req.headers.get("cf-connecting-ip");
+  // Cloudflare 経由の場合は cf-connecting-ip を優先
+  let ip = req.headers.get("cf-connecting-ip") || "";
 
+  // fallback: x-forwarded-for → req.ip
   if (!ip) {
-    // fallback: x-forwarded-for → req.ip
     const forwarded = req.headers.get("x-forwarded-for");
     ip = forwarded ? forwarded.split(",")[0].trim() : req.ip ?? "";
   }
 
   if (ip && ip.startsWith("::ffff:")) {
     ip = ip.replace("::ffff:", "");
+  }
+
+  // ✅ IPv6が来ている場合でも、x-forwarded-for/forwarded に IPv4 があればそちらを優先
+  if (ip.includes(":")) {
+    const forwarded = req.headers.get("x-forwarded-for") || req.headers.get("forwarded");
+    if (forwarded) {
+      const ipv4Candidate = forwarded
+        .split(/[ ,]/) // カンマ or スペース区切り
+        .find((addr: string) => addr.match(/\d+\.\d+\.\d+\.\d+/));
+      if (ipv4Candidate) {
+        ip = ipv4Candidate.replace("for=", "").trim();
+      }
+    }
   }
 
   return ip;
