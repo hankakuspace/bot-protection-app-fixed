@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const usageCount = usageData?.count ?? 0;
 
     // ✅ クライアントIP取得
-    const ip = await getClientIp(req);
+    const ip = getClientIp(req);
 
     // ✅ 国コード判定
     let country: string = "UNKNOWN";
@@ -49,18 +49,21 @@ export async function GET(req: NextRequest) {
       country = await getCountryFromIp(ip);
     }
 
+    // ✅ Firestoreから管理者IPリストを取得
+    const snapshot = await adminDb.collection("admin_ips").get();
+    const adminIps = snapshot.docs.map((doc) => doc.data().ip);
+
     // ✅ 管理者IP判定
-    const isAdmin = ip ? await isAdminIp(String(ip)) : false;
+    const isAdmin = await isAdminIp(ip);
 
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
 
-    // ✅ 全ヘッダーをデバッグ出力
+    // ✅ デバッグ用にヘッダー全部出す
     const headers: Record<string, string> = {};
     req.headers.forEach((value, key) => {
       headers[key] = value;
     });
-    console.error("🔥 DEBUG HEADERS", headers);
 
     // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
@@ -70,19 +73,18 @@ export async function GET(req: NextRequest) {
       blocked: false,
       isAdmin,
       userAgent,
-      headers, // ← 保存して後で確認できるようにする
       timestamp: new Date().toISOString(),
     });
 
+    // ✅ デバッグ情報を含めてレスポンス
     return NextResponse.json({
       shop,
-      ip: String(ip),
+      requestIp: String(ip),
       country: String(country),
-      blocked: false,
       isAdmin,
       usageCount,
-      limit: 50000,
-      headers, // ← APIレスポンスにも返す
+      adminIps, // Firestoreに保存されている管理者IPリスト
+      headers,  // リクエストヘッダー全部
     });
   } catch (err: any) {
     console.error("check-ip error:", err);
