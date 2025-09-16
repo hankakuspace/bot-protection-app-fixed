@@ -16,7 +16,7 @@ export function getClientIp(req: any): string {
   return ip;
 }
 
-// ✅ 管理者IP判定（IPv6 /64対応強化版）
+// ✅ 管理者IP判定（IPv6 /64対応、IPv4は完全一致のみ）
 export async function isAdminIp(ip: string): Promise<boolean> {
   if (!ip) return false;
 
@@ -30,22 +30,26 @@ export async function isAdminIp(ip: string): Promise<boolean> {
   return adminIps.some((adminIp) => {
     if (!adminIp) return false;
 
-    // ✅ IPv6 /64 プレフィックス登録の場合
-    if (adminIp.endsWith("/64")) {
+    // IPv4 同士 → 完全一致のみ
+    if (normalizedIp.includes(".") && adminIp.includes(".")) {
+      return normalizedIp === adminIp;
+    }
+
+    // IPv6 /64 プレフィックス登録の場合
+    if (adminIp.endsWith("/64") && normalizedIp.includes(":")) {
       const prefixAdmin = adminIp.replace("/64", "").replace(/:+$/, "");
       const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
       return prefixReq === prefixAdmin;
     }
 
-    // ✅ IPv6同士なら先頭4ブロック比較
+    // IPv6 同士 → 先頭4ブロック比較（従来通り）
     if (normalizedIp.includes(":") && adminIp.includes(":")) {
       const prefixReq = normalizedIp.split(":").slice(0, 4).join(":");
       const prefixAdmin = adminIp.split(":").slice(0, 4).join(":");
       return prefixReq === prefixAdmin;
     }
 
-    // ✅ IPv4は完全一致
-    return normalizedIp === adminIp;
+    return false;
   });
 }
 
@@ -56,7 +60,10 @@ export async function isIpBlocked(ip: string): Promise<boolean> {
   return doc.exists;
 }
 
-export async function blockIp(ip: string, source: string = "manual"): Promise<void> {
+export async function blockIp(
+  ip: string,
+  source: string = "manual"
+): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).set({
     createdAt: new Date().toISOString(),
@@ -64,7 +71,10 @@ export async function blockIp(ip: string, source: string = "manual"): Promise<vo
   });
 }
 
-export async function unblockIp(ip: string, source: string = "manual"): Promise<void> {
+export async function unblockIp(
+  ip: string,
+  source: string = "manual"
+): Promise<void> {
   if (!ip) return;
   await adminDb.collection("blocked_ips").doc(ip).delete();
 }
