@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp, isAdminIp } from "@/lib/check-ip";
-// import { verifyAppProxySignature } from "@/lib/verifyAppProxy"; // ✅ デバッグ用にコメントアウト
 import { getCountryFromIp } from "@/lib/ipinfo";
 
 export const runtime = "nodejs";
@@ -11,17 +10,6 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-
-    // ✅ デバッグのため署名検証をスキップ
-    /*
-    const result = verifyAppProxySignature(url, process.env.SHOPIFY_API_SECRET || "");
-    if (!result.ok) {
-      return NextResponse.json(
-        { error: result.reason || "Invalid signature" },
-        { status: 401 }
-      );
-    }
-    */
 
     // ✅ shop を抽出
     const shop = url.searchParams.get("shop");
@@ -31,8 +19,12 @@ export async function GET(req: NextRequest) {
 
     // ✅ 利用数カウント更新
     const now = new Date();
-    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const usageRef = adminDb.collection("usage_logs").doc(`${shop}_${yearMonth}`);
+    const yearMonth = `${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}`;
+    const usageRef = adminDb
+      .collection("usage_logs")
+      .doc(`${shop}_${yearMonth}`);
 
     await usageRef.set(
       {
@@ -50,7 +42,6 @@ export async function GET(req: NextRequest) {
 
     // ✅ クライアントIP取得
     const ip = await getClientIp(req);
-    console.error("🔥 DEBUG check-ip ip:", ip);
 
     // ✅ 国コード判定
     let country: string = "UNKNOWN";
@@ -58,29 +49,28 @@ export async function GET(req: NextRequest) {
       country = await getCountryFromIp(ip);
     }
 
-    // ✅ Firestoreからブロック対象を取得
-    const blockedIpDoc = ip ? await adminDb.collection("blocked_ips").doc(String(ip)).get() : null;
-    const blockedCountryDoc = await adminDb.collection("blocked_countries").doc(String(country)).get();
-
-    const ipBlocked = blockedIpDoc?.exists ?? false;
-    const countryBlocked = blockedCountryDoc.exists;
-    const blocked = ipBlocked || countryBlocked;
-
     // ✅ 管理者IP判定
     const isAdmin = ip ? await isAdminIp(String(ip)) : false;
-    console.error("🔥 DEBUG check-ip result:", { ip, isAdmin });
 
     // ✅ UserAgent 取得
     const userAgent = req.headers.get("user-agent") || "";
+
+    // ✅ 全ヘッダーをデバッグ出力
+    const headers: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.error("🔥 DEBUG HEADERS", headers);
 
     // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
       ip: String(ip),
       country: String(country),
-      allowedCountry: !countryBlocked,
-      blocked,
+      allowedCountry: true,
+      blocked: false,
       isAdmin,
       userAgent,
+      headers, // ← 保存して後で確認できるようにする
       timestamp: new Date().toISOString(),
     });
 
@@ -88,10 +78,11 @@ export async function GET(req: NextRequest) {
       shop,
       ip: String(ip),
       country: String(country),
-      blocked,
+      blocked: false,
       isAdmin,
       usageCount,
-      limit: 50000, // 仮：Lite プランの上限
+      limit: 50000,
+      headers, // ← APIレスポンスにも返す
     });
   } catch (err: any) {
     console.error("check-ip error:", err);
