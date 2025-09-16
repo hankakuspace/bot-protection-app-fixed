@@ -13,7 +13,6 @@ interface BlockIp {
 interface BlockCountry {
   id: string;
   countryCode: string;
-  note: string;
   createdAt?: string;
 }
 
@@ -24,9 +23,9 @@ export default function BlockIpPage() {
   const [ips, setIps] = useState<BlockIp[]>([]);
 
   const [countryCode, setCountryCode] = useState("");
-  const [countryNote, setCountryNote] = useState("");
   const [countryMessage, setCountryMessage] = useState("");
   const [countries, setCountries] = useState<BlockCountry[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
 
   // ====== ブロックIP ======
   const handleSubmitIp = async (e: React.FormEvent) => {
@@ -102,13 +101,12 @@ export default function BlockIpPage() {
       const res = await fetch("/api/admin/block-country/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ countryCode: countryCode.toUpperCase(), note: countryNote }),
+        body: JSON.stringify({ countryCode }),
       });
       const data = await res.json();
       if (data.ok) {
         setCountryMessage("✅ ブロックCountryを登録しました");
         setCountryCode("");
-        setCountryNote("");
         fetchCountries();
       } else {
         setCountryMessage(data.error || "登録に失敗しました");
@@ -151,10 +149,25 @@ export default function BlockIpPage() {
     }
   };
 
-  // 初期読み込み
+  // 利用可能な国一覧（アクセスログから取得）
+  const fetchAvailableCountries = async () => {
+    try {
+      const res = await fetch("/api/admin/logs?limit=500");
+      const data = await res.json();
+      const logs = data.logs || [];
+      const uniqueCountries = Array.from(
+        new Set(logs.map((l: any) => l.country).filter(Boolean))
+      );
+      setAvailableCountries(uniqueCountries);
+    } catch (err) {
+      console.error("利用可能国一覧取得エラー:", err);
+    }
+  };
+
   useEffect(() => {
     fetchIps();
     fetchCountries();
+    fetchAvailableCountries();
   }, []);
 
   return (
@@ -162,7 +175,6 @@ export default function BlockIpPage() {
       {/* ===== ブロックIP ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックIP</h1>
-
         {/* 追加フォーム */}
         <form onSubmit={handleSubmitIp} className="space-y-4 max-w-md mt-4">
           <input
@@ -233,26 +245,24 @@ export default function BlockIpPage() {
       {/* ===== ブロックCountry ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックCountry</h1>
-
         {/* 追加フォーム */}
         <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
-          <input
-            type="text"
+          <select
             value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value.toUpperCase())}
-            placeholder="例: US, CN, RU"
+            onChange={(e) => setCountryCode(e.target.value)}
             className="border rounded p-2 w-full"
-          />
-          <input
-            type="text"
-            value={countryNote}
-            onChange={(e) => setCountryNote(e.target.value)}
-            placeholder="メモ（任意）"
-            className="border rounded p-2 w-full"
-          />
+          >
+            <option value="">国を選択してください</option>
+            {availableCountries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            disabled={!countryCode}
           >
             登録
           </button>
@@ -264,7 +274,6 @@ export default function BlockIpPage() {
           <thead>
             <tr className="bg-gray-100">
               <th className="p-2 border">国コード</th>
-              <th className="p-2 border">メモ</th>
               <th className="p-2 border">登録日</th>
               <th className="p-2 border">操作</th>
             </tr>
@@ -272,7 +281,7 @@ export default function BlockIpPage() {
           <tbody>
             {countries.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-4 text-center text-gray-500">
+                <td colSpan={3} className="p-4 text-center text-gray-500">
                   登録されたブロックCountryはありません
                 </td>
               </tr>
@@ -280,7 +289,6 @@ export default function BlockIpPage() {
               countries.map((item) => (
                 <tr key={item.id}>
                   <td className="p-2 border font-mono">{item.countryCode}</td>
-                  <td className="p-2 border">{item.note}</td>
                   <td className="p-2 border">
                     {item.createdAt
                       ? new Date(item.createdAt).toLocaleString("ja-JP")
