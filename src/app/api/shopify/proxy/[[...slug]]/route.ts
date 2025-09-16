@@ -12,10 +12,10 @@ export const runtime = "nodejs";
 async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
   try {
     const token = process.env.IPINFO_TOKEN;
-    if (!token || ip === "UNKNOWN") return { country: "UNKNOWN", allowed: false };
+    if (!token || ip === "UNKNOWN") return { country: "UNKNOWN", allowed: true }; // ← デフォルトは true
 
     const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
-    if (!res.ok) return { country: "UNKNOWN", allowed: false };
+    if (!res.ok) return { country: "UNKNOWN", allowed: true };
 
     const data = await res.json();
     const country = data.country || "UNKNOWN";
@@ -25,7 +25,7 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
     return { country, allowed: !blocked };
   } catch (err) {
     console.error("getCountryFromIp error:", err);
-    return { country: "UNKNOWN", allowed: false };
+    return { country: "UNKNOWN", allowed: true };
   }
 }
 
@@ -63,16 +63,12 @@ export async function POST(req: NextRequest) {
 
     // Firestore に保存
     const ref = await adminDb.collection("access_logs").add(writtenLog);
-
-    // 保存直後のデータを取得
     const saved = await ref.get();
 
-    // 🔥 書き込み比較ログ
     console.log("🔥 DEBUG proxy log-access 保存比較", {
       written: writtenLog,
       saved: saved.data(),
     });
-    console.log("🔥 Firestore saved raw JSON", JSON.stringify(saved.data(), null, 2));
 
     return NextResponse.json({ ok: true, id: ref.id });
   } catch (error) {
