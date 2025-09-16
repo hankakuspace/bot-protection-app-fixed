@@ -11,7 +11,6 @@ interface AccessLog {
   country: string;
   allowedCountry?: boolean;
   blocked?: boolean | string;
-  isAdmin?: boolean | string;
   userAgent?: string;
   isBot?: boolean;
   logTimestamp?: string | null;
@@ -94,29 +93,17 @@ export default function LogsPage() {
     )}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ ipaddr.js + デバッグログ付き管理者判定
+  // ✅ 常に log.ip と adminIps で判定（Firestoreの isAdmin は無視）
   const isDynamicAdmin = (ip: string): boolean => {
     try {
-      console.log("🔥 DEBUG raw log.ip", ip);
       const parsedIp = ipaddr.parse(ip);
-      console.log("🔥 DEBUG parsed log.ip", parsedIp.toNormalizedString());
 
       return adminIps.some((adminIp) => {
         if (adminIp.includes("/")) {
           const range = ipaddr.parseCIDR(adminIp);
-          const match = parsedIp.match(range);
-
-          console.log("🔥 DEBUG CIDR check", {
-            adminIp,
-            logIp: parsedIp.toNormalizedString(),
-            match,
-          });
-
-          return match;
+          return parsedIp.match(range);
         } else {
-          const eq = ip === adminIp;
-          console.log("🔥 DEBUG exact check", { adminIp, logIp: ip, eq });
-          return eq;
+          return ip === adminIp;
         }
       });
     } catch (err) {
