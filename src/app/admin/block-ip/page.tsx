@@ -230,7 +230,7 @@ export default function BlockIpPage() {
                     </td>
                     <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="inline-block bg-pink-100 text-pink-600 text-[10px] font-semibold px-2 py-0.5 rounded">
+                        <span className="inline-block bg-red-100 text-red-600 text-[10px] font-semibold px-2 py-0.5 rounded">
                           ブロック
                         </span>
                         <span>{item.ip}</span>
