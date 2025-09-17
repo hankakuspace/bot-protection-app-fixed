@@ -111,27 +111,21 @@ export default function AdminIpPage() {
 
       {/* 一覧テーブル */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white text-xs">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">
-                登録日
-              </th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">
-                保存されたIP
-              </th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">
-                メモ
-              </th>
-              <th className="px-4 py-2 text-center font-medium text-gray-500"></th>
+        <table className="min-w-full bg-white text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
+              <th className="px-4 py-3 border-b border-gray-200">登録日</th>
+              <th className="px-4 py-3 border-b border-gray-200">保存されたIP</th>
+              <th className="px-4 py-3 border-b border-gray-200">メモ</th>
+              <th className="px-4 py-3 border-b border-gray-200"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {ips.length === 0 ? (
               <tr>
                 <td
                   colSpan={4}
-                  className="px-4 py-4 text-center text-gray-500 text-sm"
+                  className="px-4 py-6 text-center text-gray-500 text-sm"
                 >
                   登録された管理者IPはありません
                 </td>
@@ -139,17 +133,26 @@ export default function AdminIpPage() {
             ) : (
               ips.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                     {item.createdAt
                       ? new Date(item.createdAt).toLocaleString("ja-JP")
                       : "-"}
                   </td>
-                  <td className="px-4 py-2 font-mono">{item.ip}</td>
-                  <td className="px-4 py-2">{item.note}</td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block bg-blue-100 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded">
+                        管理者
+                      </span>
+                      <span>{item.ip}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                    {item.note}
+                  </td>
+                  <td className="px-4 py-3 border-b border-gray-200 text-center">
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="px-3 py-1 bg-black text-white rounded-md hover:bg-gray-800"
+                      className="px-3 py-1 bg-black text-white rounded-md hover:bg-gray-800 text-xs"
                     >
                       削除
                     </button>
