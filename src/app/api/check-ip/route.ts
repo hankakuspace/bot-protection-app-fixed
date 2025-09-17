@@ -2,10 +2,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import { getClientIp, isAdminIp, isIpBlocked } from "@/lib/check-ip";
-import { getCountryFromIp } from "@/lib/ipinfo";
+import { getClientIp, isAdminIp, isIpBlocked, isCountryBlocked } from "@/lib/check-ip";
 
 export const runtime = "nodejs";
+
+// ✅ IPinfo を使って国コードを取得する関数（allowed はここでは判定しない）
+async function getCountryCode(ip: string): Promise<string> {
+  try {
+    const token = process.env.IPINFO_TOKEN;
+    if (!token || ip === "UNKNOWN") return "UNKNOWN";
+
+    const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
+    if (!res.ok) return "UNKNOWN";
+
+    const data = await res.json();
+    return data.country || "UNKNOWN";
+  } catch (err) {
+    console.error("getCountryCode error:", err);
+    return "UNKNOWN";
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,16 +59,19 @@ export async function GET(req: NextRequest) {
     // ✅ クライアントIP取得
     const ip = getClientIp(req);
 
-    // ✅ 国コード判定
+    // ✅ 国コード判定 + ブロックチェック
     let country: string = "UNKNOWN";
+    let allowedCountry = true;
     if (ip) {
-      country = await getCountryFromIp(ip);
+      country = await getCountryCode(ip);
+      const blockedCountry = await isCountryBlocked(country);
+      allowedCountry = !blockedCountry;
     }
 
     // ✅ 管理者IP判定
     const isAdmin = await isAdminIp(ip);
 
-    // ✅ ブロックIP判定（CIDR対応）
+    // ✅ ブロックIP判定
     const blocked = await isIpBlocked(ip);
 
     // ✅ UserAgent 取得
@@ -63,12 +82,12 @@ export async function GET(req: NextRequest) {
       shop,
       ip: String(ip),
       country: String(country),
-      allowedCountry: true,
-      blocked, // ← CIDR対応の結果を保存
+      allowedCountry, // ← Firestoreの blocked_countries を反映
+      blocked,
       isAdmin,
       userAgent,
-      createdAt: FieldValue.serverTimestamp(),
-      logTimestamp: new Date().toISOString(),
+      createdAt: FieldValue.serverTimestamp(),   // Firestore Timestamp
+      logTimestamp: new Date().toISOString(),   // ISO文字列に統一
     });
 
     // ✅ 保存直後のドキュメントを読み込み
@@ -82,6 +101,7 @@ export async function GET(req: NextRequest) {
       country: String(country),
       isAdmin,
       blocked,
+      allowedCountry,
       usageCount,
     });
   } catch (err: any) {
