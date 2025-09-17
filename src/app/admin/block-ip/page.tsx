@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ChevronDown } from "lucide-react";  // ← 追加
 
 interface BlockIp {
   id: string;
@@ -256,30 +257,38 @@ export default function BlockIpPage() {
       </div>
 
       {/* ===== ブロックCountry ===== */}
-      <div>
-        <h1 className="text-xl font-bold">ブロックCountry</h1>
-        {/* 追加フォーム */}
-        <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
-          <select
-            value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value)}
-            className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
-          >
-            <option value="">国を選択してください</option>
-            {availableCountries.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
-            disabled={!countryCode}
-          >
-            登録
-          </button>
-        </form>
+<div>
+  <h1 className="text-xl font-bold">ブロックCountry</h1>
+  {/* 追加フォーム */}
+  <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
+    <div className="relative">
+      <select
+        value={countryCode}
+        onChange={(e) => setCountryCode(e.target.value)}
+        className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black appearance-none"
+      >
+        <option value="">国を選択してください</option>
+        {availableCountries.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+      {/* ▼ カスタム矢印 */}
+      <ChevronDown
+        size={16}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+      />
+    </div>
+    <button
+      type="submit"
+      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
+      disabled={!countryCode}
+    >
+      登録
+    </button>
+  </form>
+</div>
         {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
 
         {/* 一覧テーブル */}
