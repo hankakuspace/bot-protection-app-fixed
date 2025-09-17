@@ -264,7 +264,7 @@ export default function LogsPage() {
       <div className="rounded-lg shadow-sm bg-white">
         <table className="w-full border-collapse text-sm relative">
           <thead>
-            <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
+            <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
               <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
 
               {/* IP フィルタ */}
