@@ -1,134 +1,409 @@
-// src/app/api/check-ip/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase";
-import { FieldValue } from "firebase-admin/firestore";
-import { getClientIp, isAdminIp, isIpBlocked, isCountryBlocked } from "@/lib/check-ip";
-import { isBotUserAgent } from "@/lib/check-useragent";
+// src/app/admin/logs/page.tsx
+"use client";
 
-export const runtime = "nodejs";
+import { useEffect, useRef, useState } from "react";
+import {
+  RefreshCw,
+  Code,
+  Download,
+  ChevronDown,
+  Check,
+} from "lucide-react";
+import * as ipaddr from "ipaddr.js";
 
-// ✅ IPinfo を使って国コードを取得する関数
-async function getCountryCode(ip: string): Promise<string> {
-  try {
-    const token = process.env.IPINFO_TOKEN;
-    if (!token || ip === "UNKNOWN") {
-      console.warn("⚠️ IPINFO_TOKEN 未設定 or IP=UNKNOWN");
-      return "UNKNOWN";
-    }
-
-    const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
-    if (!res.ok) {
-      console.error("❌ ipinfo.io API error", { ip, status: res.status });
-      return "UNKNOWN";
-    }
-
-    const text = await res.text();
-    if (!text) {
-      console.error("❌ ipinfo.io empty response", { ip });
-      return "UNKNOWN";
-    }
-
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch (err) {
-      console.error("❌ ipinfo.io JSON parse error", { ip, text });
-      return "UNKNOWN";
-    }
-
-    return data.country || "UNKNOWN";
-  } catch (err) {
-    console.error("getCountryCode fatal error:", err);
-    return "UNKNOWN";
-  }
+interface AccessLog {
+  id: string;
+  ip: string;
+  country: string;
+  allowedCountry?: boolean;
+  blocked?: boolean | string;
+  userAgent?: string;
+  isBot?: boolean;
+  logTimestamp?: string | null;
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const url = new URL(req.url);
+export default function LogsPage() {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const today = jst.toISOString().slice(0, 10);
 
-    // ✅ shop を抽出
-    const shop = url.searchParams.get("shop");
-    if (!shop) {
-      return NextResponse.json({ error: "Missing shop" }, { status: 400 });
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
+  const [logs, setLogs] = useState<AccessLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  const [adminIps, setAdminIps] = useState<string[]>([]);
+  const [blockedIps, setBlockedIps] = useState<string[]>([]);
+
+  const [ipFilter, setIpFilter] = useState<string>("ALL");
+  const [countryFilter, setCountryFilter] = useState<string>("ALL");
+  const [ipMenuOpen, setIpMenuOpen] = useState(false);
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
+
+  const ipMenuRef = useRef<HTMLDivElement>(null);
+  const countryMenuRef = useRef<HTMLDivElement>(null);
+
+  // 外クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ipMenuRef.current && !ipMenuRef.current.contains(e.target as Node)) {
+        setIpMenuOpen(false);
+      }
+      if (countryMenuRef.current && !countryMenuRef.current.contains(e.target as Node)) {
+        setCountryMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // 管理者IP
+  const fetchAdminIps = async () => {
+    try {
+      const res = await fetch("/api/admin/admin-ip/list");
+      const data = await res.json();
+      setAdminIps((data || []).map((d: any) => d.ip));
+    } catch (e) {
+      console.error("管理者IP取得失敗:", e);
     }
+  };
 
-    // ✅ 利用数カウント更新
-    const now = new Date();
-    const yearMonth = `${now.getFullYear()}-${String(
-      now.getMonth() + 1
-    ).padStart(2, "0")}`;
-    const usageRef = adminDb
-      .collection("usage_logs")
-      .doc(`${shop}_${yearMonth}`);
+  // ブロックIP
+  const fetchBlockedIps = async () => {
+    try {
+      const res = await fetch("/api/admin/block-ip/list");
+      const data = await res.json();
+      setBlockedIps((data || []).map((d: any) => d.ip));
+    } catch (e) {
+      console.error("ブロックIP取得失敗:", e);
+    }
+  };
 
-    await usageRef.set(
-      {
-        shop,
-        yearMonth,
-        count: FieldValue.increment(1),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
+  // ログ取得
+  const fetchLogs = async (from: string, to: string, offset: number, append = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/logs?from=${from}&to=${to}&offset=${offset}&limit=100`);
+      const data = await res.json();
+      const newLogs: AccessLog[] = data.logs || [];
+      if (append) setLogs((prev) => [...prev, ...newLogs]);
+      else setLogs(newLogs);
+      setHasMore(newLogs.length === 100);
+    } catch (e) {
+      console.error("ログ取得失敗:", e);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    setOffset(0);
+    fetchLogs(fromDate, toDate, 0, false);
+    fetchAdminIps();
+    fetchBlockedIps();
+  }, [fromDate, toDate]);
+
+  // 日付整形
+  const formatDate = (iso: string | null) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(
+      d.getDate()
+    ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
+      d.getMinutes()
+    ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+  };
+
+  // 判定処理
+  const isDynamicAdmin = (ip: string): boolean => {
+    try {
+      const parsedIp = ipaddr.parse(ip);
+      return adminIps.some((adminIp) =>
+        adminIp.includes("/") ? parsedIp.match(ipaddr.parseCIDR(adminIp)) : ip === adminIp
+      );
+    } catch {
+      return false;
+    }
+  };
+  const isDynamicBlocked = (ip: string): boolean => {
+    try {
+      const parsedIp = ipaddr.parse(ip);
+      return blockedIps.some((blockedIp) =>
+        blockedIp.includes("/") ? parsedIp.match(ipaddr.parseCIDR(blockedIp)) : ip === blockedIp
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  // 国一覧
+  const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(Boolean);
+
+  // フィルタリング
+  const filteredLogs = logs.filter((log) => {
+    const dynamicIsAdmin = isDynamicAdmin(log.ip);
+    const dynamicIsBlocked = isDynamicBlocked(log.ip);
+    if (ipFilter === "ADMIN" && !dynamicIsAdmin) return false;
+    if (ipFilter === "BLOCKED" && !dynamicIsBlocked) return false;
+    if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked)) return false;
+    if (countryFilter !== "ALL" && log.country !== countryFilter) return false;
+    return true;
+  });
+
+  // JSONダウンロード
+  const handleDownloadJson = () => {
+    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs_${fromDate}_${toDate}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // CSVダウンロード
+  const handleDownloadCsv = () => {
+    const header = [
+      "logTimestamp",
+      "ip",
+      "country",
+      "blocked(dynamic)",
+      "allowedCountry",
+      "isAdmin(dynamic)",
+      "isBot",
+      "userAgent",
+    ];
+    const rows = filteredLogs.map((l) =>
+      [
+        l.logTimestamp,
+        l.ip,
+        l.country,
+        isDynamicBlocked(l.ip),
+        l.allowedCountry,
+        isDynamicAdmin(l.ip),
+        l.isBot,
+        `"${(l.userAgent || "").replace(/"/g, '""')}"`,
+      ].join(",")
     );
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs_${fromDate}_${toDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-    const usageSnap = await usageRef.get();
-    const usageData = usageSnap.data();
-    const usageCount = usageData?.count ?? 0;
+  // ドロップダウンメニュー項目
+  const MenuItem = ({
+    label,
+    active,
+    onClick,
+    color,
+  }: {
+    label: string;
+    active?: boolean;
+    onClick: () => void;
+    color?: string;
+  }) => (
+    <button
+      onClick={onClick}
+      className="flex items-center justify-between w-full px-3 py-2 text-sm font-normal rounded-md hover:bg-gray-100"
+    >
+      <div className="flex items-center gap-2">
+        {color && <span className={`w-2 h-2 rounded-full ${color}`} />}
+        {label}
+      </div>
+      {active && <Check size={14} className="text-gray-600" />}
+    </button>
+  );
 
-    // ✅ クライアントIP取得
-    const ip = getClientIp(req);
+  // ✅ シンプルスピナー
+  const Spinner = () => (
+    <svg
+      className="animate-spin h-6 w-6 text-gray-500"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 0 1 10 10h-2a8 8 0 1 0-8 8v2a10 10 0 1 1 0-20z"
+      />
+    </svg>
+  );
 
-    // ✅ 国コード判定 + ブロックチェック
-    let country: string = "UNKNOWN";
-    let allowedCountry = true;
-    let blockedCountry = false;
-    if (ip) {
-      country = await getCountryCode(ip);
-      blockedCountry = await isCountryBlocked(country);
-      allowedCountry = !blockedCountry;
-    }
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
-    // ✅ 管理者IP判定
-    const isAdmin = await isAdminIp(ip);
+      {/* 操作用ボタン */}
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
+        <span>〜</span>
+        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
 
-    // ✅ ブロックIP判定
-    const blocked = await isIpBlocked(ip);
+        <button
+          onClick={() => {
+            setOffset(0);
+            fetchLogs(fromDate, toDate, 0, false);
+            fetchAdminIps();
+            fetchBlockedIps();
+          }}
+          className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm"
+        >
+          <RefreshCw size={14} className="text-gray-600" />
+          Reload
+        </button>
 
-    // ✅ UserAgent & Bot 判定
-    const userAgent = req.headers.get("user-agent") || "";
-    const isBot = isBotUserAgent(userAgent);
+        <button onClick={handleDownloadJson} className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm">
+          <Code size={14} className="text-gray-600" />
+          JSON
+        </button>
 
-    // ✅ Firestore に保存
-    const ref = await adminDb.collection("access_logs").add({
-      shop,
-      ip: String(ip),
-      country: String(country),
-      allowedCountry,
-      blocked, // ← IP/Country のみで判定。Bot はブロック対象外（SEO 対策）
-      isAdmin,
-      userAgent,
-      isBot, // ← 保存
-      createdAt: FieldValue.serverTimestamp(),
-      logTimestamp: new Date().toISOString(),
-    });
+        <button onClick={handleDownloadCsv} className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm">
+          <Download size={14} className="text-gray-600" />
+          CSV
+        </button>
+      </div>
 
-    const saved = await ref.get();
-    console.log("🔥 DEBUG Firestore 保存直後", saved.data());
+      {/* テーブル */}
+      <div className="rounded-lg shadow-sm bg-white">
+        <table className="w-full border-collapse text-sm relative">
+          <thead>
+            <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
+              <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
 
-    // ✅ レスポンス
-    return NextResponse.json({
-      shop,
-      requestIp: String(ip),
-      country: String(country),
-      isAdmin,
-      blocked,
-      allowedCountry,
-      isBot, // ← レスポンスにも追加
-      usageCount,
-    });
-  } catch (err: any) {
-    console.error("check-ip error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+              {/* ✅ IP フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={ipMenuRef}
+                  className="flex justify-start items-center relative cursor-pointer"
+                  onClick={() => setIpMenuOpen((o) => !o)}
+                >
+                  <span>IP</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {ipMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={ipFilter === "ALL"} onClick={() => setIpFilter("ALL")} />
+                      <MenuItem label="管理者" color="bg-blue-500" active={ipFilter === "ADMIN"} onClick={() => setIpFilter("ADMIN")} />
+                      <MenuItem label="正常" color="bg-green-500" active={ipFilter === "ALLOWED"} onClick={() => setIpFilter("ALLOWED")} />
+                      <MenuItem label="ブロック" color="bg-red-500" active={ipFilter === "BLOCKED"} onClick={() => setIpFilter("BLOCKED")} />
+                    </div>
+                  )}
+                </div>
+              </th>
+
+              {/* ✅ Country フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={countryMenuRef}
+                  className="flex justify-start items-center relative cursor-pointer"
+                  onClick={() => setCountryMenuOpen((o) => !o)}
+                >
+                  <span>Country</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {countryMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={countryFilter === "ALL"} onClick={() => setCountryFilter("ALL")} />
+                      {countryOptions.map((c) => (
+                        <MenuItem key={c} label={c} active={countryFilter === c} onClick={() => setCountryFilter(c)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </th>
+
+              <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="py-20">
+                  <div className="flex justify-center items-center">
+                    <Spinner />
+                  </div>
+                </td>
+              </tr>
+            ) : filteredLogs.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-6 text-gray-500">
+                  ログがありません
+                </td>
+              </tr>
+            ) : (
+              filteredLogs.map((log) => {
+                const dynamicIsAdmin = isDynamicAdmin(log.ip);
+                const dynamicIsBlocked = isDynamicBlocked(log.ip);
+                return (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {formatDate(log.logTimestamp || null)}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        {log.isBot ? (
+                          <span className="w-2 h-2 rounded-full bg-purple-500" />
+                        ) : dynamicIsAdmin ? (
+                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        ) : dynamicIsBlocked ? (
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-green-500" />
+                        )}
+                        <span>{log.ip}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            log.allowedCountry === false ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
+                        <span>{log.country}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
+                      {log.userAgent}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+
+        {/* Load More */}
+        <div className="flex justify-center py-4">
+          {hasMore ? (
+            <button
+              onClick={() => {
+                const newOffset = offset + 100;
+                setOffset(newOffset);
+                fetchLogs(fromDate, toDate, newOffset, true);
+              }}
+              disabled={loadingMore}
+              className="px-6 py-2 border rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center"
+            >
+              {loadingMore ? <Spinner /> : "Load More"}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No more logs to show within selected timeline
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
