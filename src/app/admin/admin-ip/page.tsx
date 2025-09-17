@@ -88,7 +88,6 @@ export default function AdminIpPage() {
           placeholder="例: 192.168.0.1 または IPv6"
           className="border rounded p-2 w-full"
         />
-        {/* ✅ IPv6の/64保存に関する説明 */}
         <p className="text-xs text-gray-500">
           IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
           （例: 2405:6583:9640:d500::/64）。
@@ -111,45 +110,58 @@ export default function AdminIpPage() {
       {message && <p className="text-sm mt-2">{message}</p>}
 
       {/* 一覧テーブル */}
-      <table className="w-full border text-sm">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 border">保存されたIP</th>
-            <th className="p-2 border">メモ</th>
-            <th className="p-2 border">登録日</th>
-            <th className="p-2 border">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ips.length === 0 ? (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead className="bg-gray-50">
             <tr>
-              <td colSpan={4} className="p-4 text-center text-gray-500">
-                登録された管理者IPはありません
-              </td>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                保存されたIP
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                メモ
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                登録日
+              </th>
+              <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
             </tr>
-          ) : (
-            ips.map((item) => (
-              <tr key={item.id}>
-                <td className="p-2 border font-mono">{item.ip}</td>
-                <td className="p-2 border">{item.note}</td>
-                <td className="p-2 border">
-                  {item.createdAt
-                    ? new Date(item.createdAt).toLocaleString("ja-JP")
-                    : "-"}
-                </td>
-                <td className="p-2 border text-center">
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    削除
-                  </button>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {ips.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-4 text-center text-gray-500 text-sm"
+                >
+                  登録された管理者IPはありません
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              ips.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 font-mono">{item.ip}</td>
+                  <td className="px-4 py-2">{item.note}</td>
+                  <td className="px-4 py-2">
+                    {item.createdAt
+                      ? new Date(item.createdAt).toLocaleString("ja-JP")
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
+                    >
+                      削除
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
