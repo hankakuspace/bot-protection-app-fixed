@@ -113,11 +113,11 @@ export default function AdminIpPage() {
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white text-xs border-collapse">
           <thead>
-            <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
-              <th className="px-4 py-3 border-b border-gray-200">登録日</th>
-              <th className="px-4 py-3 border-b border-gray-200">保存されたIP</th>
-              <th className="px-4 py-3 border-b border-gray-200">メモ</th>
-              <th className="px-4 py-3 border-b border-gray-200"></th>
+            <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+              <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+              <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
+              <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+              <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
             </tr>
           </thead>
           <tbody>
@@ -149,10 +149,10 @@ export default function AdminIpPage() {
                   <td className="px-4 py-3 border-b border-gray-200 text-xs">
                     {item.note}
                   </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-center">
+                  <td className="px-4 py-3 border-b border-gray-200 text-left">
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="px-3 py-1 bg-black text-white rounded-md hover:bg-gray-800 text-xs"
+                      className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
                     >
                       削除
                     </button>
