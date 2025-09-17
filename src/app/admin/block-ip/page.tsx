@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown } from "lucide-react";  // ← 追加
+import { ChevronDown } from "lucide-react";
 
 interface BlockIp {
   id: string;
@@ -208,16 +208,25 @@ export default function BlockIpPage() {
           <table className="min-w-full bg-white text-xs border-collapse">
             <thead>
               <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">
+                  登録日
+                </th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">
+                  保存されたIP
+                </th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">
+                  メモ
+                </th>
                 <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
               </tr>
             </thead>
             <tbody>
               {ips.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-6 text-center text-gray-500 text-sm"
+                  >
                     登録されたブロックIPはありません
                   </td>
                 </tr>
@@ -257,38 +266,39 @@ export default function BlockIpPage() {
       </div>
 
       {/* ===== ブロックCountry ===== */}
-<div>
-  <h1 className="text-xl font-bold">ブロックCountry</h1>
-  {/* 追加フォーム */}
-  <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
-    <div className="relative">
-      <select
-        value={countryCode}
-        onChange={(e) => setCountryCode(e.target.value)}
-        className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black appearance-none"
-      >
-        <option value="">国を選択してください</option>
-        {availableCountries.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-      {/* ▼ カスタム矢印 */}
-      <ChevronDown
-        size={16}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-      />
-    </div>
-    <button
-      type="submit"
-      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
-      disabled={!countryCode}
-    >
-      登録
-    </button>
-  </form>
-</div>
+      <div>
+        <h1 className="text-xl font-bold">ブロックCountry</h1>
+        {/* 追加フォーム */}
+        <form
+          onSubmit={handleSubmitCountry}
+          className="space-y-4 max-w-md mt-4"
+        >
+          <div className="relative">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black appearance-none"
+            >
+              <option value="">国を選択してください</option>
+              {availableCountries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
+            disabled={!countryCode}
+          >
+            登録
+          </button>
+        </form>
         {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
 
         {/* 一覧テーブル */}
@@ -296,15 +306,22 @@ export default function BlockIpPage() {
           <table className="min-w-full bg-white text-xs border-collapse">
             <thead>
               <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left">国コード</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">
+                  登録日
+                </th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">
+                  国コード
+                </th>
                 <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
               </tr>
             </thead>
             <tbody>
               {countries.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
+                  <td
+                    colSpan={3}
+                    className="px-4 py-6 text-center text-gray-500 text-sm"
+                  >
                     登録されたブロックCountryはありません
                   </td>
                 </tr>
