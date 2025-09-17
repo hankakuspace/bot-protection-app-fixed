@@ -6,7 +6,7 @@ import { getClientIp, isAdminIp, isIpBlocked, isCountryBlocked } from "@/lib/che
 
 export const runtime = "nodejs";
 
-// ✅ IPinfo を使って国コードを取得する関数（allowed はここでは判定しない）
+// ✅ IPinfo を使って国コードを取得する関数
 async function getCountryCode(ip: string): Promise<string> {
   try {
     const token = process.env.IPINFO_TOKEN;
@@ -62,11 +62,20 @@ export async function GET(req: NextRequest) {
     // ✅ 国コード判定 + ブロックチェック
     let country: string = "UNKNOWN";
     let allowedCountry = true;
+    let blockedCountry = false;
     if (ip) {
       country = await getCountryCode(ip);
-      const blockedCountry = await isCountryBlocked(country);
+      blockedCountry = await isCountryBlocked(country);
       allowedCountry = !blockedCountry;
     }
+
+    // ✅ デバッグログ
+    console.log("🔥 DEBUG country判定", {
+      ip,
+      country,
+      blockedCountry,
+      allowedCountry,
+    });
 
     // ✅ 管理者IP判定
     const isAdmin = await isAdminIp(ip);
@@ -82,15 +91,14 @@ export async function GET(req: NextRequest) {
       shop,
       ip: String(ip),
       country: String(country),
-      allowedCountry, // ← Firestoreの blocked_countries を反映
+      allowedCountry,
       blocked,
       isAdmin,
       userAgent,
-      createdAt: FieldValue.serverTimestamp(),   // Firestore Timestamp
-      logTimestamp: new Date().toISOString(),   // ISO文字列に統一
+      createdAt: FieldValue.serverTimestamp(),
+      logTimestamp: new Date().toISOString(),
     });
 
-    // ✅ 保存直後のドキュメントを読み込み
     const saved = await ref.get();
     console.log("🔥 DEBUG Firestore 保存直後", saved.data());
 
