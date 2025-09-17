@@ -299,15 +299,13 @@ export default function LogsPage() {
                 <th className="px-4 py-3 border-b border-gray-200 relative">
                   <div
                     ref={ipMenuRef}
-                    className="inline-block relative w-full cursor-pointer"
+                    className="flex justify-center items-center relative cursor-pointer"
                     onClick={() => setIpMenuOpen((o) => !o)}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="mx-auto">IP</span>
-                      <ChevronDown size={14} className="ml-2" />
-                    </div>
+                    <span>IP</span>
+                    <ChevronDown size={14} className="ml-1" />
                     {ipMenuOpen && (
-                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
                         <MenuItem
                           label="ALL"
                           active={ipFilter === "ALL"}
@@ -340,15 +338,13 @@ export default function LogsPage() {
                 <th className="px-4 py-3 border-b border-gray-200 relative">
                   <div
                     ref={countryMenuRef}
-                    className="inline-block relative w-full cursor-pointer"
+                    className="flex justify-center items-center relative cursor-pointer"
                     onClick={() => setCountryMenuOpen((o) => !o)}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="mx-auto">Country</span>
-                      <ChevronDown size={14} className="ml-2" />
-                    </div>
+                    <span>Country</span>
+                    <ChevronDown size={14} className="ml-1" />
                     {countryMenuOpen && (
-                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
                         <MenuItem
                           label="ALL"
                           active={countryFilter === "ALL"}
