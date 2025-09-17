@@ -86,7 +86,7 @@ export default function AdminIpPage() {
           value={ip}
           onChange={(e) => setIp(e.target.value)}
           placeholder="例: 192.168.0.1 または IPv6"
-          className="border rounded p-2 w-full"
+          className="border rounded p-2 w-full text-sm"
         />
         <p className="text-xs text-gray-500">
           IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
@@ -98,11 +98,11 @@ export default function AdminIpPage() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="メモ（任意）"
-          className="border rounded p-2 w-full"
+          className="border rounded p-2 w-full text-sm"
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
         >
           登録
         </button>
@@ -111,20 +111,20 @@ export default function AdminIpPage() {
 
       {/* 一覧テーブル */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+        <table className="min-w-full bg-white text-xs">
+          <thead>
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                保存されたIP
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                メモ
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-2 text-left font-medium text-gray-500">
                 登録日
               </th>
-              <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                操作
+              <th className="px-4 py-2 text-left font-medium text-gray-500">
+                保存されたIP
+              </th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">
+                メモ
+              </th>
+              <th className="px-4 py-2 text-center font-medium text-gray-500">
+                {/* 操作テキスト削除 */}
               </th>
             </tr>
           </thead>
@@ -141,17 +141,17 @@ export default function AdminIpPage() {
             ) : (
               ips.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-mono">{item.ip}</td>
-                  <td className="px-4 py-2">{item.note}</td>
                   <td className="px-4 py-2">
                     {item.createdAt
                       ? new Date(item.createdAt).toLocaleString("ja-JP")
                       : "-"}
                   </td>
+                  <td className="px-4 py-2 font-mono">{item.ip}</td>
+                  <td className="px-4 py-2">{item.note}</td>
                   <td className="px-4 py-2 text-center">
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
+                      className="px-3 py-1 bg-black text-white rounded-md hover:bg-gray-800"
                     >
                       削除
                     </button>
