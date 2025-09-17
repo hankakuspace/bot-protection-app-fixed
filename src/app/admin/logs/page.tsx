@@ -226,6 +226,21 @@ export default function LogsPage() {
     </button>
   );
 
+  // ✅ シンプルスピナー（1つの円弧だけ）
+  const Spinner = () => (
+    <svg
+      className="animate-spin h-6 w-6 text-gray-500"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 0 1 10 10h-2a8 8 0 1 0-8 8v2a10 10 0 1 1 0-20z"
+      />
+    </svg>
+  );
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
@@ -290,30 +305,8 @@ export default function LogsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="text-center py-6 text-gray-500">
-                  <div className="flex justify-center items-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                    <span>読み込み中...</span>
-                  </div>
+                <td colSpan={4} className="text-center py-6">
+                  <Spinner />
                 </td>
               </tr>
             ) : filteredLogs.length === 0 ? (
@@ -373,9 +366,9 @@ export default function LogsPage() {
                 fetchLogs(fromDate, toDate, newOffset, true);
               }}
               disabled={loadingMore}
-              className="px-6 py-2 border rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+              className="px-6 py-2 border rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center"
             >
-              {loadingMore ? "Loading..." : "Load More"}
+              {loadingMore ? <Spinner /> : "Load More"}
             </button>
           ) : (
             <p className="text-sm text-gray-500">
