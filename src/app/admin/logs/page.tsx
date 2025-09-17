@@ -60,7 +60,7 @@ export default function LogsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 管理者IP一覧
+  // 管理者IP
   const fetchAdminIps = async () => {
     try {
       const res = await fetch("/api/admin/admin-ip/list");
@@ -71,7 +71,7 @@ export default function LogsPage() {
     }
   };
 
-  // ブロックIP一覧
+  // ブロックIP
   const fetchBlockedIps = async () => {
     try {
       const res = await fetch("/api/admin/block-ip/list");
@@ -202,7 +202,7 @@ export default function LogsPage() {
     URL.revokeObjectURL(url);
   };
 
-  // ドロップダウンの共通アイテム
+  // ドロップダウンメニュー項目
   const MenuItem = ({
     label,
     active,
@@ -230,7 +230,7 @@ export default function LogsPage() {
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
 
-      {/* 日付 + Reload + JSON/CSV */}
+      {/* 操作用ボタン */}
       <div className="flex flex-wrap items-center gap-4 mb-4">
         <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border rounded px-2 py-1 text-sm" />
         <span>〜</span>
@@ -260,53 +260,14 @@ export default function LogsPage() {
         </button>
       </div>
 
-      {/* テーブル常時表示 */}
+      {/* テーブル */}
       <div className="rounded-lg shadow-sm bg-white">
         <table className="w-full border-collapse text-sm relative">
           <thead>
             <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
               <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
-
-              {/* IP フィルタ */}
-              <th className="px-4 py-3 border-b border-gray-200 relative">
-                <div
-                  ref={ipMenuRef}
-                  className="flex justify-center items-center relative cursor-pointer"
-                  onClick={() => setIpMenuOpen((o) => !o)}
-                >
-                  <span>IP</span>
-                  <ChevronDown size={14} className="ml-1" />
-                  {ipMenuOpen && (
-                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
-                      <MenuItem label="ALL" active={ipFilter === "ALL"} onClick={() => setIpFilter("ALL")} />
-                      <MenuItem label="管理者" color="bg-blue-500" active={ipFilter === "ADMIN"} onClick={() => setIpFilter("ADMIN")} />
-                      <MenuItem label="正常" color="bg-green-500" active={ipFilter === "ALLOWED"} onClick={() => setIpFilter("ALLOWED")} />
-                      <MenuItem label="ブロック" color="bg-red-500" active={ipFilter === "BLOCKED"} onClick={() => setIpFilter("BLOCKED")} />
-                    </div>
-                  )}
-                </div>
-              </th>
-
-              {/* Country フィルタ */}
-              <th className="px-4 py-3 border-b border-gray-200 relative">
-                <div
-                  ref={countryMenuRef}
-                  className="flex justify-center items-center relative cursor-pointer"
-                  onClick={() => setCountryMenuOpen((o) => !o)}
-                >
-                  <span>Country</span>
-                  <ChevronDown size={14} className="ml-1" />
-                  {countryMenuOpen && (
-                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
-                      <MenuItem label="ALL" active={countryFilter === "ALL"} onClick={() => setCountryFilter("ALL")} />
-                      {countryOptions.map((c) => (
-                        <MenuItem key={c} label={c} active={countryFilter === c} onClick={() => setCountryFilter(c)} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </th>
-
+              <th className="px-4 py-3 border-b border-gray-200">IP</th>
+              <th className="px-4 py-3 border-b border-gray-200">Country</th>
               <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
             </tr>
           </thead>
@@ -363,6 +324,27 @@ export default function LogsPage() {
             )}
           </tbody>
         </table>
+
+        {/* Load More */}
+        <div className="flex justify-center py-4">
+          {hasMore ? (
+            <button
+              onClick={() => {
+                const newOffset = offset + 100;
+                setOffset(newOffset);
+                fetchLogs(fromDate, toDate, newOffset, true);
+              }}
+              disabled={loadingMore}
+              className="px-6 py-2 border rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+            >
+              {loadingMore ? "Loading..." : "Load More"}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No more logs to show within selected timeline
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
