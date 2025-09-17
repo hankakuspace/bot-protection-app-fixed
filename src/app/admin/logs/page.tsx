@@ -144,16 +144,21 @@ export default function LogsPage() {
   // 国一覧
   const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(Boolean);
 
-  // フィルタリング
-  const filteredLogs = logs.filter((log) => {
-    const dynamicIsAdmin = isDynamicAdmin(log.ip);
-    const dynamicIsBlocked = isDynamicBlocked(log.ip);
-    if (ipFilter === "ADMIN" && !dynamicIsAdmin) return false;
-    if (ipFilter === "BLOCKED" && !dynamicIsBlocked) return false;
-    if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked)) return false;
-    if (countryFilter !== "ALL" && log.country !== countryFilter) return false;
-    return true;
-  });
+// ✅ 修正版フィルタリング
+const filteredLogs = logs.filter((log) => {
+  const dynamicIsAdmin = isDynamicAdmin(log.ip);
+  const dynamicIsBlocked = isDynamicBlocked(log.ip);
+
+  if (ipFilter === "ADMIN" && !dynamicIsAdmin) return false;
+  if (ipFilter === "BLOCKED" && !dynamicIsBlocked) return false;
+  if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked || log.isBot)) return false;
+  if (ipFilter === "BOT" && !log.isBot) return false; // ← BOT は isBot:true のみ通す
+
+  if (countryFilter !== "ALL" && log.country !== countryFilter) return false;
+
+  return true;
+});
+
 
   // JSONダウンロード
   const handleDownloadJson = () => {
