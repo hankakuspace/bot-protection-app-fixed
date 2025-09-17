@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, Code, Download } from "lucide-react";
+import { RefreshCw, Code, Download, ChevronDown } from "lucide-react";
 import * as ipaddr from "ipaddr.js";
 
 interface AccessLog {
@@ -30,12 +30,14 @@ export default function LogsPage() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  const [filterCountry, setFilterCountry] = useState("");
-  const [filterBlocked, setFilterBlocked] = useState("");
-  const [filterAdmin, setFilterAdmin] = useState("");
-
   const [adminIps, setAdminIps] = useState<string[]>([]);
   const [blockedIps, setBlockedIps] = useState<string[]>([]);
+
+  // フィルタ state
+  const [ipFilter, setIpFilter] = useState<string>("ALL");
+  const [countryFilter, setCountryFilter] = useState<string>("ALL");
+  const [ipMenuOpen, setIpMenuOpen] = useState(false);
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
 
   // 管理者IP一覧を取得
   const fetchAdminIps = async () => {
@@ -144,15 +146,22 @@ export default function LogsPage() {
     }
   };
 
+  // Country のユニークリスト
+  const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(
+    Boolean
+  );
+
+  // フィルタ適用
   const filteredLogs = logs.filter((log) => {
-    if (filterCountry && log.country !== filterCountry) return false;
-    if (filterBlocked === "true" && !isDynamicBlocked(log.ip)) return false;
-    if (filterBlocked === "false" && isDynamicBlocked(log.ip)) return false;
-
     const dynamicIsAdmin = isDynamicAdmin(log.ip);
+    const dynamicIsBlocked = isDynamicBlocked(log.ip);
 
-    if (filterAdmin === "true" && !dynamicIsAdmin) return false;
-    if (filterAdmin === "false" && dynamicIsAdmin) return false;
+    if (ipFilter === "ADMIN" && !dynamicIsAdmin) return false;
+    if (ipFilter === "BLOCKED" && !dynamicIsBlocked) return false;
+    if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked))
+      return false;
+
+    if (countryFilter !== "ALL" && log.country !== countryFilter) return false;
 
     return true;
   });
@@ -201,10 +210,6 @@ export default function LogsPage() {
     a.download = `logs_${fromDate}_${toDate}.csv`;
     a.click();
   };
-
-  const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(
-    Boolean
-  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -256,56 +261,107 @@ export default function LogsPage() {
         </button>
       </div>
 
-      {/* フィルタ */}
-      <div className="flex flex-wrap gap-4 mb-4 text-sm">
-        <select
-          value={filterCountry}
-          onChange={(e) => setFilterCountry(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="">全ての国</option>
-          {countryOptions.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={filterBlocked}
-          onChange={(e) => setFilterBlocked(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="">Blocked/Allowed 全て</option>
-          <option value="true">Blocked のみ</option>
-          <option value="false">Allowed のみ</option>
-        </select>
-
-        <select
-          value={filterAdmin}
-          onChange={(e) => setFilterAdmin(e.target.value)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="">管理者/非管理者 全て</option>
-          <option value="true">管理者のみ</option>
-          <option value="false">非管理者のみ</option>
-        </select>
-      </div>
-
       {loading ? (
         <p>読み込み中...</p>
       ) : filteredLogs.length === 0 ? (
         <p>ログがありません</p>
       ) : (
         <div className="rounded-lg shadow-sm bg-white">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-sm relative">
             <thead>
               <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
                 <th className="px-4 py-3 border-b border-gray-200">
                   LogTimestamp
                 </th>
-                <th className="px-4 py-3 border-b border-gray-200">IP</th>
-                <th className="px-4 py-3 border-b border-gray-200">Country</th>
+
+                {/* IP フィルタ */}
+                <th className="px-4 py-3 border-b border-gray-200 relative">
+                  <button
+                    className="flex items-center gap-1"
+                    onClick={() => setIpMenuOpen((o) => !o)}
+                  >
+                    IP <ChevronDown size={14} />
+                  </button>
+                  {ipMenuOpen && (
+                    <div className="absolute mt-1 bg-white border rounded shadow z-10">
+                      <button
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        onClick={() => {
+                          setIpFilter("ALL");
+                          setIpMenuOpen(false);
+                        }}
+                      >
+                        ALL
+                      </button>
+                      <button
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        onClick={() => {
+                          setIpFilter("ADMIN");
+                          setIpMenuOpen(false);
+                        }}
+                      >
+                        <span className="w-2 h-2 inline-block rounded-full bg-blue-500 mr-2" />
+                        管理者
+                      </button>
+                      <button
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        onClick={() => {
+                          setIpFilter("ALLOWED");
+                          setIpMenuOpen(false);
+                        }}
+                      >
+                        <span className="w-2 h-2 inline-block rounded-full bg-green-500 mr-2" />
+                        正常
+                      </button>
+                      <button
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        onClick={() => {
+                          setIpFilter("BLOCKED");
+                          setIpMenuOpen(false);
+                        }}
+                      >
+                        <span className="w-2 h-2 inline-block rounded-full bg-red-500 mr-2" />
+                        ブロック
+                      </button>
+                    </div>
+                  )}
+                </th>
+
+                {/* Country フィルタ */}
+                <th className="px-4 py-3 border-b border-gray-200 relative">
+                  <button
+                    className="flex items-center gap-1"
+                    onClick={() => setCountryMenuOpen((o) => !o)}
+                  >
+                    Country <ChevronDown size={14} />
+                  </button>
+                  {countryMenuOpen && (
+                    <div className="absolute mt-1 bg-white border rounded shadow z-10">
+                      <button
+                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                        onClick={() => {
+                          setCountryFilter("ALL");
+                          setCountryMenuOpen(false);
+                        }}
+                      >
+                        ALL
+                      </button>
+                      {countryOptions.map((c) => (
+                        <button
+                          key={c}
+                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
+                          onClick={() => {
+                            setCountryFilter(c);
+                            setCountryMenuOpen(false);
+                          }}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </th>
+
                 <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
               </tr>
             </thead>
