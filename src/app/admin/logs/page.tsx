@@ -23,7 +23,6 @@ interface AccessLog {
 }
 
 export default function LogsPage() {
-  // ✅ JST基準の今日を初期値にする
   const now = new Date();
   const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const today = jst.toISOString().slice(0, 10);
@@ -39,7 +38,6 @@ export default function LogsPage() {
   const [adminIps, setAdminIps] = useState<string[]>([]);
   const [blockedIps, setBlockedIps] = useState<string[]>([]);
 
-  // フィルタ state
   const [ipFilter, setIpFilter] = useState<string>("ALL");
   const [countryFilter, setCountryFilter] = useState<string>("ALL");
   const [ipMenuOpen, setIpMenuOpen] = useState(false);
@@ -48,7 +46,6 @@ export default function LogsPage() {
   const ipMenuRef = useRef<HTMLDivElement>(null);
   const countryMenuRef = useRef<HTMLDivElement>(null);
 
-  // 外クリックで閉じる
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (ipMenuRef.current && !ipMenuRef.current.contains(e.target as Node)) {
@@ -64,7 +61,6 @@ export default function LogsPage() {
     };
   }, []);
 
-  // 管理者IP一覧を取得
   const fetchAdminIps = async () => {
     try {
       const res = await fetch("/api/admin/admin-ip/list");
@@ -76,7 +72,6 @@ export default function LogsPage() {
     }
   };
 
-  // ブロックIP一覧を取得
   const fetchBlockedIps = async () => {
     try {
       const res = await fetch("/api/admin/block-ip/list");
@@ -88,19 +83,12 @@ export default function LogsPage() {
     }
   };
 
-  const fetchLogs = async (
-    from: string,
-    to: string,
-    offset: number,
-    append = false
-  ) => {
+  const fetchLogs = async (from: string, to: string, offset: number, append = false) => {
     if (append) setLoadingMore(true);
     else setLoading(true);
 
     try {
-      const res = await fetch(
-        `/api/admin/logs?from=${from}&to=${to}&offset=${offset}&limit=100`
-      );
+      const res = await fetch(`/api/admin/logs?from=${from}&to=${to}&offset=${offset}&limit=100`);
       const data = await res.json();
       const newLogs: AccessLog[] = data.logs || [];
 
@@ -126,18 +114,13 @@ export default function LogsPage() {
   const formatDate = (iso: string | null) => {
     if (!iso) return "-";
     const d = new Date(iso);
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}/${String(d.getDate()).padStart(2, "0")} ${String(
-      d.getHours()
-    ).padStart(2, "0")}:${String(d.getMinutes()).padStart(
-      2,
-      "0"
-    )}:${String(d.getSeconds()).padStart(2, "0")}`;
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(
+      d.getDate()
+    ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
+      d.getMinutes()
+    ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  // ✅ ipaddr.js を使った動的管理者判定
   const isDynamicAdmin = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
@@ -154,7 +137,6 @@ export default function LogsPage() {
     }
   };
 
-  // ✅ ipaddr.js を使った動的ブロック判定
   const isDynamicBlocked = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
@@ -171,27 +153,21 @@ export default function LogsPage() {
     }
   };
 
-  // Country のユニークリスト
-  const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(
-    Boolean
-  );
+  const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(Boolean);
 
-  // フィルタ適用
   const filteredLogs = logs.filter((log) => {
     const dynamicIsAdmin = isDynamicAdmin(log.ip);
     const dynamicIsBlocked = isDynamicBlocked(log.ip);
 
     if (ipFilter === "ADMIN" && !dynamicIsAdmin) return false;
     if (ipFilter === "BLOCKED" && !dynamicIsBlocked) return false;
-    if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked))
-      return false;
+    if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked)) return false;
 
     if (countryFilter !== "ALL" && log.country !== countryFilter) return false;
 
     return true;
   });
 
-  // JSONダウンロード
   const handleDownloadJson = () => {
     const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
       type: "application/json",
@@ -203,7 +179,6 @@ export default function LogsPage() {
     a.click();
   };
 
-  // CSVダウンロード
   const handleDownloadCsv = () => {
     const header = [
       "logTimestamp",
@@ -236,7 +211,6 @@ export default function LogsPage() {
     a.click();
   };
 
-  // ドロップダウン用の共通ボタン
   const MenuItem = ({
     label,
     active,
@@ -250,7 +224,7 @@ export default function LogsPage() {
   }) => (
     <button
       onClick={onClick}
-      className="flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-gray-100"
+      className="flex items-center justify-between w-full px-3 py-2 text-sm font-normal rounded-md hover:bg-gray-100"
     >
       <div className="flex items-center gap-2">
         {color && <span className={`w-2 h-2 rounded-full ${color}`} />}
@@ -318,22 +292,22 @@ export default function LogsPage() {
         <div className="rounded-lg shadow-sm bg-white">
           <table className="w-full border-collapse text-sm relative">
             <thead>
-              <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3 border-b border-gray-200">
-                  LogTimestamp
-                </th>
+              <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
 
                 {/* IP フィルタ */}
                 <th className="px-4 py-3 border-b border-gray-200 relative">
-                  <div ref={ipMenuRef} className="inline-block relative">
-                    <button
-                      className="flex items-center gap-1"
-                      onClick={() => setIpMenuOpen((o) => !o)}
-                    >
-                      IP <ChevronDown size={14} />
-                    </button>
+                  <div
+                    ref={ipMenuRef}
+                    className="inline-block relative w-full cursor-pointer"
+                    onClick={() => setIpMenuOpen((o) => !o)}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      <ChevronDown size={14} />
+                      <span>IP</span>
+                    </div>
                     {ipMenuOpen && (
-                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
+                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
                         <MenuItem
                           label="ALL"
                           active={ipFilter === "ALL"}
@@ -364,15 +338,17 @@ export default function LogsPage() {
 
                 {/* Country フィルタ */}
                 <th className="px-4 py-3 border-b border-gray-200 relative">
-                  <div ref={countryMenuRef} className="inline-block relative">
-                    <button
-                      className="flex items-center gap-1"
-                      onClick={() => setCountryMenuOpen((o) => !o)}
-                    >
-                      Country <ChevronDown size={14} />
-                    </button>
+                  <div
+                    ref={countryMenuRef}
+                    className="inline-block relative w-full cursor-pointer"
+                    onClick={() => setCountryMenuOpen((o) => !o)}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      <ChevronDown size={14} />
+                      <span>Country</span>
+                    </div>
                     {countryMenuOpen && (
-                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
+                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
                         <MenuItem
                           label="ALL"
                           active={countryFilter === "ALL"}
@@ -441,7 +417,6 @@ export default function LogsPage() {
             </tbody>
           </table>
 
-          {/* Load More */}
           <div className="flex justify-center py-4">
             {hasMore ? (
               <button
