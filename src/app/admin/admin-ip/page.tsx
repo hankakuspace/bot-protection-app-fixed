@@ -86,7 +86,7 @@ export default function AdminIpPage() {
           value={ip}
           onChange={(e) => setIp(e.target.value)}
           placeholder="例: 192.168.0.1 または IPv6"
-          className="border rounded p-2 w-full text-sm"
+          className="border rounded-lg p-2 w-full text-sm"
         />
         <p className="text-xs text-gray-500">
           IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
@@ -98,11 +98,11 @@ export default function AdminIpPage() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="メモ（任意）"
-          className="border rounded p-2 w-full text-sm"
+          className="border rounded-lg p-2 w-full text-sm"
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
         >
           登録
         </button>
@@ -112,7 +112,7 @@ export default function AdminIpPage() {
       {/* 一覧テーブル */}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white text-xs">
-          <thead>
+          <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-2 text-left font-medium text-gray-500">
                 登録日
@@ -123,9 +123,7 @@ export default function AdminIpPage() {
               <th className="px-4 py-2 text-left font-medium text-gray-500">
                 メモ
               </th>
-              <th className="px-4 py-2 text-center font-medium text-gray-500">
-                {/* 操作テキスト削除 */}
-              </th>
+              <th className="px-4 py-2 text-center font-medium text-gray-500"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
