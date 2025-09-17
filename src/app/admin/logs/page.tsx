@@ -305,8 +305,10 @@ export default function LogsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="text-center py-6">
-                  <Spinner />
+                <td colSpan={4} className="py-20">
+                  <div className="flex justify-center items-center">
+                    <Spinner />
+                  </div>
                 </td>
               </tr>
             ) : filteredLogs.length === 0 ? (
