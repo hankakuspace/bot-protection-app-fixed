@@ -10,12 +10,20 @@ export const runtime = "nodejs";
 async function getCountryCode(ip: string): Promise<string> {
   try {
     const token = process.env.IPINFO_TOKEN;
-    if (!token || ip === "UNKNOWN") return "UNKNOWN";
+    if (!token || ip === "UNKNOWN") {
+      console.warn("⚠️ IPINFO_TOKEN が未設定、または IP が UNKNOWN");
+      return "UNKNOWN";
+    }
 
     const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
-    if (!res.ok) return "UNKNOWN";
+    if (!res.ok) {
+      console.error("❌ ipinfo.io API error", { ip, status: res.status });
+      return "UNKNOWN";
+    }
 
     const data = await res.json();
+    console.log("🔥 DEBUG ipinfo response", { ip, data });
+
     return data.country || "UNKNOWN";
   } catch (err) {
     console.error("getCountryCode error:", err);
