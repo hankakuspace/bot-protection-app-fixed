@@ -61,23 +61,23 @@ export default function LogsPage() {
     };
   }, []);
 
+  // 管理者IP一覧
   const fetchAdminIps = async () => {
     try {
       const res = await fetch("/api/admin/admin-ip/list");
       const data = await res.json();
-      const ips: string[] = (data || []).map((d: any) => d.ip);
-      setAdminIps(ips);
+      setAdminIps((data || []).map((d: any) => d.ip));
     } catch (e) {
       console.error("管理者IP取得失敗:", e);
     }
   };
 
+  // ブロックIP一覧
   const fetchBlockedIps = async () => {
     try {
       const res = await fetch("/api/admin/block-ip/list");
       const data = await res.json();
-      const ips: string[] = (data || []).map((d: any) => d.ip);
-      setBlockedIps(ips);
+      setBlockedIps((data || []).map((d: any) => d.ip));
     } catch (e) {
       console.error("ブロックIP取得失敗:", e);
     }
@@ -121,17 +121,13 @@ export default function LogsPage() {
     ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
+  // 動的判定
   const isDynamicAdmin = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
-      return adminIps.some((adminIp) => {
-        if (adminIp.includes("/")) {
-          const range = ipaddr.parseCIDR(adminIp);
-          return parsedIp.match(range);
-        } else {
-          return ip === adminIp;
-        }
-      });
+      return adminIps.some((adminIp) =>
+        adminIp.includes("/") ? parsedIp.match(ipaddr.parseCIDR(adminIp)) : ip === adminIp
+      );
     } catch {
       return false;
     }
@@ -140,14 +136,9 @@ export default function LogsPage() {
   const isDynamicBlocked = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
-      return blockedIps.some((blockedIp) => {
-        if (blockedIp.includes("/")) {
-          const range = ipaddr.parseCIDR(blockedIp);
-          return parsedIp.match(range);
-        } else {
-          return ip === blockedIp;
-        }
-      });
+      return blockedIps.some((blockedIp) =>
+        blockedIp.includes("/") ? parsedIp.match(ipaddr.parseCIDR(blockedIp)) : ip === blockedIp
+      );
     } catch {
       return false;
     }
@@ -167,49 +158,6 @@ export default function LogsPage() {
 
     return true;
   });
-
-  const handleDownloadJson = () => {
-    const blob = new Blob([JSON.stringify(filteredLogs, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `logs_${fromDate}_${toDate}.json`;
-    a.click();
-  };
-
-  const handleDownloadCsv = () => {
-    const header = [
-      "logTimestamp",
-      "ip",
-      "country",
-      "blocked(dynamic)",
-      "allowedCountry",
-      "isAdmin(dynamic)",
-      "isBot",
-      "userAgent",
-    ];
-    const rows = filteredLogs.map((l) =>
-      [
-        l.logTimestamp,
-        l.ip,
-        l.country,
-        isDynamicBlocked(l.ip),
-        l.allowedCountry,
-        isDynamicAdmin(l.ip),
-        l.isBot,
-        `"${(l.userAgent || "").replace(/"/g, '""')}"`,
-      ].join(",")
-    );
-    const csv = [header.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `logs_${fromDate}_${toDate}.csv`;
-    a.click();
-  };
 
   const MenuItem = ({
     label,
@@ -257,25 +205,64 @@ export default function LogsPage() {
           Reload
         </button>
 
-        <button onClick={handleDownloadJson} className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm">
+        <button className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm">
           <Code size={14} className="text-gray-600" />
           JSON
         </button>
 
-        <button onClick={handleDownloadCsv} className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm">
+        <button className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm">
           <Download size={14} className="text-gray-600" />
           CSV
         </button>
       </div>
 
-      {/* テーブルは常に表示 */}
+      {/* テーブル常時表示 */}
       <div className="rounded-lg shadow-sm bg-white">
         <table className="w-full border-collapse text-sm relative">
           <thead>
             <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
               <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
-              <th className="px-4 py-3 border-b border-gray-200">IP ▼</th>
-              <th className="px-4 py-3 border-b border-gray-200">Country ▼</th>
+
+              {/* IP フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={ipMenuRef}
+                  className="flex justify-center items-center relative cursor-pointer"
+                  onClick={() => setIpMenuOpen((o) => !o)}
+                >
+                  <span>IP</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {ipMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={ipFilter === "ALL"} onClick={() => setIpFilter("ALL")} />
+                      <MenuItem label="管理者" color="bg-blue-500" active={ipFilter === "ADMIN"} onClick={() => setIpFilter("ADMIN")} />
+                      <MenuItem label="正常" color="bg-green-500" active={ipFilter === "ALLOWED"} onClick={() => setIpFilter("ALLOWED")} />
+                      <MenuItem label="ブロック" color="bg-red-500" active={ipFilter === "BLOCKED"} onClick={() => setIpFilter("BLOCKED")} />
+                    </div>
+                  )}
+                </div>
+              </th>
+
+              {/* Country フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={countryMenuRef}
+                  className="flex justify-center items-center relative cursor-pointer"
+                  onClick={() => setCountryMenuOpen((o) => !o)}
+                >
+                  <span>Country</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {countryMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={countryFilter === "ALL"} onClick={() => setCountryFilter("ALL")} />
+                      {countryOptions.map((c) => (
+                        <MenuItem key={c} label={c} active={countryFilter === c} onClick={() => setCountryFilter(c)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </th>
+
               <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
             </tr>
           </thead>
@@ -293,16 +280,42 @@ export default function LogsPage() {
                 </td>
               </tr>
             ) : (
-              filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                    {formatDate(log.logTimestamp || null)}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{log.ip}</td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs">{log.country}</td>
-                  <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">{log.userAgent}</td>
-                </tr>
-              ))
+              filteredLogs.map((log) => {
+                const dynamicIsAdmin = isDynamicAdmin(log.ip);
+                const dynamicIsBlocked = isDynamicBlocked(log.ip);
+                return (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {formatDate(log.logTimestamp || null)}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        {dynamicIsAdmin ? (
+                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        ) : dynamicIsBlocked ? (
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-green-500" />
+                        )}
+                        <span>{log.ip}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            log.allowedCountry === false ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
+                        <span>{log.country}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 max-w-xs truncate text-xs text-gray-500">
+                      {log.userAgent}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
