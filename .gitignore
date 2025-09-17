@@ -27,3 +27,4 @@ check-secret-match.sh
 check-all-secrets.sh
 .env*.local
 key.*
+src/lib/check-ip.ts.bak
