@@ -9,7 +9,7 @@ import {
   ChartBarSquareIcon,
   UserCircleIcon,
   ShieldExclamationIcon,
-  ShieldCheckIcon,
+  TrashIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -21,9 +21,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: "ダッシュボード", href: "/admin/dashboard", icon: HomeIcon },
     { name: "アクセスログ", href: "/admin/logs", icon: ChartBarSquareIcon },
-    { name: "管理者IP", href: "/admin/admin-ip", icon: UserCircleIcon },
-    { name: "ブロックIP", href: "/admin/block-ip", icon: ShieldExclamationIcon },
-    { name: "ブロック設定", href: "/admin/blocked", icon: ShieldCheckIcon },
+    { name: "管理者設定", href: "/admin/admin-ip", icon: UserCircleIcon },
+    { name: "ブロック設定", href: "/admin/block-ip", icon: ShieldExclamationIcon },
   ];
 
   const renderNav = (closeSidebar?: () => void) => (
