@@ -6,12 +6,12 @@ import { getClientIp, isAdminIp, isIpBlocked, isCountryBlocked } from "@/lib/che
 
 export const runtime = "nodejs";
 
-// ✅ IPinfo を使って国コードを取得する関数
+// ✅ IPinfo を使って国コードを取得する関数（空や不正レスポンスでも落ちないよう修正）
 async function getCountryCode(ip: string): Promise<string> {
   try {
     const token = process.env.IPINFO_TOKEN;
     if (!token || ip === "UNKNOWN") {
-      console.warn("⚠️ IPINFO_TOKEN が未設定、または IP が UNKNOWN");
+      console.warn("⚠️ IPINFO_TOKEN 未設定 or IP=UNKNOWN");
       return "UNKNOWN";
     }
 
@@ -21,12 +21,24 @@ async function getCountryCode(ip: string): Promise<string> {
       return "UNKNOWN";
     }
 
-    const data = await res.json();
-    console.log("🔥 DEBUG ipinfo response", { ip, data });
+    const text = await res.text();
+    if (!text) {
+      console.error("❌ ipinfo.io empty response", { ip });
+      return "UNKNOWN";
+    }
 
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("❌ ipinfo.io JSON parse error", { ip, text });
+      return "UNKNOWN";
+    }
+
+    console.log("🔥 DEBUG ipinfo response", { ip, data });
     return data.country || "UNKNOWN";
   } catch (err) {
-    console.error("getCountryCode error:", err);
+    console.error("getCountryCode fatal error:", err);
     return "UNKNOWN";
   }
 }
