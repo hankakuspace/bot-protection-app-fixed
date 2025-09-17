@@ -86,7 +86,7 @@ return keys.map((k) => `${k}=${obj[k]}`).join("\\n");
 - 修正後、正常にリダイレクトまで到達することを確認。
 
 ### 再発防止
-- **Proxy / OAuth / Webhook で HMAC の計算方法が異なる**ため、用途別に共通関数化する。  
+- **Proxy / OAuth / Webhook で HMAC の計算方法が異なる**ため、用途別に共通関数化する。  /Users/Yuichi_Horie/Desktop/美サーチ/shopify/app/bot-protection-app-fixed/src/app/api/admin/plan/route.ts
   - Proxy → `\n` 区切り, hex  
   - OAuth → `&` 区切り, hex, raw query 使用  
   - Webhook → body, base64  
