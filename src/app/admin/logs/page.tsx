@@ -51,16 +51,10 @@ export default function LogsPage() {
   // 外クリックで閉じる
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        ipMenuRef.current &&
-        !ipMenuRef.current.contains(e.target as Node)
-      ) {
+      if (ipMenuRef.current && !ipMenuRef.current.contains(e.target as Node)) {
         setIpMenuOpen(false);
       }
-      if (
-        countryMenuRef.current &&
-        !countryMenuRef.current.contains(e.target as Node)
-      ) {
+      if (countryMenuRef.current && !countryMenuRef.current.contains(e.target as Node)) {
         setCountryMenuOpen(false);
       }
     };
@@ -330,73 +324,71 @@ export default function LogsPage() {
                 </th>
 
                 {/* IP フィルタ */}
-                <th
-                  className="px-4 py-3 border-b border-gray-200 relative"
-                  ref={ipMenuRef}
-                >
-                  <button
-                    className="flex items-center gap-1"
-                    onClick={() => setIpMenuOpen((o) => !o)}
-                  >
-                    IP <ChevronDown size={14} />
-                  </button>
-                  {ipMenuOpen && (
-                    <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
-                      <MenuItem
-                        label="ALL"
-                        active={ipFilter === "ALL"}
-                        onClick={() => setIpFilter("ALL")}
-                      />
-                      <MenuItem
-                        label="管理者"
-                        color="bg-blue-500"
-                        active={ipFilter === "ADMIN"}
-                        onClick={() => setIpFilter("ADMIN")}
-                      />
-                      <MenuItem
-                        label="正常"
-                        color="bg-green-500"
-                        active={ipFilter === "ALLOWED"}
-                        onClick={() => setIpFilter("ALLOWED")}
-                      />
-                      <MenuItem
-                        label="ブロック"
-                        color="bg-red-500"
-                        active={ipFilter === "BLOCKED"}
-                        onClick={() => setIpFilter("BLOCKED")}
-                      />
-                    </div>
-                  )}
+                <th className="px-4 py-3 border-b border-gray-200 relative">
+                  <div ref={ipMenuRef} className="inline-block relative">
+                    <button
+                      className="flex items-center gap-1"
+                      onClick={() => setIpMenuOpen((o) => !o)}
+                    >
+                      IP <ChevronDown size={14} />
+                    </button>
+                    {ipMenuOpen && (
+                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
+                        <MenuItem
+                          label="ALL"
+                          active={ipFilter === "ALL"}
+                          onClick={() => setIpFilter("ALL")}
+                        />
+                        <MenuItem
+                          label="管理者"
+                          color="bg-blue-500"
+                          active={ipFilter === "ADMIN"}
+                          onClick={() => setIpFilter("ADMIN")}
+                        />
+                        <MenuItem
+                          label="正常"
+                          color="bg-green-500"
+                          active={ipFilter === "ALLOWED"}
+                          onClick={() => setIpFilter("ALLOWED")}
+                        />
+                        <MenuItem
+                          label="ブロック"
+                          color="bg-red-500"
+                          active={ipFilter === "BLOCKED"}
+                          onClick={() => setIpFilter("BLOCKED")}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </th>
 
                 {/* Country フィルタ */}
-                <th
-                  className="px-4 py-3 border-b border-gray-200 relative"
-                  ref={countryMenuRef}
-                >
-                  <button
-                    className="flex items-center gap-1"
-                    onClick={() => setCountryMenuOpen((o) => !o)}
-                  >
-                    Country <ChevronDown size={14} />
-                  </button>
-                  {countryMenuOpen && (
-                    <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
-                      <MenuItem
-                        label="ALL"
-                        active={countryFilter === "ALL"}
-                        onClick={() => setCountryFilter("ALL")}
-                      />
-                      {countryOptions.map((c) => (
+                <th className="px-4 py-3 border-b border-gray-200 relative">
+                  <div ref={countryMenuRef} className="inline-block relative">
+                    <button
+                      className="flex items-center gap-1"
+                      onClick={() => setCountryMenuOpen((o) => !o)}
+                    >
+                      Country <ChevronDown size={14} />
+                    </button>
+                    {countryMenuOpen && (
+                      <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
                         <MenuItem
-                          key={c}
-                          label={c}
-                          active={countryFilter === c}
-                          onClick={() => setCountryFilter(c)}
+                          label="ALL"
+                          active={countryFilter === "ALL"}
+                          onClick={() => setCountryFilter("ALL")}
                         />
-                      ))}
-                    </div>
-                  )}
+                        {countryOptions.map((c) => (
+                          <MenuItem
+                            key={c}
+                            label={c}
+                            active={countryFilter === c}
+                            onClick={() => setCountryFilter(c)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </th>
 
                 <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
