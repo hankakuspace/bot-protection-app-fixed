@@ -328,7 +328,9 @@ export default function LogsPage() {
                     </td>
                     <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                       <div className="flex items-center gap-2">
-                        {dynamicIsAdmin ? (
+                        {log.isBot ? (
+                          <span className="w-2 h-2 rounded-full bg-purple-500" />
+                        ) : dynamicIsAdmin ? (
                           <span className="w-2 h-2 rounded-full bg-blue-500" />
                         ) : dynamicIsBlocked ? (
                           <span className="w-2 h-2 rounded-full bg-red-500" />
