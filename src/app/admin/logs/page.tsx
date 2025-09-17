@@ -226,7 +226,7 @@ export default function LogsPage() {
     </button>
   );
 
-  // ✅ シンプルスピナー（1つの円弧だけ）
+  // ✅ シンプルスピナー
   const Spinner = () => (
     <svg
       className="animate-spin h-6 w-6 text-gray-500"
@@ -247,19 +247,9 @@ export default function LogsPage() {
 
       {/* 操作用ボタン */}
       <div className="flex flex-wrap items-center gap-4 mb-4">
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => setFromDate(e.target.value)}
-          className="border rounded-md px-2 py-1 text-sm"
-        />
+        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
         <span>〜</span>
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => setToDate(e.target.value)}
-          className="border rounded-md px-2 py-1 text-sm"
-        />
+        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border rounded-md px-2 py-1 text-sm" />
 
         <button
           onClick={() => {
@@ -274,18 +264,12 @@ export default function LogsPage() {
           Reload
         </button>
 
-        <button
-          onClick={handleDownloadJson}
-          className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm"
-        >
+        <button onClick={handleDownloadJson} className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm">
           <Code size={14} className="text-gray-600" />
           JSON
         </button>
 
-        <button
-          onClick={handleDownloadCsv}
-          className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm"
-        >
+        <button onClick={handleDownloadCsv} className="flex items-center gap-1 px-3 py-1 border rounded-md bg-white hover:bg-gray-100 text-sm">
           <Download size={14} className="text-gray-600" />
           CSV
         </button>
@@ -297,8 +281,47 @@ export default function LogsPage() {
           <thead>
             <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
               <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
-              <th className="px-4 py-3 border-b border-gray-200">IP</th>
-              <th className="px-4 py-3 border-b border-gray-200">Country</th>
+
+              {/* ✅ IP フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={ipMenuRef}
+                  className="flex justify-start items-center relative cursor-pointer"
+                  onClick={() => setIpMenuOpen((o) => !o)}
+                >
+                  <span>IP</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {ipMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={ipFilter === "ALL"} onClick={() => setIpFilter("ALL")} />
+                      <MenuItem label="管理者" color="bg-blue-500" active={ipFilter === "ADMIN"} onClick={() => setIpFilter("ADMIN")} />
+                      <MenuItem label="正常" color="bg-green-500" active={ipFilter === "ALLOWED"} onClick={() => setIpFilter("ALLOWED")} />
+                      <MenuItem label="ブロック" color="bg-red-500" active={ipFilter === "BLOCKED"} onClick={() => setIpFilter("BLOCKED")} />
+                    </div>
+                  )}
+                </div>
+              </th>
+
+              {/* ✅ Country フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={countryMenuRef}
+                  className="flex justify-start items-center relative cursor-pointer"
+                  onClick={() => setCountryMenuOpen((o) => !o)}
+                >
+                  <span>Country</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {countryMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={countryFilter === "ALL"} onClick={() => setCountryFilter("ALL")} />
+                      {countryOptions.map((c) => (
+                        <MenuItem key={c} label={c} active={countryFilter === c} onClick={() => setCountryFilter(c)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </th>
+
               <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
             </tr>
           </thead>
