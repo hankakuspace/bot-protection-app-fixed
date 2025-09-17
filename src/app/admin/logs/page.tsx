@@ -46,6 +46,7 @@ export default function LogsPage() {
   const ipMenuRef = useRef<HTMLDivElement>(null);
   const countryMenuRef = useRef<HTMLDivElement>(null);
 
+  // 外クリックで閉じる
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (ipMenuRef.current && !ipMenuRef.current.contains(e.target as Node)) {
@@ -56,12 +57,10 @@ export default function LogsPage() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 管理者IP
+  // 管理者IP一覧
   const fetchAdminIps = async () => {
     try {
       const res = await fetch("/api/admin/admin-ip/list");
@@ -72,7 +71,7 @@ export default function LogsPage() {
     }
   };
 
-  // ブロックIP
+  // ブロックIP一覧
   const fetchBlockedIps = async () => {
     try {
       const res = await fetch("/api/admin/block-ip/list");
@@ -83,18 +82,16 @@ export default function LogsPage() {
     }
   };
 
+  // ログ取得
   const fetchLogs = async (from: string, to: string, offset: number, append = false) => {
     if (append) setLoadingMore(true);
     else setLoading(true);
-
     try {
       const res = await fetch(`/api/admin/logs?from=${from}&to=${to}&offset=${offset}&limit=100`);
       const data = await res.json();
       const newLogs: AccessLog[] = data.logs || [];
-
       if (append) setLogs((prev) => [...prev, ...newLogs]);
       else setLogs(newLogs);
-
       setHasMore(newLogs.length === 100);
     } catch (e) {
       console.error("ログ取得失敗:", e);
@@ -111,6 +108,7 @@ export default function LogsPage() {
     fetchBlockedIps();
   }, [fromDate, toDate]);
 
+  // 日付整形
   const formatDate = (iso: string | null) => {
     if (!iso) return "-";
     const d = new Date(iso);
@@ -121,6 +119,7 @@ export default function LogsPage() {
     ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
+  // 判定処理
   const isDynamicAdmin = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
@@ -131,7 +130,6 @@ export default function LogsPage() {
       return false;
     }
   };
-
   const isDynamicBlocked = (ip: string): boolean => {
     try {
       const parsedIp = ipaddr.parse(ip);
@@ -143,18 +141,17 @@ export default function LogsPage() {
     }
   };
 
+  // 国一覧
   const countryOptions = Array.from(new Set(logs.map((l) => l.country))).filter(Boolean);
 
+  // フィルタリング
   const filteredLogs = logs.filter((log) => {
     const dynamicIsAdmin = isDynamicAdmin(log.ip);
     const dynamicIsBlocked = isDynamicBlocked(log.ip);
-
     if (ipFilter === "ADMIN" && !dynamicIsAdmin) return false;
     if (ipFilter === "BLOCKED" && !dynamicIsBlocked) return false;
     if (ipFilter === "ALLOWED" && (dynamicIsAdmin || dynamicIsBlocked)) return false;
-
     if (countryFilter !== "ALL" && log.country !== countryFilter) return false;
-
     return true;
   });
 
@@ -205,6 +202,7 @@ export default function LogsPage() {
     URL.revokeObjectURL(url);
   };
 
+  // ドロップダウンの共通アイテム
   const MenuItem = ({
     label,
     active,
@@ -251,18 +249,12 @@ export default function LogsPage() {
           Reload
         </button>
 
-        <button
-          onClick={handleDownloadJson}
-          className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
-        >
+        <button onClick={handleDownloadJson} className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm">
           <Code size={14} className="text-gray-600" />
           JSON
         </button>
 
-        <button
-          onClick={handleDownloadCsv}
-          className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm"
-        >
+        <button onClick={handleDownloadCsv} className="flex items-center gap-1 px-3 py-1 border rounded bg-white hover:bg-gray-100 text-sm">
           <Download size={14} className="text-gray-600" />
           CSV
         </button>
@@ -274,8 +266,47 @@ export default function LogsPage() {
           <thead>
             <tr className="bg-gray-100 text-center text-xs font-semibold text-gray-600">
               <th className="px-4 py-3 border-b border-gray-200">LogTimestamp</th>
-              <th className="px-4 py-3 border-b border-gray-200">IP</th>
-              <th className="px-4 py-3 border-b border-gray-200">Country</th>
+
+              {/* IP フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={ipMenuRef}
+                  className="flex justify-center items-center relative cursor-pointer"
+                  onClick={() => setIpMenuOpen((o) => !o)}
+                >
+                  <span>IP</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {ipMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={ipFilter === "ALL"} onClick={() => setIpFilter("ALL")} />
+                      <MenuItem label="管理者" color="bg-blue-500" active={ipFilter === "ADMIN"} onClick={() => setIpFilter("ADMIN")} />
+                      <MenuItem label="正常" color="bg-green-500" active={ipFilter === "ALLOWED"} onClick={() => setIpFilter("ALLOWED")} />
+                      <MenuItem label="ブロック" color="bg-red-500" active={ipFilter === "BLOCKED"} onClick={() => setIpFilter("BLOCKED")} />
+                    </div>
+                  )}
+                </div>
+              </th>
+
+              {/* Country フィルタ */}
+              <th className="px-4 py-3 border-b border-gray-200 relative">
+                <div
+                  ref={countryMenuRef}
+                  className="flex justify-center items-center relative cursor-pointer"
+                  onClick={() => setCountryMenuOpen((o) => !o)}
+                >
+                  <span>Country</span>
+                  <ChevronDown size={14} className="ml-1" />
+                  {countryMenuOpen && (
+                    <div className="absolute top-full mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
+                      <MenuItem label="ALL" active={countryFilter === "ALL"} onClick={() => setCountryFilter("ALL")} />
+                      {countryOptions.map((c) => (
+                        <MenuItem key={c} label={c} active={countryFilter === c} onClick={() => setCountryFilter(c)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </th>
+
               <th className="px-4 py-3 border-b border-gray-200">UserAgent</th>
             </tr>
           </thead>
