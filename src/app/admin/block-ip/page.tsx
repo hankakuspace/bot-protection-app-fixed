@@ -155,15 +155,12 @@ export default function BlockIpPage() {
       const res = await fetch("/api/admin/logs?limit=500");
       const data = await res.json();
       const logs = data.logs || [];
-    const uniqueCountries: string[] = Array.from(
-  new Set(
-    logs
-      .map((l: any) => String(l.country || "")) // countryをstringにキャスト
-      .filter(Boolean)
-  )
-);
-setAvailableCountries(uniqueCountries);
-
+      const uniqueCountries: string[] = Array.from(
+        new Set(
+          logs.map((l: any) => String(l.country || "")).filter(Boolean)
+        )
+      );
+      setAvailableCountries(uniqueCountries);
     } catch (err) {
       console.error("利用可能国一覧取得エラー:", err);
     }
@@ -187,18 +184,18 @@ setAvailableCountries(uniqueCountries);
             value={ip}
             onChange={(e) => setIp(e.target.value)}
             placeholder="例: 192.168.0.1 または IPv6"
-            className="border rounded p-2 w-full"
+            className="border rounded-lg p-2 w-full text-sm"
           />
           <input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="メモ（任意）"
-            className="border rounded p-2 w-full"
+            className="border rounded-lg p-2 w-full text-sm"
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
           >
             登録
           </button>
@@ -206,45 +203,51 @@ setAvailableCountries(uniqueCountries);
         {message && <p className="text-sm mt-2">{message}</p>}
 
         {/* 一覧テーブル */}
-        <table className="w-full border text-sm mt-6">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">保存されたIP</th>
-              <th className="p-2 border">メモ</th>
-              <th className="p-2 border">登録日</th>
-              <th className="p-2 border">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ips.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="p-4 text-center text-gray-500">
-                  登録されたブロックIPはありません
-                </td>
+        <div className="overflow-x-auto mt-6">
+          <table className="min-w-full bg-white text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
               </tr>
-            ) : (
-              ips.map((item) => (
-                <tr key={item.id}>
-                  <td className="p-2 border font-mono">{item.ip}</td>
-                  <td className="p-2 border">{item.note}</td>
-                  <td className="p-2 border">
-                    {item.createdAt
-                      ? new Date(item.createdAt).toLocaleString("ja-JP")
-                      : "-"}
-                  </td>
-                  <td className="p-2 border text-center">
-                    <button
-                      onClick={() => handleDeleteIp(item.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                    >
-                      削除
-                    </button>
+            </thead>
+            <tbody>
+              {ips.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    登録されたブロックIPはありません
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                ips.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleString("ja-JP")
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                      {item.ip}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                      {item.note}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-left">
+                      <button
+                        onClick={() => handleDeleteIp(item.id)}
+                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                      >
+                        削除
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ===== ブロックCountry ===== */}
@@ -255,7 +258,7 @@ setAvailableCountries(uniqueCountries);
           <select
             value={countryCode}
             onChange={(e) => setCountryCode(e.target.value)}
-            className="border rounded p-2 w-full"
+            className="border rounded-lg p-2 w-full text-sm"
           >
             <option value="">国を選択してください</option>
             {availableCountries.map((c) => (
@@ -266,7 +269,7 @@ setAvailableCountries(uniqueCountries);
           </select>
           <button
             type="submit"
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
             disabled={!countryCode}
           >
             登録
@@ -275,43 +278,47 @@ setAvailableCountries(uniqueCountries);
         {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
 
         {/* 一覧テーブル */}
-        <table className="w-full border text-sm mt-6">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">国コード</th>
-              <th className="p-2 border">登録日</th>
-              <th className="p-2 border">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {countries.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="p-4 text-center text-gray-500">
-                  登録されたブロックCountryはありません
-                </td>
+        <div className="overflow-x-auto mt-6">
+          <table className="min-w-full bg-white text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">国コード</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
               </tr>
-            ) : (
-              countries.map((item) => (
-                <tr key={item.id}>
-                  <td className="p-2 border font-mono">{item.countryCode}</td>
-                  <td className="p-2 border">
-                    {item.createdAt
-                      ? new Date(item.createdAt).toLocaleString("ja-JP")
-                      : "-"}
-                  </td>
-                  <td className="p-2 border text-center">
-                    <button
-                      onClick={() => handleDeleteCountry(item.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                    >
-                      削除
-                    </button>
+            </thead>
+            <tbody>
+              {countries.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    登録されたブロックCountryはありません
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                countries.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleString("ja-JP")
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                      {item.countryCode}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-left">
+                      <button
+                        onClick={() => handleDeleteCountry(item.id)}
+                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                      >
+                        削除
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
