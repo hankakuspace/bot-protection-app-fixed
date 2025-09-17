@@ -1,8 +1,14 @@
 // src/app/admin/logs/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw, Code, Download, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  RefreshCw,
+  Code,
+  Download,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 import * as ipaddr from "ipaddr.js";
 
 interface AccessLog {
@@ -38,6 +44,31 @@ export default function LogsPage() {
   const [countryFilter, setCountryFilter] = useState<string>("ALL");
   const [ipMenuOpen, setIpMenuOpen] = useState(false);
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
+
+  const ipMenuRef = useRef<HTMLDivElement>(null);
+  const countryMenuRef = useRef<HTMLDivElement>(null);
+
+  // 外クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        ipMenuRef.current &&
+        !ipMenuRef.current.contains(e.target as Node)
+      ) {
+        setIpMenuOpen(false);
+      }
+      if (
+        countryMenuRef.current &&
+        !countryMenuRef.current.contains(e.target as Node)
+      ) {
+        setCountryMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // 管理者IP一覧を取得
   const fetchAdminIps = async () => {
@@ -211,6 +242,30 @@ export default function LogsPage() {
     a.click();
   };
 
+  // ドロップダウン用の共通ボタン
+  const MenuItem = ({
+    label,
+    active,
+    onClick,
+    color,
+  }: {
+    label: string;
+    active?: boolean;
+    onClick: () => void;
+    color?: string;
+  }) => (
+    <button
+      onClick={onClick}
+      className="flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-gray-100"
+    >
+      <div className="flex items-center gap-2">
+        {color && <span className={`w-2 h-2 rounded-full ${color}`} />}
+        {label}
+      </div>
+      {active && <Check size={14} className="text-gray-600" />}
+    </button>
+  );
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-xl font-bold mb-4">アクセスログ</h1>
@@ -275,7 +330,10 @@ export default function LogsPage() {
                 </th>
 
                 {/* IP フィルタ */}
-                <th className="px-4 py-3 border-b border-gray-200 relative">
+                <th
+                  className="px-4 py-3 border-b border-gray-200 relative"
+                  ref={ipMenuRef}
+                >
                   <button
                     className="flex items-center gap-1"
                     onClick={() => setIpMenuOpen((o) => !o)}
@@ -283,52 +341,39 @@ export default function LogsPage() {
                     IP <ChevronDown size={14} />
                   </button>
                   {ipMenuOpen && (
-                    <div className="absolute mt-1 bg-white border rounded shadow z-10">
-                      <button
-                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                        onClick={() => {
-                          setIpFilter("ALL");
-                          setIpMenuOpen(false);
-                        }}
-                      >
-                        ALL
-                      </button>
-                      <button
-                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                        onClick={() => {
-                          setIpFilter("ADMIN");
-                          setIpMenuOpen(false);
-                        }}
-                      >
-                        <span className="w-2 h-2 inline-block rounded-full bg-blue-500 mr-2" />
-                        管理者
-                      </button>
-                      <button
-                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                        onClick={() => {
-                          setIpFilter("ALLOWED");
-                          setIpMenuOpen(false);
-                        }}
-                      >
-                        <span className="w-2 h-2 inline-block rounded-full bg-green-500 mr-2" />
-                        正常
-                      </button>
-                      <button
-                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                        onClick={() => {
-                          setIpFilter("BLOCKED");
-                          setIpMenuOpen(false);
-                        }}
-                      >
-                        <span className="w-2 h-2 inline-block rounded-full bg-red-500 mr-2" />
-                        ブロック
-                      </button>
+                    <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
+                      <MenuItem
+                        label="ALL"
+                        active={ipFilter === "ALL"}
+                        onClick={() => setIpFilter("ALL")}
+                      />
+                      <MenuItem
+                        label="管理者"
+                        color="bg-blue-500"
+                        active={ipFilter === "ADMIN"}
+                        onClick={() => setIpFilter("ADMIN")}
+                      />
+                      <MenuItem
+                        label="正常"
+                        color="bg-green-500"
+                        active={ipFilter === "ALLOWED"}
+                        onClick={() => setIpFilter("ALLOWED")}
+                      />
+                      <MenuItem
+                        label="ブロック"
+                        color="bg-red-500"
+                        active={ipFilter === "BLOCKED"}
+                        onClick={() => setIpFilter("BLOCKED")}
+                      />
                     </div>
                   )}
                 </th>
 
                 {/* Country フィルタ */}
-                <th className="px-4 py-3 border-b border-gray-200 relative">
+                <th
+                  className="px-4 py-3 border-b border-gray-200 relative"
+                  ref={countryMenuRef}
+                >
                   <button
                     className="flex items-center gap-1"
                     onClick={() => setCountryMenuOpen((o) => !o)}
@@ -336,27 +381,19 @@ export default function LogsPage() {
                     Country <ChevronDown size={14} />
                   </button>
                   {countryMenuOpen && (
-                    <div className="absolute mt-1 bg-white border rounded shadow z-10">
-                      <button
-                        className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                        onClick={() => {
-                          setCountryFilter("ALL");
-                          setCountryMenuOpen(false);
-                        }}
-                      >
-                        ALL
-                      </button>
+                    <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40">
+                      <MenuItem
+                        label="ALL"
+                        active={countryFilter === "ALL"}
+                        onClick={() => setCountryFilter("ALL")}
+                      />
                       {countryOptions.map((c) => (
-                        <button
+                        <MenuItem
                           key={c}
-                          className="block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left"
-                          onClick={() => {
-                            setCountryFilter(c);
-                            setCountryMenuOpen(false);
-                          }}
-                        >
-                          {c}
-                        </button>
+                          label={c}
+                          active={countryFilter === c}
+                          onClick={() => setCountryFilter(c)}
+                        />
                       ))}
                     </div>
                   )}
