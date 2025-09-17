@@ -277,7 +277,7 @@ export default function BlockIpPage() {
             <select
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
-              className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black appearance-none"
+              className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none appearance-none"
             >
               <option value="">国を選択してください</option>
               {availableCountries.map((c) => (
