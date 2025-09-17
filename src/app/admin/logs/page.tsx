@@ -302,9 +302,9 @@ export default function LogsPage() {
                     className="inline-block relative w-full cursor-pointer"
                     onClick={() => setIpMenuOpen((o) => !o)}
                   >
-                    <div className="flex items-center justify-center gap-1">
-                      <ChevronDown size={14} />
-                      <span>IP</span>
+                    <div className="flex items-center justify-between">
+                      <span className="mx-auto">IP</span>
+                      <ChevronDown size={14} className="ml-2" />
                     </div>
                     {ipMenuOpen && (
                       <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
@@ -343,9 +343,9 @@ export default function LogsPage() {
                     className="inline-block relative w-full cursor-pointer"
                     onClick={() => setCountryMenuOpen((o) => !o)}
                   >
-                    <div className="flex items-center justify-center gap-1">
-                      <ChevronDown size={14} />
-                      <span>Country</span>
+                    <div className="flex items-center justify-between">
+                      <span className="mx-auto">Country</span>
+                      <ChevronDown size={14} className="ml-2" />
                     </div>
                     {countryMenuOpen && (
                       <div className="absolute mt-1 bg-white border rounded-lg shadow-lg z-10 p-1 w-40 text-left">
