@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp, isAdminIp, isIpBlocked, isCountryBlocked } from "@/lib/check-ip";
+import { isBotUserAgent } from "@/lib/check-useragent";
 
 export const runtime = "nodejs";
 
-// ✅ IPinfo を使って国コードを取得する関数（空や不正レスポンスでも落ちないよう修正）
+// ✅ IPinfo を使って国コードを取得する関数
 async function getCountryCode(ip: string): Promise<string> {
   try {
     const token = process.env.IPINFO_TOKEN;
@@ -35,7 +36,6 @@ async function getCountryCode(ip: string): Promise<string> {
       return "UNKNOWN";
     }
 
-    console.log("🔥 DEBUG ipinfo response", { ip, data });
     return data.country || "UNKNOWN";
   } catch (err) {
     console.error("getCountryCode fatal error:", err);
@@ -89,22 +89,15 @@ export async function GET(req: NextRequest) {
       allowedCountry = !blockedCountry;
     }
 
-    // ✅ デバッグログ
-    console.log("🔥 DEBUG country判定", {
-      ip,
-      country,
-      blockedCountry,
-      allowedCountry,
-    });
-
     // ✅ 管理者IP判定
     const isAdmin = await isAdminIp(ip);
 
     // ✅ ブロックIP判定
     const blocked = await isIpBlocked(ip);
 
-    // ✅ UserAgent 取得
+    // ✅ UserAgent & Bot 判定
     const userAgent = req.headers.get("user-agent") || "";
+    const isBot = isBotUserAgent(userAgent);
 
     // ✅ Firestore に保存
     const ref = await adminDb.collection("access_logs").add({
@@ -112,9 +105,10 @@ export async function GET(req: NextRequest) {
       ip: String(ip),
       country: String(country),
       allowedCountry,
-      blocked,
+      blocked, // ← IP/Country のみで判定。Bot はブロック対象外（SEO 対策）
       isAdmin,
       userAgent,
+      isBot, // ← 保存
       createdAt: FieldValue.serverTimestamp(),
       logTimestamp: new Date().toISOString(),
     });
@@ -130,6 +124,7 @@ export async function GET(req: NextRequest) {
       isAdmin,
       blocked,
       allowedCountry,
+      isBot, // ← レスポンスにも追加
       usageCount,
     });
   } catch (err: any) {
@@ -137,3 +132,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+s
