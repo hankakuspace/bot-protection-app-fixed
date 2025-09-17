@@ -229,7 +229,12 @@ export default function BlockIpPage() {
                         : "-"}
                     </td>
                     <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                      {item.ip}
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block bg-pink-100 text-pink-600 text-[10px] font-semibold px-2 py-0.5 rounded">
+                          ブロック
+                        </span>
+                        <span>{item.ip}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 border-b border-gray-200 text-xs">
                       {item.note}
@@ -258,7 +263,7 @@ export default function BlockIpPage() {
           <select
             value={countryCode}
             onChange={(e) => setCountryCode(e.target.value)}
-            className="border rounded-lg p-2 w-full text-sm"
+            className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
           >
             <option value="">国を選択してください</option>
             {availableCountries.map((c) => (
