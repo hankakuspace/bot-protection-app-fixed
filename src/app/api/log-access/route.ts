@@ -39,6 +39,14 @@ async function incrementUsage(shop: string) {
   );
 }
 
+// ✅ 共通でCORSヘッダーを付与するヘルパー
+function withCors(res: NextResponse) {
+  res.headers.set("Access-Control-Allow-Origin", "*");
+  res.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return res;
+}
+
 /**
  * POST
  */
@@ -47,17 +55,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const shop = body.shop;
     if (!shop) {
-      return NextResponse.json({ ok: false, error: "Missing shop parameter" }, { status: 400 });
+      return withCors(
+        NextResponse.json({ ok: false, error: "Missing shop parameter" }, { status: 400 })
+      );
     }
 
     const ip = await getClientIp(req);
     const { country, allowed } = await getCountryFromIp(ip);
     const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
 
-    // ✅ 利用数カウント
     await incrementUsage(shop);
 
-    // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
       shop,
       ip,
@@ -72,9 +80,9 @@ export async function POST(req: NextRequest) {
       logTimestamp: new Date().toISOString(),
     });
 
-    return NextResponse.json({ ok: true });
+    return withCors(NextResponse.json({ ok: true }));
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return withCors(NextResponse.json({ ok: false, error: err.message }, { status: 500 }));
   }
 }
 
@@ -86,17 +94,17 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const shop = searchParams.get("shop");
     if (!shop) {
-      return NextResponse.json({ ok: false, error: "Missing shop parameter" }, { status: 400 });
+      return withCors(
+        NextResponse.json({ ok: false, error: "Missing shop parameter" }, { status: 400 })
+      );
     }
 
     const ip = await getClientIp(req);
     const { country, allowed } = await getCountryFromIp(ip);
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
 
-    // ✅ 利用数カウント
     await incrementUsage(shop);
 
-    // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
       shop,
       ip,
@@ -111,8 +119,15 @@ export async function GET(req: NextRequest) {
       logTimestamp: new Date().toISOString(),
     });
 
-    return NextResponse.json({ ok: true, shop, country, allowedCountry: allowed });
+    return withCors(NextResponse.json({ ok: true, shop, country, allowedCountry: allowed }));
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return withCors(NextResponse.json({ ok: false, error: err.message }, { status: 500 }));
   }
+}
+
+/**
+ * OPTIONS (CORS preflight)
+ */
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
 }
