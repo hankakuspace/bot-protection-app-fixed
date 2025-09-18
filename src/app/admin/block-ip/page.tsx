@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
+import * as ipaddr from "ipaddr.js"; // ✅ 追加
 
 interface BlockIp {
   id: string;
@@ -56,7 +57,25 @@ export default function BlockIpPage() {
       // 管理者IPチェック
       const adminRes = await fetch("/api/admin/admin-ip/list");
       const adminIps = await adminRes.json();
-      if (adminIps.some((a: any) => a.ip === ip)) {
+
+      const isConflict = adminIps.some((a: any) => {
+        try {
+          const adminAddr = ipaddr.parse(a.ip);
+
+          // 入力が CIDR 形式か確認
+          if (ip.includes("/")) {
+            const cidr = ipaddr.parseCIDR(ip);
+            return adminAddr.match(cidr);
+          } else {
+            const blockAddr = ipaddr.parse(ip);
+            return adminAddr.toNormalizedString() === blockAddr.toNormalizedString();
+          }
+        } catch {
+          return false;
+        }
+      });
+
+      if (isConflict) {
         alert("管理者IPはブロックIPに登録できません");
         return;
       }
