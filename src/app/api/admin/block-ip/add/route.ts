@@ -36,6 +36,34 @@ export async function POST(req: NextRequest) {
     // ✅ IPv6は/64に正規化
     const normalizedIp = normalizeIp(ip);
 
+    // ✅ 管理者IPとの競合チェック
+    const adminSnap = await adminDb.collection("admin_ips").get();
+    const adminIps = adminSnap.docs.map((doc) => doc.data().ip);
+
+    const isConflict = adminIps.some((adminIp: string) => {
+      try {
+        const adminAddr = ipaddr.parse(adminIp);
+
+        if (normalizedIp.includes("/")) {
+          const cidr = ipaddr.parseCIDR(normalizedIp);
+          return adminAddr.match(cidr);
+        } else {
+          const blockAddr = ipaddr.parse(normalizedIp);
+          return adminAddr.toNormalizedString() === blockAddr.toNormalizedString();
+        }
+      } catch {
+        return false;
+      }
+    });
+
+    if (isConflict) {
+      return NextResponse.json(
+        { error: "管理者IPはブロックIPに登録できません" },
+        { status: 400 }
+      );
+    }
+
+    // Firestore に保存
     await adminDb.collection("blocked_ips").add({
       ip: normalizedIp,
       note: note || "",
