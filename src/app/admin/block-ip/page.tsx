@@ -28,13 +28,12 @@ export default function BlockIpPage() {
   const [countryMessage, setCountryMessage] = useState("");
   const [countries, setCountries] = useState<BlockCountry[]>([]);
   const [loadingCountry, setLoadingCountry] = useState(false);
-
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
 
   // ✅ スピナー
   const Spinner = () => (
     <svg
-      className="animate-spin h-6 w-6 text-gray-500"
+      className="animate-spin h-4 w-4 text-gray-500"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -174,8 +173,9 @@ export default function BlockIpPage() {
     }
   };
 
-  // 利用可能な国一覧（アクセスログから取得）
+  // 利用可能な国一覧
   const fetchAvailableCountries = async () => {
+    setLoadingCountry(true);
     try {
       const res = await fetch("/api/admin/logs?limit=500");
       const data = await res.json();
@@ -188,6 +188,8 @@ export default function BlockIpPage() {
       setAvailableCountries(uniqueCountries);
     } catch (err) {
       console.error("利用可能国一覧取得エラー:", err);
+    } finally {
+      setLoadingCountry(false);
     }
   };
 
@@ -202,6 +204,7 @@ export default function BlockIpPage() {
       {/* ===== ブロックIP ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックIP</h1>
+        {/* 追加フォーム */}
         <form onSubmit={handleSubmitIp} className="space-y-4 max-w-md mt-4">
           <input
             type="text"
@@ -226,6 +229,7 @@ export default function BlockIpPage() {
         </form>
         {message && <p className="text-sm mt-2">{message}</p>}
 
+        {/* 一覧テーブル */}
         <div className="overflow-x-auto mt-6">
           {loading ? (
             <div className="flex justify-center items-center py-20">
@@ -291,27 +295,42 @@ export default function BlockIpPage() {
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
               className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none appearance-none"
+              disabled={loadingCountry}
             >
-              <option value="">国を選択してください</option>
-              {availableCountries.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              {loadingCountry ? (
+                <option>読み込み中...</option>
+              ) : (
+                <>
+                  <option value="">国を選択してください</option>
+                  {availableCountries.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </>
+              )}
             </select>
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
+
+            {loadingCountry ? (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner />
+              </div>
+            ) : (
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              />
+            )}
           </div>
           <button
             type="submit"
             className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
-            disabled={!countryCode}
+            disabled={!countryCode || loadingCountry}
           >
             登録
           </button>
         </form>
         {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
 
+        {/* 一覧テーブル */}
         <div className="overflow-x-auto mt-6">
           {loadingCountry ? (
             <div className="flex justify-center items-center py-20">
