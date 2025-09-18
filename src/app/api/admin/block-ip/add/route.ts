@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing IP" }, { status: 400 });
     }
 
-    // ✅ IPv6は/64に正規化
+    // ✅ 入力値を正規化
     const normalizedIp = normalizeIp(ip);
 
-    // ✅ すでに同じブロックIPが存在するかチェック（重複防止）
+    // ✅ すでに同じブロックIPが存在するかチェック
     const dupSnap = await adminDb
       .collection("blocked_ips")
       .where("ip", "==", normalizedIp)
@@ -49,26 +49,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 管理者IPとの競合チェック
+    // ✅ 管理者IPとの競合チェック（管理者IPも normalize して比較）
     const adminSnap = await adminDb.collection("admin_ips").get();
     const adminIps = adminSnap.docs.map((doc) => doc.data().ip);
 
     const isConflict = adminIps.some((adminIp: string) => {
-      try {
-        const adminAddr = ipaddr.parse(adminIp);
-
-        if (normalizedIp.includes("/")) {
-          // ブロック対象が CIDR の場合
-          const blockCidr = ipaddr.parseCIDR(normalizedIp);
-          return adminAddr.match(blockCidr);
-        } else {
-          // ブロック対象が単一IPの場合
-          const blockAddr = ipaddr.parse(normalizedIp);
-          return adminAddr.toNormalizedString() === blockAddr.toNormalizedString();
-        }
-      } catch {
-        return false;
-      }
+      const normalizedAdmin = normalizeIp(adminIp);
+      return normalizedAdmin === normalizedIp;
     });
 
     if (isConflict) {
