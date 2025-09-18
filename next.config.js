@@ -1,7 +1,7 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
-
 const path = require("path");
+
 const PROXY_SUBPATH = process.env.SHOPIFY_PROXY_SUBPATH || "bot-protection-proxy";
 
 const nextConfig = {
@@ -10,8 +10,8 @@ const nextConfig = {
   output: "standalone",
 
   webpack: (config) => {
-    // ✅ "@/..." を "src/..." に解決できるように追加
-    config.resolve.alias["@"] = path.resolve(__dirname, "src");
+    // ✅ "@/..." → "src/..." を解決できるようにする
+    config.resolve.alias["@"] = path.join(__dirname, "src");
     return config;
   },
 
@@ -38,7 +38,6 @@ const nextConfig = {
 
   async redirects() {
     return [
-      // 🚫 無限ループの原因だった redirect は削除済み
       { source: "/auth", destination: "/api/auth", permanent: false },
       { source: "/auth/callback", destination: "/api/auth/callback", permanent: false },
     ];
