@@ -48,6 +48,39 @@ export default function BlockIpPage() {
   );
 
   // ====== ブロックIP ======
+  const handleSubmitIp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+
+    try {
+      // 管理者IPチェック
+      const adminRes = await fetch("/api/admin/admin-ip/list");
+      const adminIps = await adminRes.json();
+      if (adminIps.some((a: any) => a.ip === ip)) {
+        alert("管理者IPはブロックIPに登録できません");
+        return;
+      }
+
+      const res = await fetch("/api/admin/block-ip/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip, note }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage("✅ ブロックIPを登録しました");
+        setIp("");
+        setNote("");
+        fetchIps();
+      } else {
+        setMessage(data.error || "登録に失敗しました");
+      }
+    } catch (err) {
+      console.error("ブロックIP登録エラー:", err);
+      setMessage("エラーが発生しました");
+    }
+  };
+
   const fetchIps = async () => {
     setLoadingIps(true);
     try {
@@ -62,7 +95,52 @@ export default function BlockIpPage() {
     }
   };
 
+  const handleDeleteIp = async (id: string) => {
+    if (!confirm("本当に削除しますか？")) return;
+
+    try {
+      const res = await fetch("/api/admin/delete-ip", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type: "block" }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        fetchIps();
+      } else {
+        alert("削除失敗: " + (data.error || "不明なエラー"));
+      }
+    } catch (err) {
+      console.error("ブロックIP削除エラー:", err);
+      alert("削除時にエラー発生");
+    }
+  };
+
   // ====== ブロックCountry ======
+  const handleSubmitCountry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCountryMessage("");
+
+    try {
+      const res = await fetch("/api/admin/block-country/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ countryCode }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setCountryMessage("✅ ブロックCountryを登録しました");
+        setCountryCode("");
+        fetchCountries();
+      } else {
+        setCountryMessage(data.error || "登録に失敗しました");
+      }
+    } catch (err) {
+      console.error("ブロックCountry登録エラー:", err);
+      setCountryMessage("エラーが発生しました");
+    }
+  };
+
   const fetchCountries = async () => {
     setLoadingCountries(true);
     try {
@@ -77,7 +155,28 @@ export default function BlockIpPage() {
     }
   };
 
-  // ====== 利用可能な国一覧 (セレクト用) ======
+  const handleDeleteCountry = async (id: string) => {
+    if (!confirm("本当に削除しますか？")) return;
+
+    try {
+      const res = await fetch("/api/admin/delete-ip", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type: "country" }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        fetchCountries();
+      } else {
+        alert("削除失敗: " + (data.error || "不明なエラー"));
+      }
+    } catch (err) {
+      console.error("ブロックCountry削除エラー:", err);
+      alert("削除時にエラー発生");
+    }
+  };
+
+  // 利用可能な国一覧
   const fetchAvailableCountries = async () => {
     setLoadingAvailableCountries(true);
     try {
@@ -85,9 +184,7 @@ export default function BlockIpPage() {
       const data = await res.json();
       const logs = data.logs || [];
       const uniqueCountries: string[] = Array.from(
-        new Set(
-          logs.map((l: any) => String(l.country || "")).filter(Boolean)
-        )
+        new Set(logs.map((l: any) => String(l.country || "")).filter(Boolean))
       );
       setAvailableCountries(uniqueCountries);
     } catch (err) {
@@ -108,6 +205,33 @@ export default function BlockIpPage() {
       {/* ===== ブロックIP ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックIP</h1>
+
+        {/* 追加フォーム */}
+        <form onSubmit={handleSubmitIp} className="space-y-4 max-w-md mt-4">
+          <input
+            type="text"
+            value={ip}
+            onChange={(e) => setIp(e.target.value)}
+            placeholder="例: 192.168.0.1 または IPv6"
+            className="border rounded-lg p-2 w-full text-sm"
+          />
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="メモ（任意）"
+            className="border rounded-lg p-2 w-full text-sm"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
+          >
+            登録
+          </button>
+        </form>
+        {message && <p className="text-sm mt-2">{message}</p>}
+
+        {/* 一覧テーブル */}
         <div className="overflow-x-auto mt-6">
           {loadingIps ? (
             <div className="flex justify-center items-center py-20">
@@ -120,12 +244,13 @@ export default function BlockIpPage() {
                   <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
                   <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
                   <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
                 </tr>
               </thead>
               <tbody>
                 {ips.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
                       登録されたブロックIPはありません
                     </td>
                   </tr>
@@ -137,6 +262,14 @@ export default function BlockIpPage() {
                       </td>
                       <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{item.ip}</td>
                       <td className="px-4 py-3 border-b border-gray-200 text-xs">{item.note}</td>
+                      <td className="px-4 py-3 border-b border-gray-200 text-left">
+                        <button
+                          onClick={() => handleDeleteIp(item.id)}
+                          className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                        >
+                          削除
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -149,37 +282,49 @@ export default function BlockIpPage() {
       {/* ===== ブロックCountry ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックCountry</h1>
-        <div className="relative mt-4 max-w-md">
-          <select
-            value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value)}
-            className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none appearance-none"
-            disabled={loadingAvailableCountries}
-          >
+        {/* 追加フォーム */}
+        <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
+          <div className="relative">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none appearance-none"
+              disabled={loadingAvailableCountries}
+            >
+              {loadingAvailableCountries ? (
+                <option>読み込み中...</option>
+              ) : (
+                <>
+                  <option value="">国を選択してください</option>
+                  {availableCountries.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </>
+              )}
+            </select>
+
             {loadingAvailableCountries ? (
-              <option>読み込み中...</option>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner />
+              </div>
             ) : (
-              <>
-                <option value="">国を選択してください</option>
-                {availableCountries.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </>
+              <ChevronDown
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              />
             )}
-          </select>
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
+            disabled={!countryCode || loadingAvailableCountries}
+          >
+            登録
+          </button>
+        </form>
+        {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
 
-          {loadingAvailableCountries ? (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Spinner />
-            </div>
-          ) : (
-            <ChevronDown
-              size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            />
-          )}
-        </div>
-
+        {/* 一覧テーブル */}
         <div className="overflow-x-auto mt-6">
           {loadingCountries ? (
             <div className="flex justify-center items-center py-20">
@@ -191,12 +336,13 @@ export default function BlockIpPage() {
                 <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
                   <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
                   <th className="px-4 py-3 border-b border-gray-200 text-left">国コード</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
                 </tr>
               </thead>
               <tbody>
                 {countries.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
                       登録されたブロックCountryはありません
                     </td>
                   </tr>
@@ -206,8 +352,14 @@ export default function BlockIpPage() {
                       <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
                         {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
                       </td>
-                      <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                        {item.countryCode}
+                      <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{item.countryCode}</td>
+                      <td className="px-4 py-3 border-b border-gray-200 text-left">
+                        <button
+                          onClick={() => handleDeleteCountry(item.id)}
+                          className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                        >
+                          削除
+                        </button>
                       </td>
                     </tr>
                   ))
