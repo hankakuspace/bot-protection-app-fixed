@@ -22,11 +22,29 @@ export default function BlockIpPage() {
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const [ips, setIps] = useState<BlockIp[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [countryCode, setCountryCode] = useState("");
   const [countryMessage, setCountryMessage] = useState("");
   const [countries, setCountries] = useState<BlockCountry[]>([]);
+  const [loadingCountry, setLoadingCountry] = useState(false);
+
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+
+  // ✅ スピナー
+  const Spinner = () => (
+    <svg
+      className="animate-spin h-6 w-6 text-gray-500"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 0 1 10 10h-2a8 8 0 1 0-8 8v2a10 10 0 1 1 0-20z"
+      />
+    </svg>
+  );
 
   // ====== ブロックIP ======
   const handleSubmitIp = async (e: React.FormEvent) => {
@@ -62,6 +80,7 @@ export default function BlockIpPage() {
   };
 
   const fetchIps = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/admin/block-ip/list");
       const data = await res.json();
@@ -69,6 +88,8 @@ export default function BlockIpPage() {
     } catch (err) {
       console.error("ブロックIP一覧取得エラー:", err);
       setIps([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,6 +140,7 @@ export default function BlockIpPage() {
   };
 
   const fetchCountries = async () => {
+    setLoadingCountry(true);
     try {
       const res = await fetch("/api/admin/block-country/list");
       const data = await res.json();
@@ -126,6 +148,8 @@ export default function BlockIpPage() {
     } catch (err) {
       console.error("ブロックCountry一覧取得エラー:", err);
       setCountries([]);
+    } finally {
+      setLoadingCountry(false);
     }
   };
 
@@ -178,7 +202,6 @@ export default function BlockIpPage() {
       {/* ===== ブロックIP ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックIP</h1>
-        {/* 追加フォーム */}
         <form onSubmit={handleSubmitIp} className="space-y-4 max-w-md mt-4">
           <input
             type="text"
@@ -203,76 +226,66 @@ export default function BlockIpPage() {
         </form>
         {message && <p className="text-sm mt-2">{message}</p>}
 
-        {/* 一覧テーブル */}
         <div className="overflow-x-auto mt-6">
-          <table className="min-w-full bg-white text-xs border-collapse">
-            <thead>
-              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3 border-b border-gray-200 text-left">
-                  登録日
-                </th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left">
-                  保存されたIP
-                </th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left">
-                  メモ
-                </th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ips.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-6 text-center text-gray-500 text-sm"
-                  >
-                    登録されたブロックIPはありません
-                  </td>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Spinner />
+            </div>
+          ) : (
+            <table className="min-w-full bg-white text-xs border-collapse">
+              <thead>
+                <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                  <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
                 </tr>
-              ) : (
-                ips.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleString("ja-JP")
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block bg-red-100 text-red-600 text-[10px] font-semibold px-2 py-0.5 rounded">
-                          ブロック
-                        </span>
-                        <span>{item.ip}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 border-b border-gray-200 text-xs">
-                      {item.note}
-                    </td>
-                    <td className="px-4 py-3 border-b border-gray-200 text-left">
-                      <button
-                        onClick={() => handleDeleteIp(item.id)}
-                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
-                      >
-                        削除
-                      </button>
+              </thead>
+              <tbody>
+                {ips.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
+                      登録されたブロックIPはありません
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  ips.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
+                      </td>
+                      <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block bg-red-100 text-red-600 text-[10px] font-semibold px-2 py-0.5 rounded">
+                            ブロック
+                          </span>
+                          <span>{item.ip}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                        {item.note}
+                      </td>
+                      <td className="px-4 py-3 border-b border-gray-200 text-left">
+                        <button
+                          onClick={() => handleDeleteIp(item.id)}
+                          className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                        >
+                          削除
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       {/* ===== ブロックCountry ===== */}
       <div>
         <h1 className="text-xl font-bold">ブロックCountry</h1>
-        {/* 追加フォーム */}
-        <form
-          onSubmit={handleSubmitCountry}
-          className="space-y-4 max-w-md mt-4"
-        >
+        <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
           <div className="relative">
             <select
               value={countryCode}
@@ -281,9 +294,7 @@ export default function BlockIpPage() {
             >
               <option value="">国を選択してください</option>
               {availableCountries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
             <ChevronDown
@@ -301,54 +312,50 @@ export default function BlockIpPage() {
         </form>
         {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
 
-        {/* 一覧テーブル */}
         <div className="overflow-x-auto mt-6">
-          <table className="min-w-full bg-white text-xs border-collapse">
-            <thead>
-              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-                <th className="px-4 py-3 border-b border-gray-200 text-left">
-                  登録日
-                </th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left">
-                  国コード
-                </th>
-                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {countries.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-4 py-6 text-center text-gray-500 text-sm"
-                  >
-                    登録されたブロックCountryはありません
-                  </td>
+          {loadingCountry ? (
+            <div className="flex justify-center items-center py-20">
+              <Spinner />
+            </div>
+          ) : (
+            <table className="min-w-full bg-white text-xs border-collapse">
+              <thead>
+                <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                  <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left">国コード</th>
+                  <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
                 </tr>
-              ) : (
-                countries.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleString("ja-JP")
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                      {item.countryCode}
-                    </td>
-                    <td className="px-4 py-3 border-b border-gray-200 text-left">
-                      <button
-                        onClick={() => handleDeleteCountry(item.id)}
-                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
-                      >
-                        削除
-                      </button>
+              </thead>
+              <tbody>
+                {countries.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
+                      登録されたブロックCountryはありません
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  countries.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
+                      </td>
+                      <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                        {item.countryCode}
+                      </td>
+                      <td className="px-4 py-3 border-b border-gray-200 text-left">
+                        <button
+                          onClick={() => handleDeleteCountry(item.id)}
+                          className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                        >
+                          削除
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
