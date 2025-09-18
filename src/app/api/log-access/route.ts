@@ -1,10 +1,8 @@
 // src/app/api/log-access/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase.ts";
+import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
-import { getClientIp } from "@/lib/check-ip.ts";
-import { isBotUserAgent } from "@/lib/check-useragent.ts";
-
+import { getClientIp } from "@/lib/check-ip";
+import { isBotUserAgent } from "@/lib/check-useragent";
 export const runtime = "nodejs";
 
 async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
