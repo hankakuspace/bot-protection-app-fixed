@@ -9,12 +9,19 @@ const nextConfig = {
   trailingSlash: false,
   output: "standalone",
 
-  // ✅ プロジェクトルートを明示
-  outputFileTracingRoot: __dirname,
-
   webpack: (config) => {
-    // ✅ "@/..." → "src/..." を解決できるようにする
-    config.resolve.alias["@"] = path.resolve(__dirname, "src");
+    // ✅ "@/..." を "src/..." に強制解決
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      "@": path.resolve(__dirname, "src"),
+    };
+
+    // ✅ "src" を modules に追加（補助）
+    config.resolve.modules = [
+      path.resolve(__dirname, "src"),
+      "node_modules",
+    ];
+
     return config;
   },
 
@@ -26,7 +33,7 @@ const nextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "frame-ancestors https://admin.shopify.com https://*.myshopify.com;",
+              "frame-ancestors https://admin.shopify.com https://*.myshopify.com",
           },
           { key: "Referrer-Policy", value: "origin-when-cross-origin" },
           {
