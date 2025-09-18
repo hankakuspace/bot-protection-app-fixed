@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     await incrementUsage(shop);
 
-    await adminDb.collection("access_logs").add({
+    const logData = {
       shop,
       ip,
       country,
@@ -75,10 +75,18 @@ export async function POST(req: NextRequest) {
       isAdmin: body.isAdmin ?? false,
       userAgent,
       isBot: isBotUserAgent(userAgent),
-      host: req.headers.get("host") || null,
+      host: body.host || req.headers.get("host") || null,
+      url: body.url || null,
+      referrer: body.referrer || null,
+      clientTime: body.t || null,
       createdAt: new Date(),
       logTimestamp: new Date().toISOString(),
-    });
+    };
+
+    // ✅ 保存内容をデバッグログ出力
+    console.log("🔥 access_log 保存内容:", logData);
+
+    await adminDb.collection("access_logs").add(logData);
 
     return withCors(NextResponse.json({ ok: true }));
   } catch (err: any) {
@@ -105,7 +113,7 @@ export async function GET(req: NextRequest) {
 
     await incrementUsage(shop);
 
-    await adminDb.collection("access_logs").add({
+    const logData = {
       shop,
       ip,
       country,
@@ -115,9 +123,17 @@ export async function GET(req: NextRequest) {
       userAgent,
       isBot: isBotUserAgent(userAgent),
       host: req.headers.get("host") || null,
+      url: searchParams.get("url") || null,
+      referrer: searchParams.get("referrer") || null,
+      clientTime: searchParams.get("t") || null,
       createdAt: new Date(),
       logTimestamp: new Date().toISOString(),
-    });
+    };
+
+    // ✅ 保存内容をデバッグログ出力
+    console.log("🔥 access_log 保存内容:", logData);
+
+    await adminDb.collection("access_logs").add(logData);
 
     return withCors(NextResponse.json({ ok: true, shop, country, allowedCountry: allowed }));
   } catch (err: any) {
