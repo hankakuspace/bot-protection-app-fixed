@@ -15,6 +15,22 @@ export default function AdminIpPage() {
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const [ips, setIps] = useState<AdminIp[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // ✅ スピナー
+  const Spinner = () => (
+    <svg
+      className="animate-spin h-6 w-6 text-gray-500"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 0 1 10 10h-2a8 8 0 1 0-8 8v2a10 10 0 1 1 0-20z"
+      />
+    </svg>
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +77,7 @@ export default function AdminIpPage() {
   };
 
   const fetchIps = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/admin/admin-ip/list");
       const data = await res.json();
@@ -68,6 +85,8 @@ export default function AdminIpPage() {
     } catch (err) {
       console.error("管理者IP一覧取得エラー:", err);
       setIps([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,9 +109,7 @@ export default function AdminIpPage() {
         />
         <p className="text-xs text-gray-500">
           IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
-          （例: 2405:6583:9640:d500::/64）。
         </p>
-
         <input
           type="text"
           value={note}
@@ -111,57 +128,60 @@ export default function AdminIpPage() {
 
       {/* 一覧テーブル */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white text-xs border-collapse">
-          <thead>
-            <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-              <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
-              <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
-              <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
-              <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {ips.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-4 py-6 text-center text-gray-500 text-sm"
-                >
-                  登録された管理者IPはありません
-                </td>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Spinner />
+          </div>
+        ) : (
+          <table className="min-w-full bg-white text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
               </tr>
-            ) : (
-              ips.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                    {item.createdAt
-                      ? new Date(item.createdAt).toLocaleString("ja-JP")
-                      : "-"}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block bg-blue-100 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded">
-                        管理者
-                      </span>
-                      <span>{item.ip}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-xs">
-                    {item.note}
-                  </td>
-                  <td className="px-4 py-3 border-b border-gray-200 text-left">
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
-                    >
-                      削除
-                    </button>
+            </thead>
+            <tbody>
+              {ips.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    登録された管理者IPはありません
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                ips.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleString("ja-JP")
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block bg-blue-100 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded">
+                          管理者
+                        </span>
+                        <span>{item.ip}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs">
+                      {item.note}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-left">
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                      >
+                        削除
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
