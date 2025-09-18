@@ -9,9 +9,12 @@ const nextConfig = {
   trailingSlash: false,
   output: "standalone",
 
-  webpack: (config, { isServer }) => {
-    config.resolve.modules.push(path.resolve("./src")); // ✅ src をモジュール解決に追加
-    config.resolve.alias["@"] = path.resolve(__dirname, "src"); // ✅ "@/..." を "src" に解決
+  // ✅ プロジェクトルートを明示
+  outputFileTracingRoot: __dirname,
+
+  webpack: (config) => {
+    // ✅ "@/..." → "src/..." を解決できるようにする
+    config.resolve.alias["@"] = path.resolve(__dirname, "src");
     return config;
   },
 
