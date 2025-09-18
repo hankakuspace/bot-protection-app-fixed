@@ -23,7 +23,7 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
   }
 }
 
-// ✅ 利用数カウント用関数
+// ✅ 利用数カウント
 async function incrementUsage(shop: string) {
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -45,10 +45,14 @@ async function incrementUsage(shop: string) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const shop = body.shop;
+    if (!shop) {
+      return NextResponse.json({ ok: false, error: "Missing shop parameter" }, { status: 400 });
+    }
+
     const ip = await getClientIp(req);
     const { country, allowed } = await getCountryFromIp(ip);
-    const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
-    const shop = body.shop || "ruhra-store.myshopify.com";
+    const userAgent = body.ua || req.headers.get("user-agent") || "UNKNOWN";
 
     // ✅ 利用数カウント
     await incrementUsage(shop);
@@ -80,10 +84,14 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const shop = searchParams.get("shop");
+    if (!shop) {
+      return NextResponse.json({ ok: false, error: "Missing shop parameter" }, { status: 400 });
+    }
+
     const ip = await getClientIp(req);
     const { country, allowed } = await getCountryFromIp(ip);
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
-    const shop = searchParams.get("shop") || "ruhra-store.myshopify.com";
 
     // ✅ 利用数カウント
     await incrementUsage(shop);
