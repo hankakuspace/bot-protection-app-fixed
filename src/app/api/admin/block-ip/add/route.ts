@@ -44,9 +44,13 @@ export async function POST(req: NextRequest) {
       try {
         const adminAddr = ipaddr.parse(adminIp);
 
+        // 管理者IPを /128 (単一アドレスのCIDR) として扱う
+        const adminCidr: [ipaddr.IPv4 | ipaddr.IPv6, number] = [adminAddr, adminAddr.kind() === "ipv6" ? 128 : 32];
+
         if (normalizedIp.includes("/")) {
-          const cidr = ipaddr.parseCIDR(normalizedIp);
-          return adminAddr.match(cidr);
+          const blockCidr = ipaddr.parseCIDR(normalizedIp);
+          // 双方向チェック: 管理者IPがブロック範囲に含まれる OR ブロックが管理者に一致
+          return adminAddr.match(blockCidr) || ipaddr.parse(adminIp).match(adminCidr);
         } else {
           const blockAddr = ipaddr.parse(normalizedIp);
           return adminAddr.toNormalizedString() === blockAddr.toNormalizedString();
@@ -73,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, ip: normalizedIp });
   } catch (err: any) {
-    console.error("add-ip error:", err);
+    console.error("block-ip/add error:", err);
     return NextResponse.json(
       { error: err?.message || String(err) },
       { status: 500 }
