@@ -6,20 +6,20 @@ import * as ipaddr from "ipaddr.js";
 
 export const runtime = "nodejs";
 
-// ✅ IP正規化関数
-function normalizeIp(ip: string): string {
+// ✅ IPをCIDR表記に統一する関数
+function toCidr(ip: string): string {
   try {
     if (!ipaddr.isValid(ip)) return ip;
     const parsed = ipaddr.parse(ip);
 
     if (parsed.kind() === "ipv6") {
-      // IPv6は /64 に丸める
+      // IPv6は /64
       const parts = parsed.toNormalizedString().split(":");
-      const prefix = parts.slice(0, 4).join(":"); // 上位64ビット
+      const prefix = parts.slice(0, 4).join(":");
       return `${prefix}::/64`;
     } else {
-      // IPv4はそのまま
-      return parsed.toString();
+      // IPv4は /32
+      return `${parsed.toString()}/32`;
     }
   } catch {
     return ip;
@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing IP" }, { status: 400 });
     }
 
-    // ✅ 入力値を正規化
-    const normalizedIp = normalizeIp(ip);
+    // ✅ 保存形式に正規化
+    const cidrIp = toCidr(ip);
 
-    // ✅ すでに同じブロックIPが存在するかチェック
+    // ✅ 重複登録チェック
     const dupSnap = await adminDb
       .collection("blocked_ips")
-      .where("ip", "==", normalizedIp)
+      .where("ip", "==", cidrIp)
       .get();
 
     if (!dupSnap.empty) {
@@ -49,31 +49,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 管理者IPとの競合チェック（管理者IPも normalize して比較）
+    // ✅ 管理者IPとの競合チェック（管理者IPもCIDRに揃える）
     const adminSnap = await adminDb.collection("admin_ips").get();
-    const adminIps = adminSnap.docs.map((doc) => doc.data().ip);
+    const adminIps = adminSnap.docs.map((doc) => toCidr(doc.data().ip));
 
-    const isConflict = adminIps.some((adminIp: string) => {
-      const normalizedAdmin = normalizeIp(adminIp);
-      return normalizedAdmin === normalizedIp;
-    });
-
-    if (isConflict) {
+    if (adminIps.includes(cidrIp)) {
       return NextResponse.json(
         { error: "管理者IPはブロックIPに登録できません" },
         { status: 400 }
       );
     }
 
-    // Firestore に保存
+    // ✅ Firestore に保存（必ずCIDR表記で）
     await adminDb.collection("blocked_ips").add({
-      ip: normalizedIp,
+      ip: cidrIp,
       note: note || "",
       blocked: true,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return NextResponse.json({ ok: true, ip: normalizedIp });
+    return NextResponse.json({ ok: true, ip: cidrIp });
   } catch (err: any) {
     console.error("block-ip/add error:", err);
     return NextResponse.json(
