@@ -15,16 +15,7 @@ async function getCountryCode(ip: string): Promise<string> {
     const res = await fetch(`https://ipinfo.io/${ip}?token=${token}`);
     if (!res.ok) return "UNKNOWN";
 
-    const text = await res.text();
-    if (!text) return "UNKNOWN";
-
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return "UNKNOWN";
-    }
-
+    const data = await res.json();
     return data.country || "UNKNOWN";
   } catch {
     return "UNKNOWN";
@@ -35,11 +26,16 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const shop = url.searchParams.get("shop");
+
+    // ✅ shop が必須
     if (!shop) {
-      return NextResponse.json({ error: "Missing shop" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing shop parameter" },
+        { status: 400 }
+      );
     }
 
-    // ✅ 利用数カウント更新
+    // ✅ 利用数カウント（BOT/管理者含む全アクセス）
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const usageRef = adminDb.collection("usage_logs").doc(`${shop}_${yearMonth}`);
@@ -58,45 +54,43 @@ export async function GET(req: NextRequest) {
     const usageData = usageSnap.data();
     const usageCount = usageData?.count ?? 0;
 
-    // ✅ クライアントIP取得
+    // ✅ クライアントIP
     const ip = getClientIp(req);
 
-    // ✅ 国コード判定
+    // ✅ 国コード
     let country: string = "UNKNOWN";
     let allowedCountry = true;
     if (ip) {
       country = await getCountryCode(ip);
-      const blockedCountry = await isCountryBlocked(country);
-      allowedCountry = !blockedCountry;
+      allowedCountry = !(await isCountryBlocked(country));
     }
 
-    // ✅ 管理者/ブロック判定
+    // ✅ 管理者/ブロック
     const isAdmin = await isAdminIp(ip);
     const blocked = await isIpBlocked(ip);
 
-    // ✅ UserAgent & Bot 判定
+    // ✅ BOT判定
     const userAgent = req.headers.get("user-agent") || "";
     const isBot = isBotUserAgent(userAgent);
 
-    // ✅ Firestore 保存
+    // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
       shop,
       ip: String(ip),
-      country: String(country),
+      country,
       allowedCountry,
       blocked,
       isAdmin,
       userAgent,
-      isBot, // ← 追加
+      isBot,
       createdAt: FieldValue.serverTimestamp(),
       logTimestamp: new Date().toISOString(),
     });
 
-    // ✅ レスポンス
     return NextResponse.json({
       shop,
       requestIp: String(ip),
-      country: String(country),
+      country,
       isAdmin,
       blocked,
       allowedCountry,
