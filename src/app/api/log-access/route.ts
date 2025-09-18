@@ -1,6 +1,7 @@
 // src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase";
+import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
 import { isBotUserAgent } from "@/lib/check-useragent";
 
@@ -22,6 +23,22 @@ async function getCountryFromIp(ip: string): Promise<{ country: string; allowed:
   }
 }
 
+// ✅ 利用数カウント用関数
+async function incrementUsage(shop: string) {
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const usageRef = adminDb.collection("usage_logs").doc(`${shop}_${yearMonth}`);
+  await usageRef.set(
+    {
+      shop,
+      yearMonth,
+      count: FieldValue.increment(1),
+      updatedAt: new Date(),
+    },
+    { merge: true }
+  );
+}
+
 /**
  * POST
  */
@@ -30,23 +47,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const ip = await getClientIp(req);
     const { country, allowed } = await getCountryFromIp(ip);
-
     const userAgent = body.userAgent || req.headers.get("user-agent") || "UNKNOWN";
+    const shop = body.shop || "ruhra-store.myshopify.com";
 
+    // ✅ 利用数カウント
+    await incrementUsage(shop);
 
-await adminDb.collection("access_logs").add({
-  ip,
-  country,
-  allowedCountry: allowed,
-  blocked: body.blocked ?? false,
-  isAdmin: body.isAdmin ?? false,
-  userAgent,
-  isBot: isBotUserAgent(userAgent),
-  host: req.headers.get("host") || null,
-  createdAt: new Date(),
-  logTimestamp: new Date().toISOString(), // ✅ clientTime を廃止
-});
-
+    // ✅ アクセスログ保存
+    await adminDb.collection("access_logs").add({
+      shop,
+      ip,
+      country,
+      allowedCountry: allowed,
+      blocked: body.blocked ?? false,
+      isAdmin: body.isAdmin ?? false,
+      userAgent,
+      isBot: isBotUserAgent(userAgent),
+      host: req.headers.get("host") || null,
+      createdAt: new Date(),
+      logTimestamp: new Date().toISOString(),
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
@@ -62,10 +82,15 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const ip = await getClientIp(req);
     const { country, allowed } = await getCountryFromIp(ip);
-
     const userAgent = searchParams.get("ua") || req.headers.get("user-agent") || "UNKNOWN";
+    const shop = searchParams.get("shop") || "ruhra-store.myshopify.com";
 
+    // ✅ 利用数カウント
+    await incrementUsage(shop);
+
+    // ✅ アクセスログ保存
     await adminDb.collection("access_logs").add({
+      shop,
       ip,
       country,
       allowedCountry: allowed,
@@ -75,10 +100,10 @@ export async function GET(req: NextRequest) {
       isBot: isBotUserAgent(userAgent),
       host: req.headers.get("host") || null,
       createdAt: new Date(),
-      logTimestamp: new Date().toISOString(), // ✅ clientTime 廃止 → logTimestamp に統一
+      logTimestamp: new Date().toISOString(),
     });
 
-    return NextResponse.json({ ok: true, country, allowedCountry: allowed });
+    return NextResponse.json({ ok: true, shop, country, allowedCountry: allowed });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
