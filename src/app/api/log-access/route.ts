@@ -1,9 +1,9 @@
 // src/app/api/log-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase.ts";
 import { FieldValue } from "firebase-admin/firestore";
-import { getClientIp } from "@/lib/check-ip";
-import { isBotUserAgent } from "@/lib/check-useragent";
+import { getClientIp } from "@/lib/check-ip.ts";
+import { isBotUserAgent } from "@/lib/check-useragent.ts";
 
 export const runtime = "nodejs";
 
