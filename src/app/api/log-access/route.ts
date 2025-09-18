@@ -1,8 +1,10 @@
 // src/app/api/log-access/route.ts
+import { NextRequest, NextResponse } from "next/server"; // ← 追加
 import { adminDb } from "@/lib/firebase";
 import { FieldValue } from "firebase-admin/firestore";
 import { getClientIp } from "@/lib/check-ip";
 import { isBotUserAgent } from "@/lib/check-useragent";
+
 export const runtime = "nodejs";
 
 async function getCountryFromIp(ip: string): Promise<{ country: string; allowed: boolean }> {
@@ -81,9 +83,7 @@ export async function POST(req: NextRequest) {
       logTimestamp: new Date().toISOString(),
     };
 
-    // ✅ 保存内容をデバッグログ出力
     console.log("🔥 access_log 保存内容:", logData);
-
     await adminDb.collection("access_logs").add(logData);
 
     return withCors(NextResponse.json({ ok: true }));
@@ -128,9 +128,7 @@ export async function GET(req: NextRequest) {
       logTimestamp: new Date().toISOString(),
     };
 
-    // ✅ 保存内容をデバッグログ出力
     console.log("🔥 access_log 保存内容:", logData);
-
     await adminDb.collection("access_logs").add(logData);
 
     return withCors(NextResponse.json({ ok: true, shop, country, allowedCountry: allowed }));
