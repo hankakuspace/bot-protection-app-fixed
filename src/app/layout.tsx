@@ -12,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja">
       <body>
         {/* ✅ Shopify 標準ナビゲーションを body 直下に直書き */}
+        {/* @ts-ignore */}
         <ui-nav-menu>
           <a href="/admin/dashboard">ダッシュボード</a>
           <a href="/admin/logs">アクセスログ</a>
