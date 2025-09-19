@@ -16,13 +16,11 @@ export default function DashboardPage() {
   const [message, setMessage] = useState<string>("");
 
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
-
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingUsage, setLoadingUsage] = useState(false);
 
   const shop = "ruhra-store.myshopify.com"; // TODO: 認証から取得
 
-  // ✅ スピナー
   const Spinner = () => (
     <svg
       className="animate-spin h-5 w-5 text-gray-500"
@@ -110,20 +108,6 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
-      {/* ✅ Shopify 標準ナビゲーションをSSRで常に描画 */}
-      <div
-        dangerouslySetInnerHTML={{
-          __html: `
-            <ui-nav-menu>
-              <a href="/admin/dashboard">ダッシュボード</a>
-              <a href="/admin/logs">アクセスログ</a>
-              <a href="/admin/admin-ip">管理者設定</a>
-              <a href="/admin/block-ip">ブロック設定</a>
-            </ui-nav-menu>
-          `,
-        }}
-      />
-
       <h1 className="text-2xl font-bold mb-4">管理ダッシュボード</h1>
 
       {/* 🔔 Trial 警告バナー */}

@@ -11,20 +11,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <body>
-        {/* ✅ Shopifyナビを描画するが本文には表示しない */}
-        <div
-          style={{ display: "none" }}
-          dangerouslySetInnerHTML={{
-            __html: `
-              <ui-nav-menu>
-                <a href="/admin/dashboard">ダッシュボード</a>
-                <a href="/admin/logs">アクセスログ</a>
-                <a href="/admin/admin-ip">管理者設定</a>
-                <a href="/admin/block-ip">ブロック設定</a>
-              </ui-nav-menu>
-            `,
-          }}
-        />
+        {/* ✅ Shopify 標準ナビゲーションを body 直下に直書き */}
+        <ui-nav-menu>
+          <a href="/admin/dashboard">ダッシュボード</a>
+          <a href="/admin/logs">アクセスログ</a>
+          <a href="/admin/admin-ip">管理者設定</a>
+          <a href="/admin/block-ip">ブロック設定</a>
+        </ui-nav-menu>
+
         {children}
       </body>
     </html>
