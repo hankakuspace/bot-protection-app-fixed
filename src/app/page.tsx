@@ -9,10 +9,10 @@ export default function Home() {
         dangerouslySetInnerHTML={{
           __html: `
             <ui-nav-menu>
-              <a href="/" rel="home">ダッシュボード</a>
-              <a href="/add-ip">IP追加</a>
-              <a href="/blocklist">ブロックリスト</a>
-              <a href="/logs">ログ</a>
+              <a href="/admin/dashboard">ダッシュボード</a>
+              <a href="/admin/admin-ip">管理者IP</a>
+              <a href="/admin/block-ip">ブロックIP</a>
+              <a href="/admin/logs">アクセスログ</a>
             </ui-nav-menu>
           `,
         }}
