@@ -159,9 +159,6 @@ export default function AdminIpPage() {
                     </td>
                     <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="inline-block bg-blue-100 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded">
-                          管理者
-                        </span>
                         <span>{item.ip}</span>
                       </div>
                     </td>
