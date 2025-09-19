@@ -9,7 +9,6 @@ import {
   ChartBarSquareIcon,
   UserCircleIcon,
   ShieldExclamationIcon,
-  ShieldCheckIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -23,15 +22,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "アクセスログ", href: "/admin/logs", icon: ChartBarSquareIcon },
     { name: "管理者IP", href: "/admin/admin-ip", icon: UserCircleIcon },
     { name: "ブロック設定", href: "/admin/block-ip", icon: ShieldExclamationIcon },
-    { name: "許可設定", href: "/admin/allow-ip", icon: ShieldCheckIcon },
   ];
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* サイドバー */}
-      <aside className="hidden md:flex md:flex-col w-64 bg-white border-r shadow-sm">
+      {/* サイドバー（固定表示） */}
+      <aside className="hidden md:flex md:flex-col w-64 bg-white border-r shadow-sm fixed inset-y-0">
         <div className="p-4 text-lg font-bold">Bot Guard MAN</div>
-        <nav className="flex-1 px-2 py-4 space-y-1">
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
@@ -90,8 +88,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}
       </div>
 
-      {/* メイン */}
-      <main className="flex-1 p-6">{children}</main>
+      {/* メインコンテンツ（サイドバー分マージン） */}
+      <main className="flex-1 p-6 md:ml-64">{children}</main>
     </div>
   );
 }
