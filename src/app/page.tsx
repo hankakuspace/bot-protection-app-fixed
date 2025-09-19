@@ -1,22 +1,13 @@
 // src/app/page.tsx
-
 export default function Home() {
   return (
-    <>
-      {/* ✅ サイドメニューをトップにも直書きしてテスト */}
-      {/* @ts-expect-error */}
-      <ui-nav-menu>
-        <a href="/admin/dashboard">ダッシュボード</a>
-        <a href="/admin/logs">アクセスログ</a>
-        <a href="/admin/admin-ip">管理者設定</a>
-        <a href="/admin/block-ip">ブロック設定</a>
-      {/* @ts-expect-error */}
-      </ui-nav-menu>
-
-      <main style={{ padding: "2rem" }}>
-        <h1>トップページ (テスト用)</h1>
-        <p>ここにサイドメニューが表示されるか確認してください。</p>
-      </main>
-    </>
+    // @ts-expect-error
+    <ui-nav-menu>
+      <a href="/admin/dashboard">Dashboard</a>
+      <a href="/admin/logs">Logs</a>
+      <a href="/admin/admin-ip">Admin IP</a>
+      <a href="/admin/block-ip">Block IP</a>
+    {/* @ts-expect-error */}
+    </ui-nav-menu>
   );
 }
