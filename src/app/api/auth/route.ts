@@ -1,5 +1,5 @@
 // src/app/api/auth/route.ts
-// GET /api/auth?shop=<shop>.myshopify.com
+// GET /api/auth?shop=<shop>.myshopify.com[&force=1]
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminDb } from "@/lib/firebase";
@@ -22,6 +22,7 @@ function getOrigin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const shop = url.searchParams.get("shop");
+  const force = url.searchParams.get("force");
 
   if (!SHOPIFY_API_KEY) {
     return NextResponse.json({ error: "missing SHOPIFY_API_KEY" }, { status: 500 });
@@ -35,12 +36,12 @@ export async function GET(req: NextRequest) {
 
   // ✅ Firestore に既にトークンがあるか確認
   const existing = await adminDb.collection("shops").doc(shop).get();
-  if (existing.exists) {
+  if (existing.exists && !force) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
     return NextResponse.redirect(`${origin}/admin/logs`);
   }
 
-  // 新規インストール → OAuth 開始
+  // 🎉 新規インストール or 強制再認証 → OAuth 開始
   const state = crypto.randomUUID();
   await adminDb.collection("auth_states").doc(state).set({
     shop,
@@ -53,6 +54,9 @@ export async function GET(req: NextRequest) {
   authorizeUrl.searchParams.set("scope", SCOPES);
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("state", state);
+
+  // ✅ 毎回承認画面を出したいなら per-user オプションも追加可能
+  // authorizeUrl.searchParams.set("grant_options[]", "per-user");
 
   return NextResponse.redirect(authorizeUrl.toString(), { status: 302 });
 }
