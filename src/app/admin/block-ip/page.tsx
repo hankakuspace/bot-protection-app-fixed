@@ -234,6 +234,9 @@ export default function BlockIpPage() {
             placeholder="例: 192.168.0.1 または IPv6"
             className="border rounded-lg p-2 w-full text-sm"
           />
+          <p className="text-xs text-gray-500">
+    IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
+  </p>
           <input
             type="text"
             value={note}
