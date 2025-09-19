@@ -12,12 +12,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja">
       <body>
         {/* ✅ Shopify 標準ナビゲーションを body 直下に直書き */}
-        {/* @ts-ignore */}
+        {/* @ts-expect-error custom element */}
         <ui-nav-menu>
           <a href="/admin/dashboard">ダッシュボード</a>
           <a href="/admin/logs">アクセスログ</a>
           <a href="/admin/admin-ip">管理者設定</a>
           <a href="/admin/block-ip">ブロック設定</a>
+        {/* @ts-expect-error custom element */}
         </ui-nav-menu>
 
         {children}
