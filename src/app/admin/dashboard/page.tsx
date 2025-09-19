@@ -20,8 +20,6 @@ export default function DashboardPage() {
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingUsage, setLoadingUsage] = useState(false);
 
-  const [hydrated, setHydrated] = useState(false);
-
   const shop = "ruhra-store.myshopify.com"; // TODO: 認証から取得
 
   // ✅ スピナー
@@ -77,7 +75,6 @@ export default function DashboardPage() {
 
     fetchPlan();
     fetchUsage();
-    setHydrated(true); // ✅ CSRでのみナビを描画
   }, []);
 
   const confirmPlanChange = async (newPlan: string) => {
@@ -113,21 +110,19 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 space-y-6 bg-gray-50 min-h-screen">
-      {/* ✅ Shopify 標準ナビゲーション */}
-      {hydrated && (
-        <div
-          dangerouslySetInnerHTML={{
-            __html: `
-              <ui-nav-menu>
-                <a href="/admin/dashboard">ダッシュボード</a>
-                <a href="/admin/logs">アクセスログ</a>
-                <a href="/admin/admin-ip">管理者設定</a>
-                <a href="/admin/block-ip">ブロック設定</a>
-              </ui-nav-menu>
-            `,
-          }}
-        />
-      )}
+      {/* ✅ Shopify 標準ナビゲーションをSSRで常に描画 */}
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `
+            <ui-nav-menu>
+              <a href="/admin/dashboard">ダッシュボード</a>
+              <a href="/admin/logs">アクセスログ</a>
+              <a href="/admin/admin-ip">管理者設定</a>
+              <a href="/admin/block-ip">ブロック設定</a>
+            </ui-nav-menu>
+          `,
+        }}
+      />
 
       <h1 className="text-2xl font-bold mb-4">管理ダッシュボード</h1>
 
