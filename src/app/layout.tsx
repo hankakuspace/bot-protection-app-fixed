@@ -11,8 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <body>
-        {/* ✅ Shopify標準サイドナビを必ず最初から描画 */}
+        {/* ✅ Shopifyナビを描画するが本文には表示しない */}
         <div
+          style={{ display: "none" }}
           dangerouslySetInnerHTML={{
             __html: `
               <ui-nav-menu>
