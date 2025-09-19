@@ -220,7 +220,7 @@ export default function BlockIpPage() {
   }, []);
 
   return (
-    <div className="space-y-10 p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       {/* ===== ブロックIP ===== */}
       <div>
         <h1 className="text-xl font-bold mb-4">ブロックIP</h1>
