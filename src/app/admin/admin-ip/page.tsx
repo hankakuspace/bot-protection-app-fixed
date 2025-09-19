@@ -95,8 +95,8 @@ export default function AdminIpPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold">管理者IP</h1>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-xl font-bold mb-4">管理者IP</h1>
 
       {/* 追加フォーム */}
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
