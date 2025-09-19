@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
   const existing = await adminDb.collection("shops").doc(shop).get();
   if (existing.exists && !force) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
-    return NextResponse.redirect(`${origin}/admin/logs`);
+    return NextResponse.redirect(`${origin}/admin/dashboard`);
   }
 
   // 🎉 新規インストール or 強制再認証 → OAuth 開始
