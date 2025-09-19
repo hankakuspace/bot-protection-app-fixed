@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
-import * as ipaddr from "ipaddr.js"; // ✅ 追加
+import * as ipaddr from "ipaddr.js";
 
 interface BlockIp {
   id: string;
@@ -54,7 +54,6 @@ export default function BlockIpPage() {
     setMessage("");
 
     try {
-      // 管理者IPチェック
       const adminRes = await fetch("/api/admin/admin-ip/list");
       const adminIps = await adminRes.json();
 
@@ -62,7 +61,6 @@ export default function BlockIpPage() {
         try {
           const adminAddr = ipaddr.parse(a.ip);
 
-          // 入力が CIDR 形式か確認
           if (ip.includes("/")) {
             const cidr = ipaddr.parseCIDR(ip);
             return adminAddr.match(cidr);
@@ -221,175 +219,171 @@ export default function BlockIpPage() {
 
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-      {/* ===== ブロックIP ===== */}
-      <div>
-        <h1 className="text-xl font-bold mb-4">ブロックIP</h1>
+      <h1 className="text-xl font-bold mb-4">ブロックIP</h1>
 
-        {/* 追加フォーム */}
-        <form onSubmit={handleSubmitIp} className="space-y-4 max-w-md mt-4">
-          <input
-            type="text"
-            value={ip}
-            onChange={(e) => setIp(e.target.value)}
-            placeholder="例: 192.168.0.1 または IPv6"
-            className="border rounded-lg p-2 w-full text-sm"
-          />
-          <p className="text-xs text-gray-500">
-    IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
-  </p>
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="メモ（任意）"
-            className="border rounded-lg p-2 w-full text-sm"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
-          >
-            登録
-          </button>
-        </form>
-        {message && <p className="text-sm mt-2">{message}</p>}
+      {/* 追加フォーム */}
+      <form onSubmit={handleSubmitIp} className="space-y-4 max-w-md mt-4">
+        <input
+          type="text"
+          value={ip}
+          onChange={(e) => setIp(e.target.value)}
+          placeholder="例: 192.168.0.1 または IPv6"
+          className="border rounded-lg p-2 w-full text-sm"
+        />
+        <p className="text-xs text-gray-500">
+          IPv6アドレスを登録した場合は、自動的に /64 プレフィックスで保存されます
+        </p>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="メモ（任意）"
+          className="border rounded-lg p-2 w-full text-sm"
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
+        >
+          登録
+        </button>
+      </form>
+      {message && <p className="text-sm mt-2">{message}</p>}
 
-        {/* 一覧テーブル */}
-        <div className="overflow-x-auto mt-6">
-          {loadingIps ? (
-            <div className="flex justify-center items-center py-20">
-              <Spinner />
-            </div>
-          ) : (
-            <table className="min-w-full bg-white text-xs border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-                  <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
-                  <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
-                  <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
-                  <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
+      {/* 一覧テーブル */}
+      <div className="overflow-x-auto mt-6">
+        {loadingIps ? (
+          <div className="flex justify-center items-center py-20">
+            <Spinner />
+          </div>
+        ) : (
+          <table className="min-w-full bg-white text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">保存されたIP</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">メモ</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {ips.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    登録されたブロックIPはありません
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {ips.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-gray-500 text-sm">
-                      登録されたブロックIPはありません
+              ) : (
+                ips.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{item.ip}</td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs">{item.note}</td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-left">
+                      <button
+                        onClick={() => handleDeleteIp(item.id)}
+                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                      >
+                        削除
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  ips.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
-                      </td>
-                      <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{item.ip}</td>
-                      <td className="px-4 py-3 border-b border-gray-200 text-xs">{item.note}</td>
-                      <td className="px-4 py-3 border-b border-gray-200 text-left">
-                        <button
-                          onClick={() => handleDeleteIp(item.id)}
-                          className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
-                        >
-                          削除
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* ===== ブロックCountry ===== */}
-      <div>
-        <h1 className="text-xl font-bold">ブロックCountry</h1>
-        {/* 追加フォーム */}
-        <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
-          <div className="relative">
-            <select
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value)}
-              className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none appearance-none"
-              disabled={loadingAvailableCountries}
-            >
-              {loadingAvailableCountries ? (
-                <option>読み込み中...</option>
-              ) : (
-                <>
-                  <option value="">国を選択してください</option>
-                  {availableCountries.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </>
-              )}
-            </select>
-
-            {loadingAvailableCountries ? (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Spinner />
-              </div>
-            ) : (
-              <ChevronDown
-                size={16}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-              />
-            )}
-          </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
-            disabled={!countryCode || loadingAvailableCountries}
+      <h1 className="text-xl font-bold mb-4">ブロックCountry</h1>
+      <form onSubmit={handleSubmitCountry} className="space-y-4 max-w-md mt-4">
+        <div className="relative">
+          <select
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="border rounded-md px-3 py-2 w-full text-sm bg-white focus:outline-none appearance-none"
+            disabled={loadingAvailableCountries}
           >
-            登録
-          </button>
-        </form>
-        {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
+            {loadingAvailableCountries ? (
+              <option>読み込み中...</option>
+            ) : (
+              <>
+                <option value="">国を選択してください</option>
+                {availableCountries.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
 
-        {/* 一覧テーブル */}
-        <div className="overflow-x-auto mt-6">
-          {loadingCountries ? (
-            <div className="flex justify-center items-center py-20">
+          {loadingAvailableCountries ? (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Spinner />
             </div>
           ) : (
-            <table className="min-w-full bg-white text-xs border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
-                  <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
-                  <th className="px-4 py-3 border-b border-gray-200 text-left">国コード</th>
-                  <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {countries.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
-                      登録されたブロックCountryはありません
-                    </td>
-                  </tr>
-                ) : (
-                  countries.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
-                      </td>
-                      <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{item.countryCode}</td>
-                      <td className="px-4 py-3 border-b border-gray-200 text-left">
-                        <button
-                          onClick={() => handleDeleteCountry(item.id)}
-                          className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
-                        >
-                          削除
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <ChevronDown
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+            />
           )}
         </div>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm"
+          disabled={!countryCode || loadingAvailableCountries}
+        >
+          登録
+        </button>
+      </form>
+      {countryMessage && <p className="text-sm mt-2">{countryMessage}</p>}
+
+      {/* 一覧テーブル */}
+      <div className="overflow-x-auto mt-6">
+        {loadingCountries ? (
+          <div className="flex justify-center items-center py-20">
+            <Spinner />
+          </div>
+        ) : (
+          <table className="min-w-full bg-white text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100 text-xs font-semibold text-gray-600">
+                <th className="px-4 py-3 border-b border-gray-200 text-left">登録日</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left">国コード</th>
+                <th className="px-4 py-3 border-b border-gray-200 text-left"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {countries.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-gray-500 text-sm">
+                    登録されたブロックCountryはありません
+                  </td>
+                </tr>
+              ) : (
+                countries.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 border-b border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {item.createdAt ? new Date(item.createdAt).toLocaleString("ja-JP") : "-"}
+                    </td>
+                    <td className="px-4 py-3 border-b border-gray-200 font-mono text-xs">{item.countryCode}</td>
+                    <td className="px-4 py-3 border-b border-gray-200 text-left">
+                      <button
+                        onClick={() => handleDeleteCountry(item.id)}
+                        className="px-3 py-1 border rounded bg-white hover:bg-gray-100 text-xs text-gray-700"
+                      >
+                        削除
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
