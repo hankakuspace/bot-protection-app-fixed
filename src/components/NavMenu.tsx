@@ -11,9 +11,9 @@ export default function NavMenu() {
   useEffect(() => {
     if (!app) return;
 
-    // ✅ ナビゲーションメニューを作成
+    // ✅ NavigationMenu に links を渡す
     const navMenu = NavigationMenu.create(app, {
-      items: [
+      links: [
         { label: "ダッシュボード", destination: "/admin/dashboard" },
         { label: "アクセスログ", destination: "/admin/logs" },
         { label: "管理者設定", destination: "/admin/admin-ip" },
@@ -26,6 +26,5 @@ export default function NavMenu() {
     };
   }, [app]);
 
-  // ✅ HTMLには何も出さない（サイドナビはShopify Adminにattachされる）
-  return null;
+  return null; // HTMLには出さない
 }
