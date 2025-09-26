@@ -2,17 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const shop = url.searchParams.get("shop");
-
-  if (!shop) {
-    return NextResponse.json({ ok: false, error: "missing_shop" }, { status: 400 });
-  }
-
   const appUrl = process.env.SHOPIFY_APP_URL || "https://bot-protection-ten.vercel.app";
 
-  // ✅ /admin/dashboard ではなく / に戻す
-  const target = `${appUrl}/?shop=${shop}`;
+  // ✅ クエリなしでTOPに戻す
+  const target = `${appUrl}/`;
 
   const html = `
     <html>
