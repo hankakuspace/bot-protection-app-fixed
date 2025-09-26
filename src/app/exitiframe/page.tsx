@@ -6,7 +6,7 @@ import { useEffect } from "react";
 export default function ExitIframePage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const shop = params.get("shop"); // 例: ruhra-store.myshopify.com
+    const shop = params.get("shop");
 
     if (shop) {
       const shopName = shop.replace(".myshopify.com", "");

@@ -1,5 +1,4 @@
 // src/app/api/auth/route.ts
-// GET /api/auth?shop=<shop>.myshopify.com[&force=1]
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { adminDb } from "@/lib/firebase";
@@ -27,22 +26,22 @@ export async function GET(req: NextRequest) {
   const force = url.searchParams.get("force");
 
   if (!SHOPIFY_API_KEY) {
-    console.error("❌ Missing SHOPIFY_API_KEY");
     return NextResponse.json({ error: "missing SHOPIFY_API_KEY" }, { status: 500 });
   }
   if (!shop || !shop.endsWith(".myshopify.com")) {
-    console.error("❌ Missing or invalid shop param", shop);
     return NextResponse.json({ error: "missing shop" }, { status: 400 });
   }
 
   const origin = getOrigin(req);
   const redirectUri = `${origin}/api/auth/callback`;
 
-  // ✅ 既存インストールは exitiframe を経由せずに直接ダッシュボードへ
   const existing = await adminDb.collection("shops").doc(shop).get();
+
+  // ✅ 既存インストールでも必ず exitiframe 経由にする
   if (existing.exists && !force) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
-    return NextResponse.redirect(`${origin}/admin/dashboard`);
+    const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
+    return NextResponse.redirect(`${appUrl}/exitiframe?shop=${shop}`);
   }
 
   // 🎉 新規インストール or 強制再認証 → OAuth 開始
