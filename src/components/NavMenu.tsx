@@ -14,8 +14,8 @@ export default function NavMenu() {
       return;
     }
 
-    // ✅ 第二引数で空オプションを渡す
-    const navMenu = NavigationMenu.create(app, { items: [] });
+    // ✅ 型を無視して create
+    const navMenu = NavigationMenu.create(app as any);
 
     navMenu.dispatch(NavigationMenu.Action.UPDATE, {
       items: [
