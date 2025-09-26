@@ -9,12 +9,11 @@ export default function ExitIframePage() {
     const shop = params.get("shop");
 
     if (shop) {
-      const shopName = shop.replace(".myshopify.com", "");
-      const handle = "bot-protection-proxy";
-      const target = `https://admin.shopify.com/store/${shopName}/apps/${handle}`;
+      // ✅ /api/auth に戻すが、無限ループ防止に force=1 を付与
+      const target = `/api/auth?shop=${shop}&force=1`;
       (window.top ?? window).location.href = target;
     }
   }, []);
 
-  return <p>Redirecting to Shopify Admin…</p>;
+  return <p>Redirecting to Shopify…</p>;
 }

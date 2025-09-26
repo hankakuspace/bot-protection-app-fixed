@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // 🎉 新規インストール成功後は exitiframe 経由で Admin に戻す
+    // 🎉 認証成功後は exitiframe にリダイレクト
     const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
     const exitIframeUrl = `${appUrl}/exitiframe?shop=${shop}`;
     return NextResponse.redirect(exitIframeUrl, 302);

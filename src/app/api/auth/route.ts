@@ -40,13 +40,11 @@ export async function GET(req: NextRequest) {
 
   const existing = await adminDb.collection("shops").doc(shop).get();
 
-  // ✅ 既存インストール時は Admin URL に直接戻す
+  // ✅ 既存インストールでも exitiframe に誘導
   if (existing.exists && !force) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
-    const shopName = shop.replace(".myshopify.com", "");
-    const handle = "bot-protection-proxy";
-    const adminUrl = `https://admin.shopify.com/store/${shopName}/apps/${handle}`;
-    return NextResponse.redirect(adminUrl);
+    const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
+    return NextResponse.redirect(`${appUrl}/exitiframe?shop=${shop}`);
   }
 
   // 🎉 新規インストール or 強制再認証 → OAuth 開始
