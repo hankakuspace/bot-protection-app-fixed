@@ -1,8 +1,11 @@
 // src/app/page.tsx
 import { redirect } from "next/navigation";
 
-export default function Home({ searchParams }: { searchParams?: { [key: string]: any } }) {
-  const host = typeof searchParams?.host === "string" ? searchParams.host : undefined;
+export default function Home(props: any) {
+  const host =
+    typeof props?.searchParams?.host === "string"
+      ? props.searchParams.host
+      : undefined;
 
   // ✅ host があるときだけ dashboard にリダイレクト
   if (host) {
