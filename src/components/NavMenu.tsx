@@ -11,9 +11,8 @@ export default function NavMenu() {
   useEffect(() => {
     if (!app) return;
 
-    // ✅ NavigationMenu に links を渡す
     const navMenu = NavigationMenu.create(app, {
-      links: [
+      items: [
         { label: "ダッシュボード", destination: "/admin/dashboard" },
         { label: "アクセスログ", destination: "/admin/logs" },
         { label: "管理者設定", destination: "/admin/admin-ip" },
@@ -26,5 +25,5 @@ export default function NavMenu() {
     };
   }, [app]);
 
-  return null; // HTMLには出さない
+  return null;
 }
