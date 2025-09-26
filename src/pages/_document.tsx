@@ -6,14 +6,18 @@ export default function Document() {
     <Html lang="ja">
       <Head />
       <body>
-         <ui-nav-menu>
-          <a href="/admin/dashboard">ダッシュボード</a>
-          <a href="/admin/logs">アクセスログ</a>
-          <a href="/admin/admin-ip">管理者設定</a>
-          <a href="/admin/block-ip">ブロック設定</a>
-        </ui-nav-menu>
-
-        {/* Next.js アプリ本体 */}
+        <div
+          dangerouslySetInnerHTML={{
+            __html: `
+              <ui-nav-menu>
+                <a href="/admin/dashboard">ダッシュボード</a>
+                <a href="/admin/logs">アクセスログ</a>
+                <a href="/admin/admin-ip">管理者設定</a>
+                <a href="/admin/block-ip">ブロック設定</a>
+              </ui-nav-menu>
+            `,
+          }}
+        />
         <Main />
         <NextScript />
       </body>
