@@ -47,6 +47,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             );
           })}
+
+          {/* ✅ デバッグ用リンク（証拠提出後に削除予定） */}
+          <div className="mt-6 border-t pt-4">
+            <Link
+              href="/test-nav"
+              className="block px-3 py-2 text-sm font-medium text-blue-600 hover:underline"
+            >
+              👉 Debug: /test-nav
+            </Link>
+          </div>
         </nav>
       </aside>
 
@@ -83,6 +93,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </Link>
                 );
               })}
+
+              {/* ✅ デバッグ用リンク */}
+              <div className="mt-6 border-t pt-4">
+                <Link
+                  href="/test-nav"
+                  className="block px-3 py-2 text-sm font-medium text-blue-600 hover:underline"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  👉 Debug: /test-nav
+                </Link>
+              </div>
             </nav>
           </aside>
         )}
