@@ -1,11 +1,7 @@
 // src/app/page.tsx
 import { redirect } from "next/navigation";
 
-interface PageProps {
-  searchParams?: Record<string, string | string[] | undefined>;
-}
-
-export default function Home({ searchParams }: PageProps) {
+export default function Home({ searchParams }: { searchParams?: { [key: string]: any } }) {
   const host = typeof searchParams?.host === "string" ? searchParams.host : undefined;
 
   // ✅ host があるときだけ dashboard にリダイレクト
