@@ -10,8 +10,8 @@ export default function TestNav() {
 
   useEffect(() => {
     if (app) {
-      // ✅ 型キャストで ClientApplication として扱う
-      const nav = NavigationMenu.create(app as ClientApplication, {});
+      // ✅ 二段キャストで型エラーを完全解消
+      const nav = NavigationMenu.create(app as unknown as ClientApplication, {});
       nav.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
           {
