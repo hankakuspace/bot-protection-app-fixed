@@ -8,40 +8,55 @@ export default function TestNav() {
   const app = useAppBridge();
 
   useEffect(() => {
-    if (!app) return;
+    if (!app) {
+      console.warn("⚠️ AppBridge 未初期化。NavigationMenu を作成できません");
+      return;
+    }
 
-    // ✅ 型エラーを避けるため any にキャスト
-    const navMenu = (NavigationMenu as any).create(app);
+    let navMenu: any;
+    try {
+      navMenu = (NavigationMenu as any).create(app);
+    } catch (err) {
+      console.error("❌ NavigationMenu.create 失敗", err);
+      return;
+    }
 
-    setTimeout(() => {
-      navMenu.dispatch(NavigationMenu.Action.UPDATE, {
-        items: [
-          {
-            label: "ダッシュボード",
-            destination: "/apps/bot-protection-app/admin/dashboard",
-          },
-          {
-            label: "ログ",
-            destination: "/apps/bot-protection-app/admin/logs",
-          },
-          {
-            label: "テストナビ",
-            destination: "/apps/bot-protection-app/test-nav",
-          },
-        ],
-      });
-      console.log("🟢 NavigationMenu dispatch 実行 (/apps/... 形式)");
-    }, 500);
+    const timer = setTimeout(() => {
+      try {
+        navMenu.dispatch(NavigationMenu.Action.UPDATE, {
+          items: [
+            {
+              label: "ダッシュボード",
+              destination: "/apps/bot-protection-app/admin/dashboard",
+            },
+            {
+              label: "ログ",
+              destination: "/apps/bot-protection-app/admin/logs",
+            },
+            {
+              label: "テストナビ",
+              destination: "/apps/bot-protection-app/test-nav",
+            },
+          ],
+        });
+        console.log("🟢 NavigationMenu dispatch 実行 (/apps/... 形式)");
+      } catch (err) {
+        console.error("❌ NavigationMenu.dispatch 失敗", err);
+      }
+    }, 800);
 
     return () => {
-      navMenu.unsubscribe();
+      clearTimeout(timer);
+      if (navMenu && typeof navMenu.unsubscribe === "function") {
+        navMenu.unsubscribe();
+      }
     };
   }, [app]);
 
   return (
     <main>
       <h1>サイドナビテストページ</h1>
-      <p>NavigationMenu.dispatch が iframe 内で attach されるか確認してください。</p>
+      <p>NavigationMenu.dispatch が正常に呼ばれると、左サイドバーにメニューが出ます。</p>
     </main>
   );
 }
