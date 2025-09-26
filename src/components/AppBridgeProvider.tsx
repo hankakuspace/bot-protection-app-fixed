@@ -18,8 +18,19 @@ export default function AppBridgeProvider({ children }: { children: ReactNode })
   const [app, setApp] = useState<ClientApplication<any> | null>(null);
 
   useEffect(() => {
-    const host = new URLSearchParams(window.location.search).get("host");
-    if (!host) return;
+    // ✅ host を URL または localStorage から取得
+    let host =
+      new URLSearchParams(window.location.search).get("host") ||
+      localStorage.getItem("shopify_host") ||
+      "";
+
+    if (!host) {
+      console.warn("⚠️ host is missing, App Bridge not initialized");
+      return;
+    }
+
+    // ✅ host を保存（次回以降も使えるようにする）
+    localStorage.setItem("shopify_host", host);
 
     const config: AppConfig = {
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
@@ -31,5 +42,9 @@ export default function AppBridgeProvider({ children }: { children: ReactNode })
     setApp(appInstance);
   }, []);
 
-  return <AppBridgeContext.Provider value={{ app }}>{children}</AppBridgeContext.Provider>;
+  return (
+    <AppBridgeContext.Provider value={{ app }}>
+      {children}
+    </AppBridgeContext.Provider>
+  );
 }
