@@ -6,10 +6,13 @@ import { useEffect } from "react";
 export default function ExitIframePage({
   searchParams,
 }: {
-  searchParams: { shop?: string; host?: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   useEffect(() => {
-    const target = `/?shop=${searchParams.shop}&host=${searchParams.host}`;
+    const shop = searchParams?.shop as string | undefined;
+    const host = searchParams?.host as string | undefined;
+
+    const target = `/?shop=${shop ?? ""}&host=${host ?? ""}`;
     if (window.top === window.self) {
       window.location.href = target;
     } else {
