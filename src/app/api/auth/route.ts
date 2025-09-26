@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
 
   const shop = url.searchParams.get("shop");
   const force = url.searchParams.get("force");
+  const redirected = url.searchParams.get("redirected");
 
   if (!SHOPIFY_API_KEY) {
     return NextResponse.json({ error: "missing SHOPIFY_API_KEY" }, { status: 500 });
@@ -37,9 +38,13 @@ export async function GET(req: NextRequest) {
 
   const existing = await adminDb.collection("shops").doc(shop).get();
 
-  // ✅ 既存ならダッシュボードへ直行（exitiframe は不要）
+  // ✅ 既存 → exitiframe を 1 回だけ経由させる
   if (existing.exists && !force) {
-    console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
+    if (!redirected) {
+      console.log(`✅ Shop ${shop} already installed → redirect to exitiframe`);
+      return NextResponse.redirect(`${origin}/exitiframe?shop=${shop}&redirected=1`);
+    }
+    // すでに exitiframe を通過済みなら dashboard 直行
     return NextResponse.redirect(`${origin}/admin/dashboard`);
   }
 
