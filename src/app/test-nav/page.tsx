@@ -10,8 +10,8 @@ export default function TestNav() {
 
   useEffect(() => {
     if (app) {
-      // ✅ 二段キャストで型エラーを完全解消
-      const nav = NavigationMenu.create(app as unknown as ClientApplication, {});
+      // ✅ 引数は1つだけ、型は二段キャスト
+      const nav = NavigationMenu.create(app as unknown as ClientApplication);
       nav.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
           {
