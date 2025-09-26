@@ -1,9 +1,8 @@
 // src/lib/AppBridgeProvider.tsx
 "use client";
 
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { createApp, type ClientApplication } from "@shopify/app-bridge";
-import { Redirect } from "@shopify/app-bridge/actions";
 
 interface AppBridgeContextType {
   app: ClientApplication | null;
@@ -16,26 +15,32 @@ export function useAppBridgeCustom() {
 }
 
 export function AppBridgeProvider({ children }: { children: React.ReactNode }) {
-  let host =
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("host") || ""
-      : "";
+  const [app, setApp] = useState<ClientApplication | null>(null);
 
-  if (typeof window !== "undefined") {
-    if (host) {
-      localStorage.setItem("shopify_host", host);
-    } else {
-      host = localStorage.getItem("shopify_host") || "";
+  useEffect(() => {
+    // ✅ host を URL または localStorage から取得
+    const fromUrl = new URLSearchParams(window.location.search).get("host");
+    let host = fromUrl || localStorage.getItem("shopify_host") || "";
+
+    console.log("🟢 [AppBridgeProvider] init host:", host);
+
+    if (!host) {
+      console.warn("⚠️ [AppBridgeProvider] host missing, App Bridge not initialized");
+      return;
     }
-  }
 
-  const app = useMemo(() => {
-    if (typeof window === "undefined" || !host) return null;
-    return createApp({
+    if (fromUrl) {
+      localStorage.setItem("shopify_host", fromUrl);
+    }
+
+    const appInstance = createApp({
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
       host,
     });
-  }, [host]);
+
+    console.log("🟢 [AppBridgeProvider] created app:", appInstance);
+    setApp(appInstance);
+  }, []);
 
   return (
     <AppBridgeReactContext.Provider value={{ app }}>
