@@ -58,21 +58,11 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // ✅ 最終的にリダイレクトするアプリURL（環境変数から取得）
+    // ✅ 認証成功後は /exitiframe にリダイレクト
     const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
+    const exitIframeUrl = `${appUrl}/exitiframe?shop=${shop}&host=${host}`;
 
-    // 🎉 認証成功後 → host付きURLでトップレベルにリダイレクト
-    return new NextResponse(
-      `<script>
-        var target = "${appUrl}/?shop=${shop}&host=${host}";
-        if (window.top === window.self) {
-          window.location.href = target;
-        } else {
-          window.top.location.href = target;
-        }
-      </script>`,
-      { status: 200, headers: { "Content-Type": "text/html" } }
-    );
+    return NextResponse.redirect(exitIframeUrl, 302);
   } catch (err) {
     console.error("Auth callback error:", err);
     return NextResponse.json({ ok: false, error: "auth_callback_failed" }, { status: 500 });
