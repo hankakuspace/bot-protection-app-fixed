@@ -13,10 +13,22 @@ export default function NavMenu() {
 
     const navMenu = NavigationMenu.create(app, {
       items: [
-        { label: "ダッシュボード", destination: "/admin/dashboard" },
-        { label: "アクセスログ", destination: "/admin/logs" },
-        { label: "管理者設定", destination: "/admin/admin-ip" },
-        { label: "ブロック設定", destination: "/admin/block-ip" },
+        NavigationMenu.Item.create(app, {
+          label: "ダッシュボード",
+          destination: "/admin/dashboard",
+        }),
+        NavigationMenu.Item.create(app, {
+          label: "アクセスログ",
+          destination: "/admin/logs",
+        }),
+        NavigationMenu.Item.create(app, {
+          label: "管理者設定",
+          destination: "/admin/admin-ip",
+        }),
+        NavigationMenu.Item.create(app, {
+          label: "ブロック設定",
+          destination: "/admin/block-ip",
+        }),
       ],
     });
 
