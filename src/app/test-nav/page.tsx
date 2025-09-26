@@ -3,14 +3,15 @@
 import { useEffect } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { NavigationMenu } from "@shopify/app-bridge/actions";
+import type { ClientApplication } from "@shopify/app-bridge";
 
 export default function TestNav() {
   const app = useAppBridge();
 
   useEffect(() => {
     if (app) {
-      // ✅ 恒久的に第二引数 {} を入れるルール
-      const nav = NavigationMenu.create(app, {});
+      // ✅ 型キャストで ClientApplication として扱う
+      const nav = NavigationMenu.create(app as ClientApplication, {});
       nav.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
           {
