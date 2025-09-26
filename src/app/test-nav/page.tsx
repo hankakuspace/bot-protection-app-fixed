@@ -9,7 +9,8 @@ export default function TestNav() {
 
   useEffect(() => {
     if (app) {
-      const nav = NavigationMenu.create(app);
+      // ✅ 恒久的に第二引数 {} を入れるルール
+      const nav = NavigationMenu.create(app, {});
       nav.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
           {
