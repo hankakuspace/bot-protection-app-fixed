@@ -29,9 +29,8 @@ export async function GET(req: NextRequest) {
     const shop = url.searchParams.get("shop");
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
-    const host = url.searchParams.get("host"); // ✅ Shopify Admin が渡してくるパラメータ
 
-    console.log("🔎 Callback params:", { shop, state, code, host });
+    console.log("🔎 Callback params:", { shop, state, code });
 
     if (!shop || !code || !state) {
       return NextResponse.json({ ok: false, error: "missing_params" }, { status: 400 });
@@ -58,9 +57,9 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // ✅ 認証成功後は /exitiframe にリダイレクト
+    // ✅ 認証成功後は /exitiframe にリダイレクト（host は渡さない）
     const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
-    const exitIframeUrl = `${appUrl}/exitiframe?shop=${shop}&host=${host}`;
+    const exitIframeUrl = `${appUrl}/exitiframe?shop=${shop}`;
 
     return NextResponse.redirect(exitIframeUrl, 302);
   } catch (err) {

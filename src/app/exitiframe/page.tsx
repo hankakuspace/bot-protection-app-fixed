@@ -3,19 +3,24 @@
 
 import { useEffect } from "react";
 
-export default function ExitIframePage({ searchParams }: any) {
+export default function ExitIframePage() {
   useEffect(() => {
-    const shop = searchParams?.shop as string | undefined;
-    const host = searchParams?.host as string | undefined;
+    // 現在の URL から shop/host を取り出す
+    const params = new URLSearchParams(window.location.search);
+    const shop = params.get("shop");
+    const host = params.get("host");
 
-    const target = `/?shop=${shop ?? ""}&host=${host ?? ""}`;
+    // host が無い場合は Shopify Admin が iframe 経由で開いたときに付与される
+    const target = host
+      ? `/?shop=${shop ?? ""}&host=${host}`
+      : `/?shop=${shop ?? ""}`;
+
     if (window.top === window.self) {
       window.location.href = target;
     } else {
-      // ✅ null チェックを加えて型エラー回避
       (window.top ?? window).location.href = target;
     }
-  }, [searchParams]);
+  }, []);
 
   return <p>Loading app...</p>;
 }
