@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5e0b45e5abe855d21a409ca713edf9e6"
-name = "Bot Guard MAN"
+name = "bot-protection-proxy"
 application_url = "https://bot-protection-ten.vercel.app/api/auth"
 embedded = true
 
@@ -10,6 +10,5 @@ api_version = "2025-01"
 
 [auth]
 redirect_urls = [
-  "https://bot-protection-ten.vercel.app/api/auth/callback",
-  "https://bot-protection-ten.vercel.app/auth/callback"
+  "https://bot-protection-ten.vercel.app/api/auth/callback"
 ]
