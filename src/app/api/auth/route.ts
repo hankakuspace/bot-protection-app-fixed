@@ -38,11 +38,11 @@ export async function GET(req: NextRequest) {
   const origin = getOrigin(req);
   const redirectUri = `${origin}/api/auth/callback`;
 
-  // ✅ Firestore に既にトークンがある場合も exitiframe に誘導
+  // ✅ 既存インストールは exitiframe を経由せずに直接ダッシュボードへ
   const existing = await adminDb.collection("shops").doc(shop).get();
   if (existing.exists && !force) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
-    return NextResponse.redirect(`${origin}/exitiframe?shop=${shop}`);
+    return NextResponse.redirect(`${origin}/admin/dashboard`);
   }
 
   // 🎉 新規インストール or 強制再認証 → OAuth 開始
