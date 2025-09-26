@@ -3,11 +3,7 @@
 
 import { useEffect } from "react";
 
-export default function ExitIframePage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+export default function ExitIframePage({ searchParams }: any) {
   useEffect(() => {
     const shop = searchParams?.shop as string | undefined;
     const host = searchParams?.host as string | undefined;
