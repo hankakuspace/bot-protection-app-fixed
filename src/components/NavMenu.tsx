@@ -14,8 +14,8 @@ export default function NavMenu() {
       return;
     }
 
-    // ✅ 型を無視して create
-    const navMenu = NavigationMenu.create(app as any);
+    // ✅ 型定義が2引数必須なので、第二引数を空オブジェクトとして渡す
+    const navMenu = NavigationMenu.create(app as any, {} as any);
 
     navMenu.dispatch(NavigationMenu.Action.UPDATE, {
       items: [
