@@ -21,8 +21,6 @@ function getOrigin(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-
-  // ✅ デバッグログを追加
   console.log("🟢 HIT /api/auth", url.toString());
 
   const shop = url.searchParams.get("shop");
@@ -40,11 +38,11 @@ export async function GET(req: NextRequest) {
   const origin = getOrigin(req);
   const redirectUri = `${origin}/api/auth/callback`;
 
-  // ✅ Firestore に既にトークンがあるか確認
+  // ✅ Firestore に既にトークンがある場合も exitiframe に誘導
   const existing = await adminDb.collection("shops").doc(shop).get();
   if (existing.exists && !force) {
     console.log(`✅ Shop ${shop} already installed, skipping OAuth`);
-    return NextResponse.redirect(`${origin}/admin/dashboard`);
+    return NextResponse.redirect(`${origin}/exitiframe?shop=${shop}`);
   }
 
   // 🎉 新規インストール or 強制再認証 → OAuth 開始

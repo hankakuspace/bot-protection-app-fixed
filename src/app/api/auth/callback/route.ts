@@ -57,11 +57,11 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // ✅ 認証成功後 → Shopify Admin のアプリURLにリダイレクト
-    const handle = "bot-protection-proxy"; // Partner Dashboard 上のアプリハンドル
-    const target = `https://admin.shopify.com/store/${shop}/apps/${handle}`;
+    // 🎉 認証成功後は exitiframe にリダイレクト
+    const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
+    const exitIframeUrl = `${appUrl}/exitiframe?shop=${shop}`;
 
-    return NextResponse.redirect(target, 302);
+    return NextResponse.redirect(exitIframeUrl, 302);
   } catch (err) {
     console.error("Auth callback error:", err);
     return NextResponse.json({ ok: false, error: "auth_callback_failed" }, { status: 500 });
