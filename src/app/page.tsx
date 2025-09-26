@@ -12,19 +12,10 @@ export default function Home(props: any) {
     redirect(`/admin/dashboard?host=${host}`);
   }
 
-  // ✅ host がない場合 → exitiframe を経由して再ロードさせる
+  // ✅ host が無いときは Shopify Admin が exitiframe から再ロードしてくれるのを待つ
   return (
     <main>
-      <p>Loading app…</p>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            if (window.top === window.self) {
-              window.location.href = "/api/auth?redirected=1";
-            }
-          `,
-        }}
-      />
+      <p>Loading app… waiting for Shopify host parameter…</p>
     </main>
   );
 }
