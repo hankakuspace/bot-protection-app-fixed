@@ -9,11 +9,11 @@ export default function ExitIframePage() {
     const shop = params.get("shop");
 
     if (shop) {
-      // ✅ Admin が再ロード時に host を必ず付与する
-      const target = `/api/auth?shop=${shop}`;
+      const handle = "bot-protection-proxy"; // アプリハンドル
+      const target = `https://admin.shopify.com/store/${shop}/apps/${handle}`;
       (window.top ?? window).location.href = target;
     }
   }, []);
 
-  return <p>Loading app...</p>;
+  return <p>Redirecting to Shopify Admin…</p>;
 }
