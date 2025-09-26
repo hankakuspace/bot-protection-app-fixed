@@ -3,6 +3,18 @@
 
 import { useEffect } from "react";
 
+// ✅ JSX 内で ui-nav-menu を直接型定義
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "ui-nav-menu": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement>,
+        HTMLElement
+      >;
+    }
+  }
+}
+
 export default function NavMenu() {
   useEffect(() => {
     const script = document.createElement("script");
