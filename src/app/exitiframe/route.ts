@@ -4,26 +4,27 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const shop = url.searchParams.get("shop");
-  const redirected = url.searchParams.get("redirected");
 
   if (!shop) {
     return NextResponse.json({ ok: false, error: "missing_shop" }, { status: 400 });
   }
 
-  const shopName = shop.replace(".myshopify.com", "");
-  const handle = "bot-protection-proxy";
-  const target = redirected
-    ? `${process.env.SHOPIFY_APP_URL}/admin/dashboard?shop=${shop}`
-    : `https://admin.shopify.com/store/${shopName}/apps/${handle}`;
+  const appUrl = process.env.SHOPIFY_APP_URL || "https://bot-protection-ten.vercel.app";
 
-  return new NextResponse(
-    `<script>
-       if (window.top === window.self) {
-         window.location.href = "${target}";
-       } else {
-         window.top.location.href = "${target}";
-       }
-     </script>`,
-    { status: 200, headers: { "Content-Type": "text/html" } }
-  );
+  // ✅ ここで自分のアプリURLに戻す（admin.shopify.com には飛ばさない）
+  const target = `${appUrl}/admin/dashboard?shop=${shop}`;
+
+  const html = `
+    <html>
+      <body>
+        <script type="text/javascript">
+          window.top.location.href = "${target}";
+        </script>
+      </body>
+    </html>
+  `;
+
+  return new NextResponse(html, {
+    headers: { "Content-Type": "text/html" },
+  });
 }

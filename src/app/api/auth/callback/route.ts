@@ -43,8 +43,7 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // ✅ 新規インストール完了時だけ exitiframe 経由で Admin に戻す
-    const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
+    const appUrl = process.env.SHOPIFY_APP_URL!;
     return NextResponse.redirect(`${appUrl}/exitiframe?shop=${shop}`);
   } catch (err) {
     return NextResponse.json({ ok: false, error: "auth_callback_failed" }, { status: 500 });
