@@ -18,7 +18,6 @@ export function AppBridgeProvider({ children }: { children: React.ReactNode }) {
   const [app, setApp] = useState<ClientApplication | null>(null);
 
   useEffect(() => {
-    // ✅ host を URL または localStorage から取得
     const fromUrl = new URLSearchParams(window.location.search).get("host");
     let host = fromUrl || localStorage.getItem("shopify_host") || "";
 
@@ -36,6 +35,7 @@ export function AppBridgeProvider({ children }: { children: React.ReactNode }) {
     const appInstance = createApp({
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
       host,
+      forceRedirect: true, // ✅ Shopify global を強制ロード
     });
 
     console.log("🟢 [AppBridgeProvider] created app:", appInstance);
