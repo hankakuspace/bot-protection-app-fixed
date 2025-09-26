@@ -3,7 +3,9 @@
 
 import { useEffect } from "react";
 
-// ✅ JSX 内で ui-nav-menu を直接型定義
+// ✅ このファイル自体を module として扱うために export {} を記載
+export {};
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
