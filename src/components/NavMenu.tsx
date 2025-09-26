@@ -2,33 +2,30 @@
 "use client";
 
 import { useEffect } from "react";
+import { useAppBridge } from "@/components/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function NavMenu() {
-  useEffect(() => {
-    // ✅ Shopify公式CDNからWeb Componentsをロード
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src =
-      "https://cdn.shopify.com/shopifycloud/app-bridge-web-components/latest/app-bridge-web-components.esm.js";
-    script.onload = () => console.log("✅ app-bridge-web-components loaded");
-    script.onerror = (err) =>
-      console.error("❌ failed to load app-bridge-web-components", err);
-    document.body.appendChild(script);
-  }, []);
+  const app = useAppBridge();
 
-  return (
-    <div
-      style={{ display: "none" }} // SSRで本文に出ないように非表示
-      dangerouslySetInnerHTML={{
-        __html: `
-          <ui-nav-menu>
-            <a href="/admin/dashboard">ダッシュボード</a>
-            <a href="/admin/logs">アクセスログ</a>
-            <a href="/admin/admin-ip">管理者設定</a>
-            <a href="/admin/block-ip">ブロック設定</a>
-          </ui-nav-menu>
-        `,
-      }}
-    />
-  );
+  useEffect(() => {
+    if (!app) return;
+
+    // ✅ ナビゲーションメニューを作成
+    const navMenu = NavigationMenu.create(app, {
+      items: [
+        { label: "ダッシュボード", destination: "/admin/dashboard" },
+        { label: "アクセスログ", destination: "/admin/logs" },
+        { label: "管理者設定", destination: "/admin/admin-ip" },
+        { label: "ブロック設定", destination: "/admin/block-ip" },
+      ],
+    });
+
+    return () => {
+      navMenu.unsubscribe();
+    };
+  }, [app]);
+
+  // ✅ HTMLには何も出さない（サイドナビはShopify Adminにattachされる）
+  return null;
 }
