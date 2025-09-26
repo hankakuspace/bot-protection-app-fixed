@@ -5,15 +5,13 @@ import { useEffect } from "react";
 
 export default function ExitIframePage() {
   useEffect(() => {
-    // 現在の URL から shop/host を取り出す
     const params = new URLSearchParams(window.location.search);
     const shop = params.get("shop");
-    const host = params.get("host");
 
-    // host が無い場合は Shopify Admin が iframe 経由で開いたときに付与される
-    const target = host
-      ? `/?shop=${shop ?? ""}&host=${host}`
-      : `/?shop=${shop ?? ""}`;
+    // ✅ Shopify Admin 内のアプリURLに直接戻す
+    // handle = Partner Dashboard の App name と同じ "bot-protection-proxy"
+    const handle = "bot-protection-proxy";
+    const target = `https://admin.shopify.com/store/${shop}/apps/${handle}`;
 
     if (window.top === window.self) {
       window.location.href = target;
