@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "state_shop_mismatch" }, { status: 400 });
     }
 
-    // ✅ HMAC 検証（raw query使用）
+    // ✅ HMAC 検証
     if (!verifyHmacFromRaw(req, process.env.SHOPIFY_API_SECRET!)) {
       console.error("❌ HMAC verification failed");
       return NextResponse.json({ ok: false, error: "hmac_verification_failed" }, { status: 400 });
@@ -57,11 +57,11 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
-    // ✅ 認証成功後は /exitiframe にリダイレクト（host は渡さない）
-    const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
-    const exitIframeUrl = `${appUrl}/exitiframe?shop=${shop}`;
+    // ✅ 認証成功後 → Shopify Admin のアプリURLにリダイレクト
+    const handle = "bot-protection-proxy"; // Partner Dashboard 上のアプリハンドル
+    const target = `https://admin.shopify.com/store/${shop}/apps/${handle}`;
 
-    return NextResponse.redirect(exitIframeUrl, 302);
+    return NextResponse.redirect(target, 302);
   } catch (err) {
     console.error("Auth callback error:", err);
     return NextResponse.json({ ok: false, error: "auth_callback_failed" }, { status: 500 });
