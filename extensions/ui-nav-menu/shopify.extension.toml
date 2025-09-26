@@ -1,13 +1,7 @@
 # extensions/ui-nav-menu/shopify.extension.toml
 
-# この拡張は Shopify 管理画面の左サイドバー（ui-nav-menu）に
-# アプリのメニューを表示するための定義です。
+name = "ui-nav-menu"
+type = "ui_nav_menu"
 
-name = "bot-protection-menu"
-type = "ui_extension"
-
-# サイドメニューにフックする拡張ポイント
-extension_points = ["ui-nav-menu"]
-
-# この拡張は設定項目を持たないので空のままでOK
-[settings]
+# アプリ識別用 UID（CLI が自動生成するので最初は不要でもOK）
+# uid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
