@@ -31,7 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 text-lg font-bold">Bot Guard MAN</div>
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const active = pathname.startsWith(item.href);
+            const active = pathname ? pathname.startsWith(item.href) : false;
             return (
               <Link
                 key={item.name}
@@ -69,14 +69,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {sidebarOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
         </button>
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
         {sidebarOpen && (
           <aside className="fixed top-0 left-0 w-64 h-full bg-white shadow-lg z-50 p-4">
             <div className="text-lg font-bold mb-4">Bot Guard MAN</div>
             <nav className="space-y-1">
               {navItems.map((item) => {
-                const active = pathname.startsWith(item.href);
+                const active = pathname ? pathname.startsWith(item.href) : false;
                 return (
                   <Link
                     key={item.name}
