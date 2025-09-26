@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
 
   const appUrl = process.env.SHOPIFY_APP_URL || "https://bot-protection-ten.vercel.app";
 
-  // ✅ ここで自分のアプリURLに戻す（admin.shopify.com には飛ばさない）
-  const target = `${appUrl}/admin/dashboard?shop=${shop}`;
+  // ✅ /admin/dashboard ではなく / に戻す
+  const target = `${appUrl}/?shop=${shop}`;
 
   const html = `
     <html>
