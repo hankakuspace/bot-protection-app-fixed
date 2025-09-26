@@ -5,9 +5,13 @@ import { useEffect } from "react";
 
 export default function NavMenu() {
   useEffect(() => {
-    import("@shopify/app-bridge-web-components").then(() => {
-      console.log("✅ Web Components loaded");
-    });
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "https://unpkg.com/@shopify/app-bridge-web-components";
+    script.onload = () => console.log("✅ app-bridge-web-components loaded");
+    script.onerror = (err) =>
+      console.error("❌ failed to load app-bridge-web-components", err);
+    document.body.appendChild(script);
   }, []);
 
   return (
