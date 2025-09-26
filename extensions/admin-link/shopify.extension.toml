@@ -1,0 +1,9 @@
+[[extensions]]
+name = "admin-link"
+handle = "admin-link"
+type = "admin_link"
+
+[[extensions.targeting]]
+# 管理画面の「商品一覧」ページにリンクを出す
+target = "admin.product-index.action.link"
+url = "/"
