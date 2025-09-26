@@ -3,16 +3,18 @@
 import { useEffect } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { NavigationMenu } from "@shopify/app-bridge/actions";
-import type { ClientApplication } from "@shopify/app-bridge";
 
 export default function TestNav() {
   const app = useAppBridge();
 
   useEffect(() => {
-    if (app) {
-      // ✅ バージョンに合わせて第2引数 {} を渡す
-      const nav = NavigationMenu.create(app as unknown as ClientApplication, {});
-      nav.dispatch(NavigationMenu.Action.UPDATE, {
+    if (!app) return;
+
+    // ✅ 型エラーを避けるため any にキャスト
+    const navMenu = (NavigationMenu as any).create(app);
+
+    setTimeout(() => {
+      navMenu.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
           {
             label: "ダッシュボード",
@@ -28,14 +30,18 @@ export default function TestNav() {
           },
         ],
       });
-      console.log("✅ NavigationMenu dispatch 実行");
-    }
+      console.log("🟢 NavigationMenu dispatch 実行 (/apps/... 形式)");
+    }, 500);
+
+    return () => {
+      navMenu.unsubscribe();
+    };
   }, [app]);
 
   return (
     <main>
       <h1>サイドナビテストページ</h1>
-      <p>このページを開いたときに NavigationMenu.dispatch が走ります。</p>
+      <p>NavigationMenu.dispatch が iframe 内で attach されるか確認してください。</p>
     </main>
   );
 }
