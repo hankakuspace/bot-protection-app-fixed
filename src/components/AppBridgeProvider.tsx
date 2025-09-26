@@ -18,19 +18,19 @@ export default function AppBridgeProvider({ children }: { children: ReactNode })
   const [app, setApp] = useState<ClientApplication<any> | null>(null);
 
   useEffect(() => {
-    // ✅ host を URL または localStorage から取得
-    let host =
-      new URLSearchParams(window.location.search).get("host") ||
-      localStorage.getItem("shopify_host") ||
-      "";
+    const fromUrl = new URLSearchParams(window.location.search).get("host");
+    let host = fromUrl || localStorage.getItem("shopify_host") || "";
+
+    console.log("🟢 [AppBridgeProvider] init host:", host);
 
     if (!host) {
-      console.warn("⚠️ host is missing, App Bridge not initialized");
+      console.warn("⚠️ [AppBridgeProvider] host missing, App Bridge not initialized");
       return;
     }
 
-    // ✅ host を保存（次回以降も使えるようにする）
-    localStorage.setItem("shopify_host", host);
+    if (fromUrl) {
+      localStorage.setItem("shopify_host", fromUrl);
+    }
 
     const config: AppConfig = {
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
@@ -38,13 +38,13 @@ export default function AppBridgeProvider({ children }: { children: ReactNode })
       forceRedirect: true,
     };
 
+    console.log("🟢 [AppBridgeProvider] init config:", config);
+
     const appInstance = createApp(config);
+    console.log("🟢 [AppBridgeProvider] created app:", appInstance);
+
     setApp(appInstance);
   }, []);
 
-  return (
-    <AppBridgeContext.Provider value={{ app }}>
-      {children}
-    </AppBridgeContext.Provider>
-  );
+  return <AppBridgeContext.Provider value={{ app }}>{children}</AppBridgeContext.Provider>;
 }
