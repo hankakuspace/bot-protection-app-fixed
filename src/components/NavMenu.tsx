@@ -12,23 +12,12 @@ export default function NavMenu() {
     if (!app) return;
 
     const navMenu = NavigationMenu.create(app, {
+      // ✅ 型エラーを回避するために as any
       items: [
-        NavigationMenu.Item.create(app, {
-          label: "ダッシュボード",
-          destination: "/admin/dashboard",
-        }),
-        NavigationMenu.Item.create(app, {
-          label: "アクセスログ",
-          destination: "/admin/logs",
-        }),
-        NavigationMenu.Item.create(app, {
-          label: "管理者設定",
-          destination: "/admin/admin-ip",
-        }),
-        NavigationMenu.Item.create(app, {
-          label: "ブロック設定",
-          destination: "/admin/block-ip",
-        }),
+        { label: "ダッシュボード", destination: "/admin/dashboard" } as any,
+        { label: "アクセスログ", destination: "/admin/logs" } as any,
+        { label: "管理者設定", destination: "/admin/admin-ip" } as any,
+        { label: "ブロック設定", destination: "/admin/block-ip" } as any,
       ],
     });
 
