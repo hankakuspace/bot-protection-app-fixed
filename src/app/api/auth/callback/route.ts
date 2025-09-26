@@ -58,10 +58,13 @@ export async function GET(req: NextRequest) {
 
     console.log("🎉 Auth success:", { shop, state });
 
+    // ✅ 最終的にリダイレクトするアプリURL（環境変数から取得）
+    const appUrl = process.env.APP_URL || "https://bot-protection-ten.vercel.app";
+
     // 🎉 認証成功後 → host付きURLでトップレベルにリダイレクト
     return new NextResponse(
       `<script>
-        var target = "${process.env.SHOPIFY_APP_URL}?shop=${shop}&host=${host}";
+        var target = "${appUrl}/?shop=${shop}&host=${host}";
         if (window.top === window.self) {
           window.location.href = target;
         } else {
