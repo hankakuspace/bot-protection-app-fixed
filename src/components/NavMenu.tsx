@@ -3,16 +3,11 @@
 
 import { useEffect } from "react";
 
-// ✅ このファイル自体を module として扱うために export {} を記載
-export {};
-
+// ✅ JSX IntrinsicElements をここで拡張
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      "ui-nav-menu": React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement>,
-        HTMLElement
-      >;
+      "ui-nav-menu": any; // 👈 すべて any で許可
     }
   }
 }
