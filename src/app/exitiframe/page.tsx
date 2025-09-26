@@ -12,7 +12,8 @@ export default function ExitIframePage({ searchParams }: any) {
     if (window.top === window.self) {
       window.location.href = target;
     } else {
-      window.top.location.href = target;
+      // ✅ null チェックを加えて型エラー回避
+      (window.top ?? window).location.href = target;
     }
   }, [searchParams]);
 
