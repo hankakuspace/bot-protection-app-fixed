@@ -13,17 +13,16 @@ export default function NavMenu() {
 
     const navMenu = (NavigationMenu as any).create(app);
 
-    // 少し遅らせて dispatch（Admin attach 待ち）
     setTimeout(() => {
       navMenu.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
-          { label: "ダッシュボード", destination: "/admin/dashboard" },
-          { label: "アクセスログ", destination: "/admin/logs" },
-          { label: "管理者設定", destination: "/admin/admin-ip" },
-          { label: "ブロック設定", destination: "/admin/block-ip" },
+          { label: "ダッシュボード", destination: "/dashboard" },
+          { label: "アクセスログ", destination: "/logs" },
+          { label: "管理者設定", destination: "/admin-ip" },
+          { label: "ブロック設定", destination: "/block-ip" },
         ],
       });
-      console.log("🟢 NavigationMenu dispatch 実行完了");
+      console.log("🟢 NavigationMenu dispatch (相対パス /dashboard 形式)");
     }, 500);
 
     return () => {
