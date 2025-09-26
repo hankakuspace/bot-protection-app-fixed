@@ -9,36 +9,22 @@ export default function NavMenu() {
   const app = useAppBridgeCustom();
 
   useEffect(() => {
-    if (!app) {
-      console.warn("⚠️ AppBridge が初期化されていません");
-      return;
-    }
+    if (!app) return;
 
-    // ✅ 型定義を完全に無視して呼び出す
     const navMenu = (NavigationMenu as any).create(app);
 
-    navMenu.dispatch(NavigationMenu.Action.UPDATE, {
-      items: [
-        {
-          label: "ダッシュボード",
-          destination: "https://bot-protection-ten.vercel.app/admin/dashboard",
-        },
-        {
-          label: "アクセスログ",
-          destination: "https://bot-protection-ten.vercel.app/admin/logs",
-        },
-        {
-          label: "管理者設定",
-          destination: "https://bot-protection-ten.vercel.app/admin/admin-ip",
-        },
-        {
-          label: "ブロック設定",
-          destination: "https://bot-protection-ten.vercel.app/admin/block-ip",
-        },
-      ],
-    });
-
-    console.log("🟢 NavigationMenu dispatch 完了");
+    // 少し遅らせて dispatch（Admin attach 待ち）
+    setTimeout(() => {
+      navMenu.dispatch(NavigationMenu.Action.UPDATE, {
+        items: [
+          { label: "ダッシュボード", destination: "/admin/dashboard" },
+          { label: "アクセスログ", destination: "/admin/logs" },
+          { label: "管理者設定", destination: "/admin/admin-ip" },
+          { label: "ブロック設定", destination: "/admin/block-ip" },
+        ],
+      });
+      console.log("🟢 NavigationMenu dispatch 実行完了");
+    }, 500);
 
     return () => {
       navMenu.unsubscribe();
