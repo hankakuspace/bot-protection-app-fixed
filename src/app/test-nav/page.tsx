@@ -10,8 +10,8 @@ export default function TestNav() {
 
   useEffect(() => {
     if (app) {
-      // ✅ 引数は1つだけ、型は二段キャスト
-      const nav = NavigationMenu.create(app as unknown as ClientApplication);
+      // ✅ バージョンに合わせて第2引数 {} を渡す
+      const nav = NavigationMenu.create(app as unknown as ClientApplication, {});
       nav.dispatch(NavigationMenu.Action.UPDATE, {
         items: [
           {
