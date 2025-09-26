@@ -12,6 +12,12 @@ export default function Home(props: any) {
     return (
       <main>
         <p>Host detected ✅: {host}</p>
+
+        {/* ✅ /test-nav へ移動するリンク */}
+        <p>
+          <a href={`/test-nav?host=${host}`}>➡ サイドナビテストへ</a>
+        </p>
+
         <script
           dangerouslySetInnerHTML={{
             __html: `

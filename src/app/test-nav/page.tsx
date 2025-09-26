@@ -1,24 +1,39 @@
 // src/app/test-nav/page.tsx
 "use client";
+import { useEffect } from "react";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
-import { AppBridgeProvider } from "../../lib/AppBridgeProvider";
+export default function TestNav() {
+  const app = useAppBridge();
 
-export default function TestNavPage() {
+  useEffect(() => {
+    if (app) {
+      const nav = NavigationMenu.create(app);
+      nav.dispatch(NavigationMenu.Action.UPDATE, {
+        items: [
+          {
+            label: "ダッシュボード",
+            destination: "/apps/bot-protection-app/admin/dashboard",
+          },
+          {
+            label: "ログ",
+            destination: "/apps/bot-protection-app/admin/logs",
+          },
+          {
+            label: "テストナビ",
+            destination: "/apps/bot-protection-app/test-nav",
+          },
+        ],
+      });
+      console.log("✅ NavigationMenu dispatch 実行");
+    }
+  }, [app]);
+
   return (
-    <AppBridgeProvider>
-      {/* ✅ <ui-nav-menu> を文字列として出力することで型エラーを回避 */}
-      <div
-        dangerouslySetInnerHTML={{
-          __html: `
-            <ui-nav-menu>
-              <a href="/admin/dashboard">Dashboard</a>
-              <a href="/admin/logs">Logs</a>
-              <a href="/admin/admin-ip">Admin IP</a>
-              <a href="/admin/block-ip">Block IP</a>
-            </ui-nav-menu>
-          `,
-        }}
-      />
-    </AppBridgeProvider>
+    <main>
+      <h1>サイドナビテストページ</h1>
+      <p>このページを開いたときに NavigationMenu.dispatch が走ります。</p>
+    </main>
   );
 }
