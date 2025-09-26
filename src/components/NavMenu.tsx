@@ -14,7 +14,8 @@ export default function NavMenu() {
       return;
     }
 
-    const navMenu = NavigationMenu.create(app);
+    // ✅ 第二引数で options を渡す（空でOK）
+    const navMenu = NavigationMenu.create(app, { items: [] });
 
     navMenu.dispatch(NavigationMenu.Action.UPDATE, {
       items: [
