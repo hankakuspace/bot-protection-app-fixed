@@ -1,6 +1,8 @@
 // src/app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
+import { AppBridgeProvider } from "@/lib/AppBridgeProvider";
+import NavMenu from "@/components/NavMenu";
 
 export const metadata: Metadata = {
   title: "Bot Guard MAN",
@@ -11,7 +13,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <body>
-        {children}
+        <AppBridgeProvider>
+          <NavMenu />
+          {children}
+        </AppBridgeProvider>
       </body>
     </html>
   );
