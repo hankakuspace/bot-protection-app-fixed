@@ -21,13 +21,19 @@ function getOrigin(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
+
+  // ✅ デバッグログを追加
+  console.log("🟢 HIT /api/auth", url.toString());
+
   const shop = url.searchParams.get("shop");
   const force = url.searchParams.get("force");
 
   if (!SHOPIFY_API_KEY) {
+    console.error("❌ Missing SHOPIFY_API_KEY");
     return NextResponse.json({ error: "missing SHOPIFY_API_KEY" }, { status: 500 });
   }
   if (!shop || !shop.endsWith(".myshopify.com")) {
+    console.error("❌ Missing or invalid shop param", shop);
     return NextResponse.json({ error: "missing shop" }, { status: 400 });
   }
 
@@ -55,8 +61,7 @@ export async function GET(req: NextRequest) {
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("state", state);
 
-  // ✅ 毎回承認画面を出したいなら per-user オプションも追加可能
-  // authorizeUrl.searchParams.set("grant_options[]", "per-user");
+  console.log("➡️ Redirecting to Shopify OAuth:", authorizeUrl.toString());
 
   return NextResponse.redirect(authorizeUrl.toString(), { status: 302 });
 }
