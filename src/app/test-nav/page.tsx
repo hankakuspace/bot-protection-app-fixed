@@ -13,24 +13,26 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    // 既存 nav を削除
-    document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
+    // Web Component 定義を待つ
+    customElements.whenDefined("ui-nav-menu").then(() => {
+      // 既存 nav を削除
+      document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
 
-    // nav-menu 作成
-    const navMenuEl = document.createElement("ui-nav-menu");
-    navMenuEl.innerHTML = `
-      <a href="/dashboard?host=${host}">ダッシュボード</a>
-      <a href="/logs?host=${host}">アクセスログ</a>
-      <a href="/admin-ip?host=${host}">管理者設定</a>
-      <a href="/block-ip?host=${host}">ブロック設定</a>
-    `;
+      // nav-menu 作成
+      const navMenuEl = document.createElement("ui-nav-menu");
+      navMenuEl.innerHTML = `
+        <a href="/dashboard?host=${host}">ダッシュボード</a>
+        <a href="/logs?host=${host}">アクセスログ</a>
+        <a href="/admin-ip?host=${host}">管理者設定</a>
+        <a href="/block-ip?host=${host}">ブロック設定</a>
+      `;
 
-    const root = document.querySelector("shopify-app-root") || document.body;
-    root.appendChild(navMenuEl);
+      // Admin の root へ追加
+      const root = document.querySelector("shopify-app-root") || document.body;
+      root.appendChild(navMenuEl);
 
-    console.log("🟢 ui-nav-menu injected with plain <a> children");
-    
-    return () => navMenuEl.remove();
+      console.log("🟢 ui-nav-menu appended after definition with host:", host);
+    });
   }, [app]);
 
   return (
