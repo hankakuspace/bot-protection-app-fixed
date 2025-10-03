@@ -10,10 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  console.log("🟢 RootLayout loaded");
+
   return (
     <html lang="ja">
       <body>
         <AppBridgeProvider>
+          {/* ✅ 全ページ共通で NavigationMenu を初期化 */}
           <NavMenu />
           {children}
         </AppBridgeProvider>
