@@ -22,14 +22,12 @@ export default function TestNavPage() {
       <div
         dangerouslySetInnerHTML={{
           __html: `
-            <ui-nav-menu
-              items='[
-                {"label": "ダッシュボード", "destination": "/dashboard"},
-                {"label": "アクセスログ", "destination": "/logs"},
-                {"label": "管理者設定", "destination": "/admin-ip"},
-                {"label": "ブロック設定", "destination": "/block-ip"}
-              ]'
-            ></ui-nav-menu>
+            <ui-nav-menu>
+              <a href="/dashboard">ダッシュボード</a>
+              <a href="/logs">アクセスログ</a>
+              <a href="/admin-ip">管理者設定</a>
+              <a href="/block-ip">ブロック設定</a>
+            </ui-nav-menu>
           `,
         }}
       />
