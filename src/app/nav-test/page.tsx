@@ -8,14 +8,13 @@ export default function NavTest() {
   const app = useAppBridgeCustom();
 
   useEffect(() => {
-    console.log("🟢 [NavTest] AppBridge from context:", app);
-
     if (!app) {
-      console.error("❌ AppBridge がまだ初期化されていません");
+      console.warn("⏳ AppBridge がまだ context に設定されていません。再レンダーを待ちます。");
       return;
     }
 
-    // Web Components 登録確認をループで監視
+    console.log("🟢 [NavTest] AppBridge from context:", app);
+
     const interval = setInterval(() => {
       const defined = customElements.get("ui-nav-menu");
       console.log("🔍 ui-nav-menu defined?:", defined);
@@ -26,11 +25,12 @@ export default function NavTest() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [app]);
+  }, [app]); // ✅ app が更新されたら再実行
 
   return (
     <main>
       <h1>Nav Test (AppBridgeProvider 使用)</h1>
+      {!app && <p>⏳ AppBridge 初期化中…</p>}
       <div
         dangerouslySetInnerHTML={{
           __html: "<ui-nav-menu></ui-nav-menu>",
