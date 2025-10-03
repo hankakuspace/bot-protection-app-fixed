@@ -1,8 +1,10 @@
-// src/app/_nav-test/page.tsx
+// src/app/nav-test/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { createApp } from "@shopify/app-bridge";
+// ✅ Web Components ローダーを明示的に import
+import "@shopify/app-bridge-web-components";
 
 export default function NavTest() {
   useEffect(() => {
@@ -21,14 +23,14 @@ export default function NavTest() {
     });
     console.log("🟢 AppBridge created:", app);
 
-    // Web Components の登録状態を確認
+    // Web Components 登録確認
     console.log("🟢 ui-nav-menu defined?:", customElements.get("ui-nav-menu"));
   }, []);
 
   return (
     <main>
       <h1>Nav Test</h1>
-      {/* JSX の型エラーを避けるため直書き */}
+      {/* ローダーによってアップグレードされる */}
       <div dangerouslySetInnerHTML={{ __html: "<ui-nav-menu></ui-nav-menu>" }} />
     </main>
   );
