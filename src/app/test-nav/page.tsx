@@ -18,16 +18,15 @@ export default function TestNavPage() {
 
     // nav-menu 作成
     const navMenuEl = document.createElement("ui-nav-menu");
-
     navMenuEl.innerHTML = `
-      <ui-nav-menu-item label="ダッシュボード" href="/dashboard?host=${host}"></ui-nav-menu-item>
-      <ui-nav-menu-item label="アクセスログ" href="/logs?host=${host}"></ui-nav-menu-item>
-      <ui-nav-menu-item label="管理者設定" href="/admin-ip?host=${host}"></ui-nav-menu-item>
-      <ui-nav-menu-item label="ブロック設定" href="/block-ip?host=${host}"></ui-nav-menu-item>
+      <a href="/dashboard?host=${host}">ダッシュボード</a>
+      <a href="/logs?host=${host}">アクセスログ</a>
+      <a href="/admin-ip?host=${host}">管理者設定</a>
+      <a href="/block-ip?host=${host}">ブロック設定</a>
     `;
 
     document.body.appendChild(navMenuEl);
-    console.log("🟢 ui-nav-menu injected with items (slot-based)");
+    console.log("🟢 ui-nav-menu injected with <a> children");
     
     return () => navMenuEl.remove();
   }, [app]);
