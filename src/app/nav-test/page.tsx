@@ -9,7 +9,7 @@ export default function NavTest() {
 
   useEffect(() => {
     if (!app) {
-      console.warn("⏳ AppBridge がまだ context に設定されていません。再レンダーを待ちます。");
+      console.warn("⏳ AppBridge がまだ context に設定されていません。初期化待ち...");
       return;
     }
 
@@ -25,17 +25,20 @@ export default function NavTest() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [app]); // ✅ app が更新されたら再実行
+  }, [app]);
 
   return (
     <main>
       <h1>Nav Test (AppBridgeProvider 使用)</h1>
-      {!app && <p>⏳ AppBridge 初期化中…</p>}
-      <div
-        dangerouslySetInnerHTML={{
-          __html: "<ui-nav-menu></ui-nav-menu>",
-        }}
-      />
+      {!app ? (
+        <p>⏳ AppBridge 初期化待ち...</p>
+      ) : (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: "<ui-nav-menu></ui-nav-menu>",
+          }}
+        />
+      )}
     </main>
   );
 }
