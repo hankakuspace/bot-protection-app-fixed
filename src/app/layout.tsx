@@ -14,8 +14,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <head>
-        {/* ✅ Web Components ローダー */}
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/1.0/index.js"></script>
+        {/* ✅ 正しい Web Components ローダーを読み込む */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/latest/index.umd.js"></script>
       </head>
       <body>
         <AppBridgeProvider>
