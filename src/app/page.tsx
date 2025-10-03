@@ -17,7 +17,7 @@ export default function Home(props: any) {
 
         {/* /_nav-test へのリンク */}
         <p>
-          <a href={`/_nav-test?host=${host}`}>➡ Navテストページへ</a>
+           <a href={`/nav-test?host=${host}`}>➡ Navテストページへ</a>
         </p>
       </main>
     );
