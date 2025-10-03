@@ -3,7 +3,6 @@
 
 import { useEffect } from "react";
 import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
-import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function NavMenu() {
   const app = useAppBridgeCustom();
@@ -11,25 +10,22 @@ export default function NavMenu() {
   useEffect(() => {
     if (!app) return;
 
-    const navMenu = (NavigationMenu as any).create(app);
-
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    setTimeout(() => {
-      navMenu.dispatch(NavigationMenu.Action.UPDATE, {
-        items: [
-          { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
-          { label: "アクセスログ", destination: `/logs?host=${host}` },
-          { label: "管理者設定", destination: `/admin-ip?host=${host}` },
-          { label: "ブロック設定", destination: `/block-ip?host=${host}` },
-        ],
-      });
-      console.log("🟢 NavigationMenu dispatch (host 付き URL 形式)");
-    }, 500);
+    // ✅ Web Components API を直接使う
+    const navMenuEl = document.createElement("ui-nav-menu");
+    navMenuEl.setAttribute("items", JSON.stringify([
+      { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
+      { label: "アクセスログ", destination: `/logs?host=${host}` },
+      { label: "管理者設定", destination: `/admin-ip?host=${host}` },
+      { label: "ブロック設定", destination: `/block-ip?host=${host}` },
+    ]));
+
+    document.body.appendChild(navMenuEl);
 
     return () => {
-      navMenu.unsubscribe();
+      navMenuEl.remove();
     };
   }, [app]);
 
