@@ -13,23 +13,26 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    // すでに存在する nav-menu 要素を探す
-    const existing = document.querySelector("ui-nav-menu");
+    // 既存を削除
+    document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
 
-    if (existing) {
-      existing.setAttribute(
-        "items",
-        JSON.stringify([
-          { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
-          { label: "アクセスログ", destination: `/logs?host=${host}` },
-          { label: "管理者設定", destination: `/admin-ip?host=${host}` },
-          { label: "ブロック設定", destination: `/block-ip?host=${host}` },
-        ])
-      );
-      console.log("🟢 ui-nav-menu updated with host:", host);
-    } else {
-      console.warn("⚠️ ui-nav-menu placeholder not found");
-    }
+    // nav-menu を生成
+    const navMenuEl = document.createElement("ui-nav-menu");
+    navMenuEl.setAttribute(
+      "items",
+      JSON.stringify([
+        { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
+        { label: "アクセスログ", destination: `/logs?host=${host}` },
+        { label: "管理者設定", destination: `/admin-ip?host=${host}` },
+        { label: "ブロック設定", destination: `/block-ip?host=${host}` },
+      ])
+    );
+
+    // body 直下に追加
+    document.body.appendChild(navMenuEl);
+    console.log("🟢 ui-nav-menu injected with host:", host);
+
+    return () => navMenuEl.remove();
   }, [app]);
 
   return (
