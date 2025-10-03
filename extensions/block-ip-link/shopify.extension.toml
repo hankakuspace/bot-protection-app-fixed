@@ -1,7 +1,9 @@
 name = "block-ip-link"
 type = "admin_link"
 
+[settings]
+label = "ブロック設定"
+url = "/block-ip"
+
 [[extensions.targeting]]
 target = "admin.app.navigation.menu"
-label = "ブロック設定"
-destination = "/block-ip"

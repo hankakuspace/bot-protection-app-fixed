@@ -1,7 +1,9 @@
 name = "dashboard-link"
 type = "admin_link"
 
+[settings]
+label = "ダッシュボード"
+url = "/dashboard"
+
 [[extensions.targeting]]
 target = "admin.app.navigation.menu"
-label = "ダッシュボード"
-destination = "/dashboard"
