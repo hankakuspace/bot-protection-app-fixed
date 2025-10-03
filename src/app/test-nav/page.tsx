@@ -13,25 +13,22 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    // 既存を削除
+    // 既存 nav を削除
     document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
 
-    // nav-menu を生成
+    // nav-menu 作成
     const navMenuEl = document.createElement("ui-nav-menu");
-    navMenuEl.setAttribute(
-      "items",
-      JSON.stringify([
-        { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
-        { label: "アクセスログ", destination: `/logs?host=${host}` },
-        { label: "管理者設定", destination: `/admin-ip?host=${host}` },
-        { label: "ブロック設定", destination: `/block-ip?host=${host}` },
-      ])
-    );
 
-    // body 直下に追加
+    navMenuEl.innerHTML = `
+      <ui-nav-menu-item label="ダッシュボード" href="/dashboard?host=${host}"></ui-nav-menu-item>
+      <ui-nav-menu-item label="アクセスログ" href="/logs?host=${host}"></ui-nav-menu-item>
+      <ui-nav-menu-item label="管理者設定" href="/admin-ip?host=${host}"></ui-nav-menu-item>
+      <ui-nav-menu-item label="ブロック設定" href="/block-ip?host=${host}"></ui-nav-menu-item>
+    `;
+
     document.body.appendChild(navMenuEl);
-    console.log("🟢 ui-nav-menu injected with host:", host);
-
+    console.log("🟢 ui-nav-menu injected with items (slot-based)");
+    
     return () => navMenuEl.remove();
   }, [app]);
 
