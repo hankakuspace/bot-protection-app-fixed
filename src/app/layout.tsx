@@ -2,7 +2,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { AppBridgeProvider } from "@/lib/AppBridgeProvider";
-import NavMenu from "@/components/NavMenu";
 
 export const metadata: Metadata = {
   title: "Bot Guard MAN",
@@ -14,10 +13,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="ja">
+      <head>
+        {/* ✅ Web Components ローダー */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/1.0/index.js"></script>
+      </head>
       <body>
         <AppBridgeProvider>
-          {/* ✅ 全ページ共通で NavigationMenu を初期化 */}
-          <NavMenu />
           {children}
         </AppBridgeProvider>
       </body>
