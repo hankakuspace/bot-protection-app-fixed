@@ -28,8 +28,8 @@ export default function NavTest() {
   return (
     <main>
       <h1>Nav Test</h1>
-      {/* Web Components を明示的に配置 */}
-      <ui-nav-menu></ui-nav-menu>
+      {/* JSX の型エラーを避けるため直書き */}
+      <div dangerouslySetInnerHTML={{ __html: "<ui-nav-menu></ui-nav-menu>" }} />
     </main>
   );
 }
