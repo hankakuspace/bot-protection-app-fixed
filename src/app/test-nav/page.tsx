@@ -23,7 +23,7 @@ export default function TestNavPage() {
         dangerouslySetInnerHTML={{
           __html: `
             <ui-nav-menu
-              links='[
+              items='[
                 {"label": "ダッシュボード", "destination": "/dashboard"},
                 {"label": "アクセスログ", "destination": "/logs"},
                 {"label": "管理者設定", "destination": "/admin-ip"},
