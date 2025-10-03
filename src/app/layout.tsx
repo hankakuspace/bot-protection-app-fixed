@@ -1,14 +1,28 @@
 // src/app/layout.tsx
-import { Provider } from "@shopify/app-bridge-react";
+import "./globals.css";
+import type { Metadata } from "next";
+import { AppBridgeProvider } from "@/lib/AppBridgeProvider";
 
-const config = {
-  apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
-  host: typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("host") || localStorage.getItem("shopify_host") || ""
-    : "",
-  forceRedirect: true,
+export const metadata: Metadata = {
+  title: "Bot Guard MAN",
+  description: "Shopify bot protection app",
 };
 
-<Provider config={config}>
-  {children}
-</Provider>
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="ja">
+      <head>
+        {/* App Bridge 本体 */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+      </head>
+      <body>
+        {/* ✅ Provider をここで呼び出すだけにする */}
+        <AppBridgeProvider>{children}</AppBridgeProvider>
+      </body>
+    </html>
+  );
+}
