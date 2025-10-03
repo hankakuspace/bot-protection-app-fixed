@@ -19,10 +19,12 @@ export default function TestNavPage() {
   return (
     <main>
       <h1>TestNav</h1>
-      {/* ✅ 型定義を入れれば直接使える */}
-      <ui-nav-menu
-        items='[{"label":"ダッシュボード","destination":"/dashboard"}]'
-      ></ui-nav-menu>
+      {/* ✅ JSX の代わりに HTML文字列で埋め込み → 型エラー回避 */}
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `<ui-nav-menu items='[{"label":"ダッシュボード","destination":"/dashboard"}]'></ui-nav-menu>`,
+        }}
+      />
     </main>
   );
 }
