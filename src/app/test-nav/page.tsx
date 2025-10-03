@@ -16,7 +16,7 @@ export default function TestNavPage() {
     // 既存 nav を削除
     document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
 
-    // nav-menu 作成
+    // nav-menu を作成
     const navMenuEl = document.createElement("ui-nav-menu");
     navMenuEl.innerHTML = `
       <a href="/dashboard?host=${host}">ダッシュボード</a>
@@ -25,9 +25,12 @@ export default function TestNavPage() {
       <a href="/block-ip?host=${host}">ブロック設定</a>
     `;
 
-    document.body.appendChild(navMenuEl);
-    console.log("🟢 ui-nav-menu injected with <a> children");
-    
+    // Shopify Admin のルート要素に追加
+    const root = document.querySelector("shopify-app-root") || document.body;
+    root.appendChild(navMenuEl);
+
+    console.log("🟢 ui-nav-menu appended to shopify-app-root with host:", host);
+
     return () => navMenuEl.remove();
   }, [app]);
 
