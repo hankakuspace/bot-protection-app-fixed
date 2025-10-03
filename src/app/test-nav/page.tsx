@@ -19,7 +19,7 @@ export default function TestNavPage() {
   return (
     <main>
       <h1>TestNav</h1>
-      {/* ✅ 最小限の ui-nav-menu を直接描画 */}
+      {/* ✅ 型定義を入れれば直接使える */}
       <ui-nav-menu
         items='[{"label":"ダッシュボード","destination":"/dashboard"}]'
       ></ui-nav-menu>
