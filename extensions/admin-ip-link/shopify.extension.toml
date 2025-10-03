@@ -1,0 +1,7 @@
+name = "admin-ip-link"
+type = "admin_link"
+
+[[extensions.targeting]]
+target = "admin.app.navigation.menu"
+label = "管理者設定"
+destination = "/admin-ip"

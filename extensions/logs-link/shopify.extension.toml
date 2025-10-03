@@ -1,0 +1,7 @@
+name = "logs-link"
+type = "admin_link"
+
+[[extensions.targeting]]
+target = "admin.app.navigation.menu"
+label = "アクセスログ"
+destination = "/logs"

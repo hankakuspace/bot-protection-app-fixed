@@ -1,0 +1,7 @@
+name = "dashboard-link"
+type = "admin_link"
+
+[[extensions.targeting]]
+target = "admin.app.navigation.menu"
+label = "ダッシュボード"
+destination = "/dashboard"
