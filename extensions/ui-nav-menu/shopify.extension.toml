@@ -1,7 +1,0 @@
-# extensions/ui-nav-menu/shopify.extension.toml
-
-name = "ui-nav-menu"
-type = "ui_nav_menu"
-
-# アプリ識別用 UID（CLI が自動生成するので最初は不要でもOK）
-# uid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"

@@ -1,6 +1,7 @@
 [[extensions]]
 name = "admin-link"
 handle = "admin-link"
+uid = "8834e3bb-1e59-d6f8-1653-f06442c722a6579bb5da"
 type = "admin_link"
 
 [[extensions.targeting]]

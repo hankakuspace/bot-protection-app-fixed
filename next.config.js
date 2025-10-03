@@ -16,7 +16,7 @@ const nextConfig = {
       "@": path.resolve(__dirname, "src"),
     };
 
-    // ✅ "src" を modules に追加（補助）
+    // ✅ "src" を modules に追加
     config.resolve.modules = [
       path.resolve(__dirname, "src"),
       "node_modules",

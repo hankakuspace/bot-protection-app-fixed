@@ -1,4 +1,22 @@
-node_modules/
-.vercel/
-.shopify/
-.yarn/
+# dependencies
+/node_modules
+/node
+
+# build output
+.next
+/out
+/dist
+
+# misc
+.DS_Store
+*.bak
+*.log
+
+# local env
+.env.local
+.env.*
+!.env.example
+
+# vercel & yarn
+.vercel
+.yarn

@@ -1,55 +1,38 @@
-// src/app/nav-test/page.tsx
+// src/app/test-nav/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
+import { useEffect } from "react";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
-export default function NavTest() {
-  const app = useAppBridgeCustom();
-  const [showMenu, setShowMenu] = useState(false);
+// ✅ 静的プリレンダリングを禁止
+export const dynamic = "force-dynamic";
+
+export default function TestNav() {
+  const app = useAppBridge();
 
   useEffect(() => {
-    if (!app) {
-      console.warn("⏳ AppBridge 初期化待ち...");
-      return;
-    }
+    if (!app) return;
 
-    console.log("🟢 [NavTest] AppBridge from context:", app);
+    const navMenu = (NavigationMenu as any).create(app);
 
-    // 少し遅延して ui-nav-menu を描画
-    const timer = setTimeout(() => {
-      setShowMenu(true);
-    }, 1500);
-
-    return () => clearTimeout(timer);
+    setTimeout(() => {
+      navMenu.dispatch(NavigationMenu.Action.UPDATE, {
+        items: [
+          { label: "ダッシュボード", destination: "/dashboard" },
+          { label: "アクセスログ", destination: "/logs" },
+          { label: "管理者設定", destination: "/admin-ip" },
+          { label: "ブロック設定", destination: "/block-ip" },
+        ],
+      });
+      console.log("🟢 NavigationMenu dispatch 実行");
+    }, 500);
   }, [app]);
-
-  useEffect(() => {
-    if (!showMenu) return;
-
-    const interval = setInterval(() => {
-      const defined = customElements.get("ui-nav-menu");
-      console.log("🔍 ui-nav-menu defined?:", defined);
-      if (defined) {
-        clearInterval(interval);
-        console.log("✅ ui-nav-menu が定義されました");
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [showMenu]);
 
   return (
     <main>
-      <h1>Nav Test</h1>
-      {!app && <p>⏳ AppBridge 初期化中...</p>}
-      {showMenu && (
-        <div
-          dangerouslySetInnerHTML={{
-            __html: "<ui-nav-menu></ui-nav-menu>",
-          }}
-        />
-      )}
+      <h1>TestNav</h1>
+      <p>NavigationMenu attach のテストページ</p>
     </main>
   );
 }

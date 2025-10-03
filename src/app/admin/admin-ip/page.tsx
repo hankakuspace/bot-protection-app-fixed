@@ -99,7 +99,7 @@ export default function AdminIpPage() {
       <h1 className="text-xl font-bold mb-4">管理者IP</h1>
 
       {/* 追加フォーム */}
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-md mt-4">
         <input
           type="text"
           value={ip}

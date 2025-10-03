@@ -1,0 +1,37 @@
+<!-- extensions/bot-protection-theme/blocks/logger.liquid -->
+<div>
+  <!-- Bot Protection Logger -->
+</div>
+
+<script>
+  (function() {
+    const payload = {
+      shop: "{{ shop.permanent_domain }}",
+      ua: navigator.userAgent,
+      url: window.location.href,
+      host: window.location.hostname,
+      referrer: document.referrer,
+      clientTime: new Date().toISOString()
+    };
+
+    // ✅ デバッグ出力（Consoleで確認用）
+    console.log("Logger payload:", payload);
+
+    fetch("https://bot-protection-ten.vercel.app/api/log-access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then((res) => res.json())
+      .then((data) => console.log("Logger response:", data))
+      .catch((err) => console.error("Logger error:", err));
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Logger Block",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
