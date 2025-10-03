@@ -3,6 +3,7 @@
 
 import { useEffect } from "react";
 import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function TestNavPage() {
   const app = useAppBridgeCustom();
@@ -13,32 +14,33 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    // Web Component 定義を待つ
-    customElements.whenDefined("ui-nav-menu").then(() => {
-      // 既存 nav を削除
-      document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
+    const navMenu = NavigationMenu.create(app);
 
-      // nav-menu 作成
-      const navMenuEl = document.createElement("ui-nav-menu");
-      navMenuEl.innerHTML = `
-        <a href="/dashboard?host=${host}">ダッシュボード</a>
-        <a href="/logs?host=${host}">アクセスログ</a>
-        <a href="/admin-ip?host=${host}">管理者設定</a>
-        <a href="/block-ip?host=${host}">ブロック設定</a>
-      `;
-
-      // Admin の root へ追加
-      const root = document.querySelector("shopify-app-root") || document.body;
-      root.appendChild(navMenuEl);
-
-      console.log("🟢 ui-nav-menu appended after definition with host:", host);
+    navMenu.dispatch(NavigationMenu.Action.UPDATE, {
+      items: [
+        { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
+        { label: "アクセスログ", destination: `/logs?host=${host}` },
+        { label: "管理者設定", destination: `/admin-ip?host=${host}` },
+        { label: "ブロック設定", destination: `/block-ip?host=${host}` },
+      ],
     });
+
+    console.log("🟢 NavigationMenu dispatched with host:", host);
+
+    return () => {
+      // 後始末（不要なら削除可）
+      try {
+        navMenu.unsubscribe();
+      } catch (e) {
+        console.warn("⚠️ navMenu unsubscribe failed:", e);
+      }
+    };
   }, [app]);
 
   return (
     <main>
       <h1>TestNav</h1>
-      <p>ナビテストページ</p>
+      <p>ナビゲーションメニューをテスト中</p>
     </main>
   );
 }
