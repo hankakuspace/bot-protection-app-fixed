@@ -1,4 +1,9 @@
 git add src/app/test-nav/page.tsx
+git commit -m "fix: /test-nav ページを正しいコードに修正（不要な行を削除し dynamic のみに統一）"
+git push
+git add src/app/test-nav/page.tsx
+git commit -m "fix: /test-nav ページを正しいコードに修正（不要な行を削除し dynamic のみに統一）"
+git pushgit add src/app/test-nav/page.tsx
 git commit -m "fix: /test-nav ページから fetchCache/revalidate を削除して dynamic のみに統一"
 git push
 // src/app/test-nav/page.tsx
