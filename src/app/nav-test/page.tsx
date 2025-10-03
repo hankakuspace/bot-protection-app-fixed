@@ -1,19 +1,31 @@
 // src/app/nav-test/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
 
 export default function NavTest() {
   const app = useAppBridgeCustom();
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     if (!app) {
-      console.warn("⏳ AppBridge がまだ context に設定されていません。初期化待ち...");
+      console.warn("⏳ AppBridge 初期化待ち...");
       return;
     }
 
     console.log("🟢 [NavTest] AppBridge from context:", app);
+
+    // 少し遅延して ui-nav-menu を描画
+    const timer = setTimeout(() => {
+      setShowMenu(true);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [app]);
+
+  useEffect(() => {
+    if (!showMenu) return;
 
     const interval = setInterval(() => {
       const defined = customElements.get("ui-nav-menu");
@@ -25,14 +37,13 @@ export default function NavTest() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [app]);
+  }, [showMenu]);
 
   return (
     <main>
-      <h1>Nav Test (AppBridgeProvider 使用)</h1>
-      {!app ? (
-        <p>⏳ AppBridge 初期化待ち...</p>
-      ) : (
+      <h1>Nav Test</h1>
+      {!app && <p>⏳ AppBridge 初期化中...</p>}
+      {showMenu && (
         <div
           dangerouslySetInnerHTML={{
             __html: "<ui-nav-menu></ui-nav-menu>",
