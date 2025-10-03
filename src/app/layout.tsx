@@ -14,11 +14,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <head>
-        {/* App Bridge 本体（最初の <script> タグ、async/defer/module 禁止） */}
+        {/* App Bridge 本体（非モジュール） */}
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 
-        {/* Web Components ローダー */}
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/latest/index.js"></script>
+        {/* Web Components ローダー（ESM版 → 明示的に type="module" を指定） */}
+        <script
+          type="module"
+          src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/latest/index.js"
+        ></script>
       </head>
       <body>
         <AppBridgeProvider>
