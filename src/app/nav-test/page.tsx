@@ -2,24 +2,18 @@
 "use client";
 
 import { useEffect } from "react";
-import { createApp } from "@shopify/app-bridge";
+import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
 
 export default function NavTest() {
-  useEffect(() => {
-    const host = new URLSearchParams(window.location.search).get("host");
-    console.log("🟢 host param:", host);
+  const app = useAppBridgeCustom();
 
-    if (!host) {
-      console.error("❌ host missing. Admin から開いてください");
+  useEffect(() => {
+    console.log("🟢 [NavTest] AppBridge from context:", app);
+
+    if (!app) {
+      console.error("❌ AppBridge がまだ初期化されていません");
       return;
     }
-
-    const app = createApp({
-      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
-      host,
-      forceRedirect: true,
-    });
-    console.log("🟢 AppBridge created:", app);
 
     // Web Components 登録確認をループで監視
     const interval = setInterval(() => {
@@ -32,11 +26,11 @@ export default function NavTest() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [app]);
 
   return (
     <main>
-      <h1>Nav Test</h1>
+      <h1>Nav Test (AppBridgeProvider 使用)</h1>
       <div
         dangerouslySetInnerHTML={{
           __html: "<ui-nav-menu></ui-nav-menu>",
