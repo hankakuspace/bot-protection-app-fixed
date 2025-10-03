@@ -1,7 +1,5 @@
 // src/app/test-nav/page.tsx
-"use client";
-
-// ✅ 静的生成を完全に無効化
+// ✅ サーバーコンポーネント (client 指定しない)
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
