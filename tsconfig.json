@@ -1,4 +1,3 @@
-// tsconfig.json
 {
   "compilerOptions": {
     "target": "ES2022",
@@ -11,11 +10,11 @@
     "noEmit": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".", 
+    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node"],
+    // "types": ["node"], ← ❌ 削除
     "skipLibCheck": true,
     "incremental": true,
     "resolveJsonModule": true,
