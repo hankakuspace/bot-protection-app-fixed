@@ -5,8 +5,10 @@ import { useEffect } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { NavigationMenu } from "@shopify/app-bridge/actions";
 
-// ✅ 静的プリレンダリングを禁止
+// ✅ 静的生成を完全に無効化
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export default function TestNav() {
   const app = useAppBridge();
@@ -36,4 +38,3 @@ export default function TestNav() {
     </main>
   );
 }
-
