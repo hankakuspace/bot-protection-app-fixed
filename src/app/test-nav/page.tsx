@@ -14,7 +14,7 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    // create は 1引数のみ
+    // ✅ 引数は app のみ
     const navMenu = NavigationMenu.create(app);
 
     navMenu.dispatch(NavigationMenu.Action.UPDATE, {
