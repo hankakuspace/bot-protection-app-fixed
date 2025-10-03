@@ -13,14 +13,15 @@ export default function TestNavPage() {
 
     console.log("🟢 NavigationMenu attaching...");
 
-    NavigationMenu.create(app, {
-      items: [
-        { label: "ダッシュボード", destination: "/dashboard" },
-        { label: "アクセスログ", destination: "/admin/logs" },
-        { label: "管理者設定", destination: "/admin/settings" },
-        { label: "ブロック設定", destination: "/admin/list-ip" },
-      ],
-    });
+    // ✅ items に NavigationMenu.Action[] 型を明示
+    const items: NavigationMenu.Action[] = [
+      { label: "ダッシュボード", destination: "/dashboard" },
+      { label: "アクセスログ", destination: "/admin/logs" },
+      { label: "管理者設定", destination: "/admin/settings" },
+      { label: "ブロック設定", destination: "/admin/list-ip" },
+    ];
+
+    NavigationMenu.create(app, { items });
   }, [app]);
 
   return (
