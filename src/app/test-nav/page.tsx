@@ -14,7 +14,8 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    const navMenu = NavigationMenu.create(app);
+    // 2引数で create
+    const navMenu = NavigationMenu.create(app, {});
 
     navMenu.dispatch(NavigationMenu.Action.UPDATE, {
       items: [
@@ -28,7 +29,6 @@ export default function TestNavPage() {
     console.log("🟢 NavigationMenu dispatched with host:", host);
 
     return () => {
-      // 後始末（不要なら削除可）
       try {
         navMenu.unsubscribe();
       } catch (e) {
