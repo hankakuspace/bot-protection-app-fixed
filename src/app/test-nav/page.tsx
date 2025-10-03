@@ -1,5 +1,12 @@
 // src/app/test-nav/page.tsx
 "use client";
+
+// ✅ 静的プリレンダリングを禁止
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
+
 import { useEffect } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { NavigationMenu } from "@shopify/app-bridge/actions";
