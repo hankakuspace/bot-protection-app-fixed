@@ -19,13 +19,19 @@ export default function TestNavPage() {
   return (
     <main>
       <h1>TestNav</h1>
-      {/* ✅ items 属性ではなく、子要素として定義 */}
-      <ui-nav-menu>
-        <ui-nav-menu-item label="ダッシュボード" destination="/dashboard"></ui-nav-menu-item>
-        <ui-nav-menu-item label="アクセスログ" destination="/logs"></ui-nav-menu-item>
-        <ui-nav-menu-item label="管理者設定" destination="/admin-ip"></ui-nav-menu-item>
-        <ui-nav-menu-item label="ブロック設定" destination="/block-ip"></ui-nav-menu-item>
-      </ui-nav-menu>
+      {/* ✅ JSXを使わず生HTMLで埋め込む → 型エラー回避 */}
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `
+            <ui-nav-menu>
+              <ui-nav-menu-item label="ダッシュボード" destination="/dashboard"></ui-nav-menu-item>
+              <ui-nav-menu-item label="アクセスログ" destination="/logs"></ui-nav-menu-item>
+              <ui-nav-menu-item label="管理者設定" destination="/admin-ip"></ui-nav-menu-item>
+              <ui-nav-menu-item label="ブロック設定" destination="/block-ip"></ui-nav-menu-item>
+            </ui-nav-menu>
+          `,
+        }}
+      />
     </main>
   );
 }
