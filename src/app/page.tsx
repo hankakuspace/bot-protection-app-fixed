@@ -15,14 +15,9 @@ export default function Home(props: any) {
       <p>Host detected: {host ? `✅ ${host}` : "❌ 取得できませんでした"}</p>
 
       {host && (
-        <>
-          <p>
-            <a href={`/test-nav?host=${host}`}>➡ サイドナビテストへ</a>
-          </p>
-          <p>
-            <a href={`/nav-test?host=${host}`}>➡ Navテストページへ</a>
-          </p>
-        </>
+        <p>
+          <a href={`/test-nav?host=${host}`}>➡ サイドナビテストへ</a>
+        </p>
       )}
 
       {!host && (
