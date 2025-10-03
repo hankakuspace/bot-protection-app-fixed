@@ -1,20 +1,32 @@
 // src/app/test-nav/page.tsx
 "use client";
 
-import { NavigationMenu } from "@shopify/app-bridge-react";
+import { useEffect } from "react";
+import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function TestNavPage() {
+  const app = useAppBridgeCustom();
+
+  useEffect(() => {
+    if (!app) return;
+
+    console.log("🟢 NavigationMenu attaching...");
+
+    NavigationMenu.create(app, {
+      items: [
+        { label: "ダッシュボード", destination: "/dashboard" },
+        { label: "アクセスログ", destination: "/admin/logs" },
+        { label: "管理者設定", destination: "/admin/settings" },
+        { label: "ブロック設定", destination: "/admin/list-ip" },
+      ],
+    });
+  }, [app]);
+
   return (
     <main>
-      <h1>Test NavigationMenu (React版)</h1>
-      <NavigationMenu
-        navigationLinks={[
-          { label: "ダッシュボード", destination: "/dashboard" },
-          { label: "アクセスログ", destination: "/admin/logs" },
-          { label: "管理者設定", destination: "/admin/settings" },
-          { label: "ブロック設定", destination: "/admin/list-ip" },
-        ]}
-      />
+      <h1>Test NavigationMenu (Actions API)</h1>
+      <p>AppBridge NavigationMenu を attach 済み。</p>
     </main>
   );
 }
