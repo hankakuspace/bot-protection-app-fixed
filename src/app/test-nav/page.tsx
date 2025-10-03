@@ -1,3 +1,6 @@
+git add src/app/test-nav/page.tsx
+git commit -m "fix: /test-nav ページから fetchCache/revalidate を削除して dynamic のみに統一"
+git push
 // src/app/test-nav/page.tsx
 "use client";
 
