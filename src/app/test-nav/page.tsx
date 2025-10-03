@@ -19,16 +19,16 @@ export default function TestNavPage() {
     // nav-menu 作成
     const navMenuEl = document.createElement("ui-nav-menu");
     navMenuEl.innerHTML = `
-      <a slot="nav-item" href="/dashboard?host=${host}">ダッシュボード</a>
-      <a slot="nav-item" href="/logs?host=${host}">アクセスログ</a>
-      <a slot="nav-item" href="/admin-ip?host=${host}">管理者設定</a>
-      <a slot="nav-item" href="/block-ip?host=${host}">ブロック設定</a>
+      <a href="/dashboard?host=${host}">ダッシュボード</a>
+      <a href="/logs?host=${host}">アクセスログ</a>
+      <a href="/admin-ip?host=${host}">管理者設定</a>
+      <a href="/block-ip?host=${host}">ブロック設定</a>
     `;
 
     const root = document.querySelector("shopify-app-root") || document.body;
     root.appendChild(navMenuEl);
 
-    console.log("🟢 ui-nav-menu injected with slot='nav-item' children");
+    console.log("🟢 ui-nav-menu injected with plain <a> children");
     
     return () => navMenuEl.remove();
   }, [app]);
