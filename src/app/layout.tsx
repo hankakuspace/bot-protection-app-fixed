@@ -2,7 +2,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { AppBridgeProvider } from "@/lib/AppBridgeProvider";
-import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Bot Guard MAN",
@@ -15,16 +14,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <head>
-        {/* App Bridge 本体 */}
-        <Script
-          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-          strategy="beforeInteractive"
-        />
+        {/* App Bridge 本体（最初の <script> タグ、async/defer/module 禁止） */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+
         {/* Web Components ローダー */}
-        <Script
-          src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/latest/index.js"
-          strategy="beforeInteractive"
-        />
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/latest/index.js"></script>
       </head>
       <body>
         <AppBridgeProvider>
