@@ -13,12 +13,16 @@ export default function TestNavPage() {
 
     console.log("🟢 NavigationMenu attaching...");
 
+    const params = new URLSearchParams(window.location.search);
+    const host = params.get("host") || "";
+    const baseUrl = `/apps/bot-protection-app-fixed`;
+
     NavigationMenu.create(app, {
       items: [
-        { label: "ダッシュボード", destination: "/apps/bot-protection-app-fixed/dashboard" },
-        { label: "アクセスログ", destination: "/apps/bot-protection-app-fixed/admin/logs" },
-        { label: "管理者設定", destination: "/apps/bot-protection-app-fixed/admin/settings" },
-        { label: "ブロック設定", destination: "/apps/bot-protection-app-fixed/admin/list-ip" },
+        { label: "ダッシュボード", destination: `${baseUrl}/dashboard?host=${host}` },
+        { label: "アクセスログ", destination: `${baseUrl}/admin/logs?host=${host}` },
+        { label: "管理者設定", destination: `${baseUrl}/admin/settings?host=${host}` },
+        { label: "ブロック設定", destination: `${baseUrl}/admin/list-ip?host=${host}` },
       ] as any,
     });
 
