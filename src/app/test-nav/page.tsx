@@ -2,37 +2,33 @@
 "use client";
 
 import { useEffect } from "react";
+import { NavigationMenu } from "@shopify/app-bridge-react";
 import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
-import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function TestNavPage() {
   const app = useAppBridgeCustom();
 
   useEffect(() => {
-    if (!app) return;
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const host = urlParams.get("host") || "";
-
-    // 型定義に依存せず any キャスト
-    const navMenu = (NavigationMenu as any).create(app, {});
-
-    navMenu.dispatch(NavigationMenu.Action.UPDATE, {
-      items: [
-        { label: "ダッシュボード", destination: `/dashboard?host=${host}` },
-        { label: "アクセスログ", destination: `/logs?host=${host}` },
-        { label: "管理者設定", destination: `/admin-ip?host=${host}` },
-        { label: "ブロック設定", destination: `/block-ip?host=${host}` },
-      ],
-    });
-
-    console.log("🟢 NavigationMenu dispatched with host:", host);
+    console.log("🟢 TestNavPage mounted, app:", app);
   }, [app]);
+
+  if (!app) {
+    return <p>AppBridge が初期化されていません</p>;
+  }
 
   return (
     <main>
-      <h1>TestNav</h1>
-      <p>ナビゲーションメニューをテスト中</p>
+      <h1>Test NavigationMenu (React版)</h1>
+
+      {/* ✅ Reactコンポーネントでサイドナビを定義 */}
+      <NavigationMenu
+        navigationLinks={[
+          { label: "ダッシュボード", destination: "/dashboard" },
+          { label: "アクセスログ", destination: "/admin/logs" },
+          { label: "管理者設定", destination: "/admin/settings" },
+          { label: "ブロック設定", destination: "/admin/list-ip" },
+        ]}
+      />
     </main>
   );
 }
