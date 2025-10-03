@@ -14,8 +14,8 @@ export default function TestNavPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const host = urlParams.get("host") || "";
 
-    // ✅ 引数は app のみ
-    const navMenu = NavigationMenu.create(app);
+    // 型定義に依存せず any キャスト
+    const navMenu = (NavigationMenu as any).create(app, {});
 
     navMenu.dispatch(NavigationMenu.Action.UPDATE, {
       items: [
@@ -27,14 +27,6 @@ export default function TestNavPage() {
     });
 
     console.log("🟢 NavigationMenu dispatched with host:", host);
-
-    return () => {
-      try {
-        navMenu.unsubscribe();
-      } catch (e) {
-        console.warn("⚠️ navMenu unsubscribe failed:", e);
-      }
-    };
   }, [app]);
 
   return (
