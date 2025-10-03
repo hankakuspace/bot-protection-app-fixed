@@ -1,38 +1,51 @@
-// src/app/test-nav/page.tsx
+// src/app/nav-test/page.tsx
 "use client";
 
-import { useEffect } from "react";
-import { useAppBridge } from "@shopify/app-bridge-react";
-import { NavigationMenu } from "@shopify/app-bridge/actions";
+import { useEffect, useState } from "react";
+import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
 
 // ✅ 静的プリレンダリングを禁止
 export const dynamic = "force-dynamic";
 
-export default function TestNav() {
-  const app = useAppBridge();
+export default function NavTest() {
+  const app = useAppBridgeCustom();
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
-    if (!app) return;
+    if (!app) {
+      console.warn("⏳ AppBridge 初期化待ち...");
+      return;
+    }
 
-    const navMenu = (NavigationMenu as any).create(app);
-
-    setTimeout(() => {
-      navMenu.dispatch(NavigationMenu.Action.UPDATE, {
-        items: [
-          { label: "ダッシュボード", destination: "/dashboard" },
-          { label: "アクセスログ", destination: "/logs" },
-          { label: "管理者設定", destination: "/admin-ip" },
-          { label: "ブロック設定", destination: "/block-ip" },
-        ],
-      });
-      console.log("🟢 NavigationMenu dispatch 実行");
-    }, 500);
+    console.log("🟢 [NavTest] AppBridge from context:", app);
+    const timer = setTimeout(() => setShowMenu(true), 1000);
+    return () => clearTimeout(timer);
   }, [app]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const interval = setInterval(() => {
+      const defined = customElements.get("ui-nav-menu");
+      console.log("🔍 ui-nav-menu defined?:", defined);
+      if (defined) {
+        clearInterval(interval);
+        console.log("✅ ui-nav-menu が定義されました");
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showMenu]);
 
   return (
     <main>
-      <h1>TestNav</h1>
-      <p>NavigationMenu attach のテストページ</p>
+      <h1>Nav Test</h1>
+      {!app && <p>⏳ AppBridge 初期化中...</p>}
+      {showMenu && (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: "<ui-nav-menu></ui-nav-menu>",
+          }}
+        />
+      )}
     </main>
   );
 }
