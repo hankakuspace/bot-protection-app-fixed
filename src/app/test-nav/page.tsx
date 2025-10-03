@@ -8,29 +8,32 @@ export default function TestNavPage() {
   const app = useAppBridgeCustom();
 
   useEffect(() => {
-    console.log("🟢 TestNav mounted, app:", app);
+    if (!app) return;
 
-    if (typeof window !== "undefined") {
-      console.log("🟢 shopify global:", (window as any).shopify);
-      console.log("🟢 ui-nav-menu registered:", customElements.get("ui-nav-menu"));
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const host = urlParams.get("host") || "";
+
+    // 既存の nav を消してから作成
+    document.querySelectorAll("ui-nav-menu").forEach(el => el.remove());
+
+    const navMenuEl = document.createElement("ui-nav-menu");
+    navMenuEl.innerHTML = `
+      <a href="/dashboard?host=${host}">ダッシュボード</a>
+      <a href="/logs?host=${host}">アクセスログ</a>
+      <a href="/admin-ip?host=${host}">管理者設定</a>
+      <a href="/block-ip?host=${host}">ブロック設定</a>
+    `;
+
+    document.body.appendChild(navMenuEl);
+    console.log("🟢 ui-nav-menu attached with host:", host);
+
+    return () => navMenuEl.remove();
   }, [app]);
 
   return (
     <main>
       <h1>TestNav</h1>
-      <div
-        dangerouslySetInnerHTML={{
-          __html: `
-            <ui-nav-menu>
-              <a href="/dashboard">ダッシュボード</a>
-              <a href="/logs">アクセスログ</a>
-              <a href="/admin-ip">管理者設定</a>
-              <a href="/block-ip">ブロック設定</a>
-            </ui-nav-menu>
-          `,
-        }}
-      />
+      <p>ナビテストページ</p>
     </main>
   );
 }
