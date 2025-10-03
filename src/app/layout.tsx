@@ -14,8 +14,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <head>
-        {/* ✅ 正しいローダー */}
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge-ui-components/latest/shopify-ui-extensions.min.js"></script>
+        {/* まずは基本の App Bridge スクリプトを読み込む */}
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
       </head>
       <body>
         <AppBridgeProvider>
