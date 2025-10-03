@@ -1,31 +1,36 @@
 // src/app/page.tsx
 export default function Home(props: any) {
+  const searchParams = props?.searchParams;
+  console.log("🟢 / page.tsx searchParams:", searchParams);
+
   const host =
-    typeof props?.searchParams?.host === "string"
-      ? props.searchParams.host
+    typeof searchParams?.host === "string"
+      ? searchParams.host
       : undefined;
-
-  if (host) {
-    return (
-      <main>
-        <p>Host detected ✅: {host}</p>
-
-        {/* /test-nav へのリンク */}
-        <p>
-          <a href={`/test-nav?host=${host}`}>➡ サイドナビテストへ</a>
-        </p>
-
-        {/* /_nav-test へのリンク */}
-        <p>
-           <a href={`/nav-test?host=${host}`}>➡ Navテストページへ</a>
-        </p>
-      </main>
-    );
-  }
 
   return (
     <main>
-      <p>Waiting for Shopify to add host…</p>
+      <h1>Bot Guard MAN</h1>
+
+      <p>Host detected: {host ? `✅ ${host}` : "❌ 取得できませんでした"}</p>
+
+      {host && (
+        <>
+          <p>
+            <a href={`/test-nav?host=${host}`}>➡ サイドナビテストへ</a>
+          </p>
+          <p>
+            <a href={`/nav-test?host=${host}`}>➡ Navテストページへ</a>
+          </p>
+        </>
+      )}
+
+      {!host && (
+        <p>
+          ⚠️ host が URL に含まれていません。
+          Admin から開かないと host は渡されません。
+        </p>
+      )}
     </main>
   );
 }
