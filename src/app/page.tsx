@@ -9,27 +9,19 @@ export default function Home() {
   const app = useAppBridgeCustom();
 
   useEffect(() => {
-    if (!app) return;
+    if (!app) {
+      console.warn("⚠️ AppBridge not initialized yet. Waiting...");
+      return;
+    }
+
     console.log("🟢 NavigationMenu attaching from root /");
 
     const items = [
-      {
-        label: "ダッシュボード",
-        destination: "/apps/bot-protection-app-fixed/dashboard",
-      },
-      {
-        label: "アクセスログ",
-        destination: "/apps/bot-protection-app-fixed/admin/logs",
-      },
-      {
-        label: "管理者設定",
-        destination: "/apps/bot-protection-app-fixed/admin/settings",
-      },
-      {
-        label: "ブロック設定",
-        destination: "/apps/bot-protection-app-fixed/admin/list-ip",
-      },
-    ] as any;
+      { label: "ダッシュボード", destination: "/apps/bot-protection-proxy/dashboard" },
+      { label: "アクセスログ", destination: "/apps/bot-protection-proxy/admin/logs" },
+      { label: "管理者設定", destination: "/apps/bot-protection-proxy/admin/settings" },
+      { label: "ブロック設定", destination: "/apps/bot-protection-proxy/admin/list-ip" },
+    ];
 
     const menu = NavigationMenu.create(app, { items });
     console.log("✅ NavigationMenu attached from root:", menu);
