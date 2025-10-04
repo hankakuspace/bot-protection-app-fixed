@@ -1,31 +1,45 @@
 // src/app/page.tsx
-export default function Home(props: any) {
-  const searchParams = props?.searchParams;
-  console.log("🟢 / page.tsx searchParams:", searchParams);
+"use client";
 
-  const host =
-    typeof searchParams?.host === "string"
-      ? searchParams.host
-      : undefined;
+import { useEffect } from "react";
+import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
+
+export default function Home() {
+  const app = useAppBridgeCustom();
+
+  useEffect(() => {
+    if (!app) return;
+    console.log("🟢 NavigationMenu attaching from root /");
+
+    const items = [
+      {
+        label: "ダッシュボード",
+        destination: "/apps/bot-protection-app-fixed/dashboard",
+      },
+      {
+        label: "アクセスログ",
+        destination: "/apps/bot-protection-app-fixed/admin/logs",
+      },
+      {
+        label: "管理者設定",
+        destination: "/apps/bot-protection-app-fixed/admin/settings",
+      },
+      {
+        label: "ブロック設定",
+        destination: "/apps/bot-protection-app-fixed/admin/list-ip",
+      },
+    ] as any;
+
+    const menu = NavigationMenu.create(app, { items });
+    console.log("✅ NavigationMenu attached from root:", menu);
+  }, [app]);
 
   return (
     <main>
       <h1>Bot Guard MAN</h1>
-
-      <p>Host detected: {host ? `✅ ${host}` : "❌ 取得できませんでした"}</p>
-
-      {host && (
-        <p>
-          <a href={`/test-nav?host=${host}`}>➡ サイドナビテストへ</a>
-        </p>
-      )}
-
-      {!host && (
-        <p>
-          ⚠️ host が URL に含まれていません。
-          Admin から開かないと host は渡されません。
-        </p>
-      )}
+      <p>トップ階層で NavigationMenu を attach 済み。</p>
+      <p>左サイドナビに「ダッシュボード / アクセスログ / 管理者設定 / ブロック設定」が表示されるはずです。</p>
     </main>
   );
 }
