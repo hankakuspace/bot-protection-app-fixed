@@ -1,39 +1,34 @@
 "use client";
 
-import React, { useEffect } from "react"; // 👈 React を必ず import
-import { createApp } from "@shopify/app-bridge";
+import { useEffect } from "react";
+import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
-export default function NavTestPage() {
+export default function TestNavPage() {
+  const app = useAppBridgeCustom();
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const host = params.get("host") || "";
-    console.log("🟢 host param:", host);
+    if (!app) return;
 
-    if (!host) {
-      console.warn("⚠️ host missing");
-      return;
-    }
+    console.log("🟢 NavigationMenu attaching via Actions API...");
 
-    const app = createApp({
-      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
-      host,
-      forceRedirect: true,
+    // ✅ 現行Shopify App Bridge APIでattachする（最も安定）
+    const navigationMenu = NavigationMenu.create(app, {
+      items: [
+        { label: "ダッシュボード", destination: "/apps/bot-protection-app-fixed/dashboard" },
+        { label: "アクセスログ", destination: "/apps/bot-protection-app-fixed/admin/logs" },
+        { label: "管理者設定", destination: "/apps/bot-protection-app-fixed/admin/settings" },
+        { label: "ブロック設定", destination: "/apps/bot-protection-app-fixed/admin/list-ip" },
+      ],
     });
-    console.log("🟢 AppBridge created:", app);
 
-    const defined = customElements.get("ui-nav-menu");
-    console.log("🟢 ui-nav-menu defined?:", defined);
-  }, []);
+    console.log("✅ NavigationMenu attached:", navigationMenu);
+  }, [app]);
 
   return (
     <main>
-      <h1>Nav Test</h1>
-      {/* ✅ JSX ではなく createElement で生成 → 型エラー完全回避 */}
-      {React.createElement(
-        "ui-nav-menu",
-        null,
-        <a href="/apps/bot-protection-proxy/test">テストリンク</a>
-      )}
+      <h1>NavigationMenu (Actions API版)</h1>
+      <p>Shopify Admin 左サイドにメニューをattachしています。</p>
     </main>
   );
 }
