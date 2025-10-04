@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect } from "react"; // 👈 React を必ず import
 import { createApp } from "@shopify/app-bridge";
 
 export default function NavTestPage() {
@@ -28,7 +28,7 @@ export default function NavTestPage() {
   return (
     <main>
       <h1>Nav Test</h1>
-      {/* ✅ JSX ではなく createElement で生成（型エラー完全回避） */}
+      {/* ✅ JSX ではなく createElement で生成 → 型エラー完全回避 */}
       {React.createElement(
         "ui-nav-menu",
         null,
