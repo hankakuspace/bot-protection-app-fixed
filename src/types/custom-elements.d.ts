@@ -12,4 +12,4 @@ declare global {
   }
 }
 
-export {}; // 👈 必須
+export {}; // 👈 必ず追加
