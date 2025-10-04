@@ -1,14 +1,13 @@
-// src/app/test-nav/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { createApp } from "@shopify/app-bridge";
 
-// ✅ ローカルで augment（確実に効く）
+// ✅ JSX の型チェックを強制的に無視させる
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      "ui-nav-menu": any; // 型を緩くしてまずビルドを通す
+      "ui-nav-menu": any;
     }
   }
 }
@@ -40,6 +39,7 @@ export default function NavTestPage() {
   return (
     <main>
       <h1>Nav Test</h1>
+      {/* ✅ 型エラーを確実に回避 */}
       <ui-nav-menu>
         <a href="/apps/bot-protection-proxy/test">テストリンク</a>
       </ui-nav-menu>
