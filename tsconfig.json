@@ -14,7 +14,6 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    // "types": ["node"], ← ❌ 削除
     "skipLibCheck": true,
     "incremental": true,
     "resolveJsonModule": true,
@@ -25,7 +24,7 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "src/**/*",
-    "types/**/*.d.ts"
+    "src/types/**/*.d.ts"   // ✅ ここを追加
   ],
   "exclude": ["node_modules"]
 }

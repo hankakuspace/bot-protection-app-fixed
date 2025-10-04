@@ -1,3 +1,4 @@
+// src/types/custom-elements.d.ts
 import React from "react";
 
 declare global {
@@ -10,3 +11,5 @@ declare global {
     }
   }
 }
+
+export {}; // 👈 必須
