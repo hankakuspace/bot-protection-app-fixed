@@ -1,22 +1,28 @@
 // src/app/layout.tsx
-import "./globals.css";
-import type { Metadata } from "next";
-import { AppBridgeProvider } from "@/lib/AppBridgeProvider";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Bot Guard MAN",
-  description: "Shopify bot protection app",
-};
+import { useEffect } from "react";
+import { AppBridgeProvider } from "@/lib/AppBridgeProvider";
+import { NavigationMenu } from "@shopify/app-bridge/actions";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  console.log("🟢 RootLayout loaded");
+  useEffect(() => {
+    const app = (window as any).appBridge;
+    if (!app) return;
+
+    const items = [
+      { label: "ダッシュボード", destination: "/apps/bot-protection-proxy/dashboard" },
+      { label: "アクセスログ", destination: "/apps/bot-protection-proxy/admin/logs" },
+      { label: "管理者設定", destination: "/apps/bot-protection-proxy/admin/settings" },
+      { label: "ブロック設定", destination: "/apps/bot-protection-proxy/admin/list-ip" },
+    ] as any;
+
+    const menu = NavigationMenu.create(app, { items });
+    console.log("✅ NavigationMenu attached from layout:", menu);
+  }, []);
 
   return (
     <html lang="ja">
-      <head>
-        {/* ✅ AppBridge 本体のみを読み込む（Web Components ローダーは完全削除） */}
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-      </head>
       <body>
         <AppBridgeProvider>{children}</AppBridgeProvider>
       </body>
