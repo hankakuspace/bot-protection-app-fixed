@@ -1,8 +1,17 @@
-// src/app/nav-test/page.tsx
+// src/app/test-nav/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { createApp } from "@shopify/app-bridge";
+
+// ✅ ローカルで augment（確実に効く）
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "ui-nav-menu": any; // 型を緩くしてまずビルドを通す
+    }
+  }
+}
 
 export default function NavTestPage() {
   useEffect(() => {
@@ -26,11 +35,6 @@ export default function NavTestPage() {
     // ✅ ローダー確認
     const defined = customElements.get("ui-nav-menu");
     console.log("🟢 ui-nav-menu defined?:", defined);
-
-    // ✅ 実際に attach する
-    if (defined) {
-      console.log("🟢 creating <ui-nav-menu> element...");
-    }
   }, []);
 
   return (
