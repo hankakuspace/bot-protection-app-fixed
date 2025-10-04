@@ -1,3 +1,4 @@
+// src/app/test-nav/page.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -12,15 +13,16 @@ export default function TestNavPage() {
 
     console.log("🟢 NavigationMenu attaching via Actions API...");
 
-    // ✅ 現行Shopify App Bridge APIでattachする（最も安定）
-    const navigationMenu = NavigationMenu.create(app, {
-      items: [
-        { label: "ダッシュボード", destination: "/apps/bot-protection-app-fixed/dashboard" },
-        { label: "アクセスログ", destination: "/apps/bot-protection-app-fixed/admin/logs" },
-        { label: "管理者設定", destination: "/apps/bot-protection-app-fixed/admin/settings" },
-        { label: "ブロック設定", destination: "/apps/bot-protection-app-fixed/admin/list-ip" },
-      ],
-    });
+    // ✅ 型定義の誤判定を避けるため any キャストを使用
+    const items = [
+      { label: "ダッシュボード", destination: "/apps/bot-protection-app-fixed/dashboard" },
+      { label: "アクセスログ", destination: "/apps/bot-protection-app-fixed/admin/logs" },
+      { label: "管理者設定", destination: "/apps/bot-protection-app-fixed/admin/settings" },
+      { label: "ブロック設定", destination: "/apps/bot-protection-app-fixed/admin/list-ip" },
+    ] as any;
+
+    // ✅ 最小構成の attach 呼び出し
+    const navigationMenu = NavigationMenu.create(app, { items });
 
     console.log("✅ NavigationMenu attached:", navigationMenu);
   }, [app]);
