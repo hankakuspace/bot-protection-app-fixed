@@ -17,10 +17,7 @@ const nextConfig = {
     };
 
     // ✅ "src" を modules に追加
-    config.resolve.modules = [
-      path.resolve(__dirname, "src"),
-      "node_modules",
-    ];
+    config.resolve.modules = [path.resolve(__dirname, "src"), "node_modules"];
 
     return config;
   },
@@ -30,11 +27,20 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
+          // ✅ サポート指定の CSP
           {
             key: "Content-Security-Policy",
-            value:
-              "frame-ancestors https://admin.shopify.com https://*.myshopify.com",
+            value: [
+              "default-src 'self' https://cdn.shopify.com https://admin.shopify.com https://*.myshopify.com;",
+              "frame-ancestors https://admin.shopify.com https://*.myshopify.com;",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://*.vercel.app;",
+              "connect-src 'self' https://cdn.shopify.com https://admin.shopify.com https://*.myshopify.com https://*.vercel.app;",
+              "style-src 'self' 'unsafe-inline' https://cdn.shopify.com;",
+              "img-src 'self' data: blob: https://cdn.shopify.com;",
+            ].join(" "),
           },
+          // ✅ X-Frame-Options 削除（frame-ancestors が優先）
+          { key: "X-Frame-Options", value: "" },
           { key: "Referrer-Policy", value: "origin-when-cross-origin" },
           {
             key: "Permissions-Policy",

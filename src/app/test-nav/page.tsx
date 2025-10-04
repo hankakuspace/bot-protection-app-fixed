@@ -1,38 +1,44 @@
-// src/app/test-nav/page.tsx
+// src/app/nav-test/page.tsx
 "use client";
 
 import { useEffect } from "react";
-import { useAppBridgeCustom } from "@/lib/AppBridgeProvider";
-import { NavigationMenu } from "@shopify/app-bridge/actions";
+import { createApp } from "@shopify/app-bridge";
 
-export default function TestNavPage() {
-  const app = useAppBridgeCustom();
-
+export default function NavTestPage() {
   useEffect(() => {
-    if (!app) return;
-
-    console.log("🟢 NavigationMenu attaching...");
-
     const params = new URLSearchParams(window.location.search);
     const host = params.get("host") || "";
-    const baseUrl = `/apps/bot-protection-app-fixed`;
+    console.log("🟢 host param:", host);
 
-    NavigationMenu.create(app, {
-      items: [
-        { label: "ダッシュボード", destination: `${baseUrl}/dashboard?host=${host}` },
-        { label: "アクセスログ", destination: `${baseUrl}/admin/logs?host=${host}` },
-        { label: "管理者設定", destination: `${baseUrl}/admin/settings?host=${host}` },
-        { label: "ブロック設定", destination: `${baseUrl}/admin/list-ip?host=${host}` },
-      ] as any,
+    if (!host) {
+      console.warn("⚠️ host missing");
+      return;
+    }
+
+    // ✅ App Bridge 初期化
+    const app = createApp({
+      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "",
+      host,
+      forceRedirect: true,
     });
+    console.log("🟢 AppBridge created:", app);
 
-    console.log("🟢 NavigationMenu attached");
-  }, [app]);
+    // ✅ ローダー確認
+    const defined = customElements.get("ui-nav-menu");
+    console.log("🟢 ui-nav-menu defined?:", defined);
+
+    // ✅ 実際に attach する
+    if (defined) {
+      console.log("🟢 creating <ui-nav-menu> element...");
+    }
+  }, []);
 
   return (
     <main>
-      <h1>Test NavigationMenu (Actions API)</h1>
-      <p>AppBridge NavigationMenu を attach 済み。</p>
+      <h1>Nav Test</h1>
+      <ui-nav-menu>
+        <a href="/apps/bot-protection-proxy/test">テストリンク</a>
+      </ui-nav-menu>
     </main>
   );
 }
