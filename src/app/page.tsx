@@ -16,25 +16,13 @@ export default function Home() {
 
     console.log("🟢 NavigationMenu attaching from root /");
 
-    // ✅ NavigationMenu.Link.create() を使用して正しい型にする
+    // ✅ v2系構文：items を as any で通す
     const items = [
-      NavigationMenu.Link.create(app, {
-        label: "ダッシュボード",
-        destination: "/apps/bot-protection-proxy/dashboard",
-      }),
-      NavigationMenu.Link.create(app, {
-        label: "アクセスログ",
-        destination: "/apps/bot-protection-proxy/admin/logs",
-      }),
-      NavigationMenu.Link.create(app, {
-        label: "管理者設定",
-        destination: "/apps/bot-protection-proxy/admin/settings",
-      }),
-      NavigationMenu.Link.create(app, {
-        label: "ブロック設定",
-        destination: "/apps/bot-protection-proxy/admin/list-ip",
-      }),
-    ];
+      { label: "ダッシュボード", destination: "/apps/bot-protection-proxy/dashboard" },
+      { label: "アクセスログ", destination: "/apps/bot-protection-proxy/admin/logs" },
+      { label: "管理者設定", destination: "/apps/bot-protection-proxy/admin/settings" },
+      { label: "ブロック設定", destination: "/apps/bot-protection-proxy/admin/list-ip" },
+    ] as any;
 
     const menu = NavigationMenu.create(app, { items });
     console.log("✅ NavigationMenu attached from root:", menu);
