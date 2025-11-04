@@ -1,13 +1,15 @@
-/** @type {import('next').NextConfig} */
+// next.config.js
 const path = require('path');
 
-const nextConfig = {
+/** @type {import('next').NextConfig} */
+module.exports = {
   reactStrictMode: true,
-  // ✅ appDir は15.5以降常時有効なので不要
-  webpack: (config) => {
-    config.resolve.alias['@'] = path.join(__dirname, 'src'); // ← alias定義
+  webpack(config) {
+    // Vercel の Linux 環境でも確実に解決できる書き方
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@': path.resolve(__dirname, 'src'),
+    };
     return config;
   },
 };
-
-module.exports = nextConfig;
