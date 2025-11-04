@@ -7,21 +7,17 @@ export default function Home() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    console.log("🟢 Waiting for Shopify Web Components loader...");
     const timer = setInterval(() => {
-      if ((window as any).Shopify?.ui) {
-        console.log("✅ Shopify Web Components ready");
+      if (window.customElements.get("s-app-nav")) {
+        console.log("✅ s-app-nav ready");
         clearInterval(timer);
         setReady(true);
       }
     }, 300);
-
     return () => clearInterval(timer);
   }, []);
 
-  if (!ready) {
-    return <p style={{ padding: "2rem" }}>⌛ 初期化中...</p>;
-  }
+  if (!ready) return <p style={{ padding: "2rem" }}>⌛ 初期化中...</p>;
 
   return (
     <main style={{ padding: "2rem" }}>

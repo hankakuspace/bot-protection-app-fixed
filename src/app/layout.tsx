@@ -16,10 +16,10 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        {/* ✅ 404防止: latest 安定版 */}
+        {/* ✅ 実在する安定バージョン */}
         <script
           type="module"
-          src="https://cdn.shopify.com/shopifycloud/app-bridge-web-components/latest/loader.js"
+          src="https://cdn.shopify.com/shopifycloud/app-bridge-web-components/1.0.11/loader.js"
         ></script>
 
         <AppBridgeProvider>{children}</AppBridgeProvider>
