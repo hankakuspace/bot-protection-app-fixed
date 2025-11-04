@@ -1,8 +1,7 @@
 // src/lib/AppBridgeProvider.tsx
 "use client";
 
-// ✅ import パスに `/dist` を明示（v4.2.7 仕様）
-import { AppBridgeReactProvider } from "@shopify/app-bridge-react/dist";
+import Provider from "@shopify/app-bridge-react/build/Provider";
 import { useEffect, useState } from "react";
 
 export default function AppBridgeProvider({
@@ -27,5 +26,5 @@ export default function AppBridgeProvider({
 
   if (!config) return null;
 
-  return <AppBridgeReactProvider config={config}>{children}</AppBridgeReactProvider>;
+  return <Provider config={config}>{children}</Provider>;
 }
