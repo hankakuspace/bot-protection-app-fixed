@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "vercel-build": "next build"
+    "build": "next build",
+    "start": "next start",
+    "vercel-build": "next build"
   },
   "dependencies": {
+    "@shopify/app-bridge": "^3.7.10",
+    "@shopify/app-bridge-react": "^4.2.7",
     "firebase": "^10.14.1",
     "geoip-lite": "^1.4.10",
     "next": "^15.4.6",
