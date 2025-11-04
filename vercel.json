@@ -1,7 +1,6 @@
 {
   "version": 2,
   "buildCommand": "npm install --legacy-peer-deps && npm run build",
-  "routes": [
-    { "src": "/loader.js", "dest": "/loader.js" }
-  ]
+  "outputDirectory": ".next",
+  "framework": "nextjs"
 }
