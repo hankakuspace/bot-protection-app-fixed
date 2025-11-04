@@ -1,12 +1,27 @@
 // src/app/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    console.log("🟢 s-app-nav rendering...");
+    console.log("🟢 Waiting for Shopify Web Components loader...");
+    const timer = setInterval(() => {
+      if ((window as any).Shopify?.ui) {
+        console.log("✅ Shopify Web Components ready");
+        clearInterval(timer);
+        setReady(true);
+      }
+    }, 300);
+
+    return () => clearInterval(timer);
   }, []);
+
+  if (!ready) {
+    return <p style={{ padding: "2rem" }}>⌛ 初期化中...</p>;
+  }
 
   return (
     <main style={{ padding: "2rem" }}>
