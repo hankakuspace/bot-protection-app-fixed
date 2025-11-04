@@ -1,10 +1,10 @@
 // src/lib/AppBridgeProvider.tsx
 "use client";
 
-import { Provider } from "@shopify/app-bridge-react";
+import { AppBridgeProvider } from "@shopify/app-bridge-react";
 import { useEffect, useState } from "react";
 
-export default function AppBridgeProvider({
+export default function AppBridgeProviderWrapper({
   children,
 }: {
   children: React.ReactNode;
@@ -26,5 +26,5 @@ export default function AppBridgeProvider({
 
   if (!config) return null;
 
-  return <Provider config={config}>{children}</Provider>;
+  return <AppBridgeProvider config={config}>{children}</AppBridgeProvider>;
 }

@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 "use client";
 
-import AppBridgeProvider from "@/lib/AppBridgeProvider";
+import AppBridgeProviderWrapper from "@/lib/AppBridgeProvider";
 import { useEffect } from "react";
 
 export default function RootLayout({
@@ -22,7 +22,7 @@ export default function RootLayout({
           src="https://cdn.shopify.com/shopifycloud/app-bridge-web-components/2.0/loader.js"
         ></script>
 
-        <AppBridgeProvider>{children}</AppBridgeProvider>
+        <AppBridgeProviderWrapper>{children}</AppBridgeProviderWrapper>
       </body>
     </html>
   );
