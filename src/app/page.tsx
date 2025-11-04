@@ -5,11 +5,12 @@ import { useEffect } from "react";
 
 export default function Home() {
   useEffect(() => {
-    console.log("🟢 Home page loaded for bot-protection-proxy");
+    console.log("🟢 s-app-nav rendering...");
   }, []);
 
   return (
     <main style={{ padding: "2rem" }}>
+      {/* ✅ Shopify 新仕様ナビゲーション（App Bridge Web Components） */}
       <s-app-nav>
         <s-link href="/apps/bot-protection-proxy/dashboard" slot="item">
           ダッシュボード
