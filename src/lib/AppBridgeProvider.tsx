@@ -1,10 +1,10 @@
 // src/lib/AppBridgeProvider.tsx
 "use client";
 
-import { AppBridgeProvider } from "@shopify/app-bridge-react";
+import { Provider } from "@shopify/app-bridge-react";
 import { useEffect, useState } from "react";
 
-export default function AppBridgeProviderWrapper({
+export default function AppBridgeProvider({
   children,
 }: {
   children: React.ReactNode;
@@ -14,7 +14,6 @@ export default function AppBridgeProviderWrapper({
   useEffect(() => {
     const host = new URLSearchParams(window.location.search).get("host");
     const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
-
     if (host && apiKey) {
       setConfig({
         apiKey,
@@ -26,5 +25,5 @@ export default function AppBridgeProviderWrapper({
 
   if (!config) return null;
 
-  return <AppBridgeProvider config={config}>{children}</AppBridgeProvider>;
+  return <Provider config={config}>{children}</Provider>;
 }
