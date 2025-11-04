@@ -1,7 +1,7 @@
 // src/lib/AppBridgeProvider.tsx
 "use client";
 
-import AppBridgeReactProvider from "@shopify/app-bridge-react";
+import { AppBridgeReactProvider } from "@shopify/app-bridge-react";
 import { useEffect, useState } from "react";
 
 export default function AppBridgeProvider({
