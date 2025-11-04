@@ -1,38 +1,47 @@
 {
   "compilerOptions": {
+    /* === ビルドターゲット設定 === */
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
+
+    /* === JavaScript対応・厳格モード === */
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
+
+    /* === モジュールとJSX設定 === */
+    "module": "esnext",
+    "moduleResolution": "node",
     "jsx": "preserve",
     "incremental": true,
 
-    // ✅ 修正ここから
-    "baseUrl": ".",
+    /* === パスエイリアス設定 === */
+    "baseUrl": ".",                    // ✅ プロジェクトルートを基準に
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"]                 // ✅ '@/...' を src 以下にマッピング
     },
-    // ✅ 修正ここまで
 
+    /* === Next.jsプラグイン === */
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
+
+  /* === 対象ファイル === */
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
+
+  /* === 除外 === */
   "exclude": ["node_modules"]
 }
