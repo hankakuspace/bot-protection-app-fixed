@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        {/* ✅ Shopify Web Components Loader */}
+        {/* Shopify Web Components Loader */}
         <script
           type="module"
           src="https://cdn.shopify.com/shopifycloud/app-bridge-web-components/2.0/loader.js"
