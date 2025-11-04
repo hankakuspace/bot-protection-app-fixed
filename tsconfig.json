@@ -36,10 +36,11 @@
 
   /* === 対象ファイル === */
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
+  "next-env.d.ts",
+  "types/**/*.d.ts",
+  "**/*.ts",
+  "**/*.tsx",
+  ".next/types/**/*.ts"
   ],
 
   /* === 除外 === */
