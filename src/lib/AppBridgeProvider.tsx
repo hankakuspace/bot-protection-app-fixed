@@ -14,6 +14,7 @@ export default function AppBridgeProvider({
   useEffect(() => {
     const host = new URLSearchParams(window.location.search).get("host");
     const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
+
     if (host && apiKey) {
       setConfig({
         apiKey,
