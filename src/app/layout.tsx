@@ -1,5 +1,5 @@
 // src/app/layout.tsx
-import './globals.css';
+import '@/app/globals.css';
 export const metadata = {
   title: 'Bot Protection App',
   description: 'IP block admin tool',
