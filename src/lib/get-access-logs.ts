@@ -1,7 +1,6 @@
 // src/lib/get-access-logs.ts
-
 import { collection, getDocs, getFirestore, query, orderBy } from 'firebase/firestore';
-import { app } from './firebase';
+import { app } from '@/lib/firebase'; // ✅ 修正ポイント
 
 export async function getAccessLogs() {
   const db = getFirestore(app);
