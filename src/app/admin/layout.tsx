@@ -4,13 +4,26 @@
 import { useEffect, useState } from "react";
 import { AppProvider, Frame } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
-import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
+import * as appBridgeReact from "@shopify/app-bridge-react";
+
+const AppBridgeProvider: any = (appBridgeReact as any).Provider || (appBridgeReact as any).default;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [host, setHost] = useState<string | null>(null);
-  const [loaderReady, setLoaderReady] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // ✅ CDNのloader.jsをローカルに置き換える
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const [url, options] = args;
+      if (typeof url === "string" && url.includes("shopifycloud/app-bridge-web-components")) {
+        console.warn("⚠️ Redirecting loader.js request to /loader.js");
+        return originalFetch("/loader.js", options);
+      }
+      return originalFetch(url, options);
+    };
+
     // hostの取得
     const params = new URLSearchParams(window.location.search);
     const h = params.get("host");
@@ -21,34 +34,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setHost(sessionStorage.getItem("shopify-host"));
     }
 
-    // ✅ ローカル版 loader.js を明示的に読み込み
+    // loader.js ローカル読み込み
     const script = document.createElement("script");
     script.src = "/loader.js";
-    script.async = true;
     script.onload = () => {
-      console.log("✅ Local loader.js loaded successfully");
-      // ✅ 必ず定義を確認してからフラグを立てる
-      if (window.customElements.get("s-app-nav")) {
-        console.log("✅ Web Components registered");
-      } else {
-        console.log("⚠️ Registering custom elements manually");
-        customElements.define("s-app-nav", class extends HTMLElement {});
-        customElements.define("s-nav-menu", class extends HTMLElement {});
-        customElements.define("s-nav-menu-item", class extends HTMLElement {});
-      }
-      setLoaderReady(true);
+      console.log("✅ Local loader.js loaded");
+      setReady(true);
     };
     script.onerror = () => console.error("❌ Failed to load local loader.js");
     document.head.appendChild(script);
   }, []);
 
-  if (!host || !loaderReady) return null;
+  if (!ready || !host) return null;
 
   return (
     <AppBridgeProvider
       config={{
         apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
-        host: host,
+        host: host!,
         forceRedirect: true,
       }}
     >
