@@ -13,16 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [host, setHost] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const h = params.get("host");
-    if (h) {
-      sessionStorage.setItem("shopify-host", h);
-      setHost(h);
-    } else {
-      setHost(sessionStorage.getItem("shopify-host"));
-    }
-
-    // ✅ React が落ちる前にCustom Elementsを自前定義
+    // ✅ 手動で Web Components 定義
     if (!window.customElements.get("s-app-nav")) {
       customElements.define("s-app-nav", class extends HTMLElement {});
     }
@@ -32,8 +23,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!window.customElements.get("s-nav-menu-item")) {
       customElements.define("s-nav-menu-item", class extends HTMLElement {});
     }
+    console.log("✅ Custom Web Components registered manually (no CDN)");
 
-    console.log("✅ Manual Web Components registered (no CDN)");
+    // host 取得
+    const params = new URLSearchParams(window.location.search);
+    const h = params.get("host");
+    if (h) {
+      sessionStorage.setItem("shopify-host", h);
+      setHost(h);
+    } else {
+      setHost(sessionStorage.getItem("shopify-host"));
+    }
   }, []);
 
   if (!host) return null;
@@ -48,7 +48,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     >
       <AppProvider>
         <Frame>
-          {/* ✅ 自前登録したコンポーネントを使用 */}
           <s-app-nav>
             <s-nav-menu>
               <s-nav-menu-item label="Dashboard" />
