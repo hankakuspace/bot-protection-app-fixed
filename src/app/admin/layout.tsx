@@ -11,9 +11,10 @@ const AppBridgeProvider: any =
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [host, setHost] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // ✅ 手動で Web Components 定義
+    // ✅ loader.js なしでWeb Componentsを自前登録
     if (!window.customElements.get("s-app-nav")) {
       customElements.define("s-app-nav", class extends HTMLElement {});
     }
@@ -24,8 +25,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       customElements.define("s-nav-menu-item", class extends HTMLElement {});
     }
     console.log("✅ Custom Web Components registered manually (no CDN)");
+    setReady(true);
 
-    // host 取得
+    // hostの取得
     const params = new URLSearchParams(window.location.search);
     const h = params.get("host");
     if (h) {
@@ -36,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  if (!host) return null;
+  if (!ready || !host) return null;
 
   return (
     <AppBridgeProvider
@@ -48,6 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     >
       <AppProvider>
         <Frame>
+          {/* ✅ 自前定義されたWeb Componentsでクラッシュ防止 */}
           <s-app-nav>
             <s-nav-menu>
               <s-nav-menu-item label="Dashboard" />
