@@ -2,28 +2,32 @@
   "name": "bot-protection-app",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "vercel-build": "npm install --legacy-peer-deps && next build"
-  },
-  "dependencies": {
-    "@shopify/app-bridge": "^3.7.10",
-    "@shopify/app-bridge-react": "^2.0.5",
-    "@shopify/polaris": "^13.7.0",
-    "firebase": "^10.14.1",
-    "geoip-lite": "^1.4.10",
-    "next": "^15.4.6",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
   "description": "",
   "main": "index.js",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "vercel-build": "npm install --legacy-peer-deps && next build"
+  },
+
+  "dependencies": {
+    "@shopify/app-bridge": "^3.7.10",
+    "@shopify/app-bridge-react": "^2.0.5",
+    "@shopify/polaris": "^13.7.0",
+    "firebase": "^10.14.1",
+    "geoip-lite": "^1.4.10",
+    "next": "^15.5.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.2"
+  },
+
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^24.10.0",
@@ -31,7 +35,6 @@
     "@types/react-dom": "^19.2.2",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.11",
-    "typescript": "^5.9.2"
+    "tailwindcss": "^4.1.11"
   }
 }
