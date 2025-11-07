@@ -1,3 +1,4 @@
+// src/app/admin/layout.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } else {
       setHost(sessionStorage.getItem("shopify-host"));
     }
-    console.log("✅ AppBridge v3 active - Polaris Navigation in use");
+    console.log("✅ Using App Bridge v3 + Polaris Navigation (no loader.js)");
   }, []);
 
   if (!host) return null;
