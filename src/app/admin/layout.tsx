@@ -10,10 +10,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [host, setHost] = useState<string | null>(null);
 
   useEffect(() => {
+    // ✅ Shopifyの古いloader.js呼び出しをブロック
+    (window as any).ShopifyAppBridgeWebComponents = "disabled";
+
     const h = new URLSearchParams(window.location.search).get("host");
     if (h) sessionStorage.setItem("shopify-host", h);
     setHost(h || sessionStorage.getItem("shopify-host"));
-    console.log("✅ AppBridge v3 active - no loader.js");
+    console.log("✅ AppBridge v3 active - forced disable of Shopify WebComponents loader");
   }, []);
 
   if (!host) return null;
@@ -32,7 +35,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AppBridgeProvider
-      config={{ apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!, host, forceRedirect: true }}
+      config={{
+        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
+        host: host!,
+        forceRedirect: true,
+      }}
     >
       <AppProvider>
         <Frame navigation={navigationMarkup}>{children}</Frame>
