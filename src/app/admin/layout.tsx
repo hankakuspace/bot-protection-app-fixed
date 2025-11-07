@@ -10,15 +10,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [host, setHost] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const h = params.get("host");
-    if (h) {
-      sessionStorage.setItem("shopify-host", h);
-      setHost(h);
-    } else {
-      setHost(sessionStorage.getItem("shopify-host"));
-    }
-    console.log("✅ AppBridge v3 active - no loader.js dependency");
+    const h = new URLSearchParams(window.location.search).get("host");
+    if (h) sessionStorage.setItem("shopify-host", h);
+    setHost(h || sessionStorage.getItem("shopify-host"));
+    console.log("✅ AppBridge v3 active - no loader.js");
   }, []);
 
   if (!host) return null;
@@ -29,20 +24,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         items={[
           { label: "Dashboard", url: "/admin" },
           { label: "Logs", url: "/admin/logs" },
-          { label: "Blocked IPs", url: "/admin/list-ip" },
+          { label: "Blocked IPs", url: "/admin/list-ip" }
         ]}
       />
     </Navigation>
   );
 
   return (
-    <AppBridgeProvider
-      config={{
-        apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
-        host,
-        forceRedirect: true,
-      }}
-    >
+    <AppBridgeProvider config={{ apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!, host, forceRedirect: true }}>
       <AppProvider>
         <Frame navigation={navigationMarkup}>{children}</Frame>
       </AppProvider>
