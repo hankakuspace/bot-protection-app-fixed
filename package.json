@@ -17,7 +17,7 @@
   "dependencies": {
     "@shopify/app-bridge": "^3.7.10",
     "@shopify/app-bridge-react": "^3.7.10",
-    "@shopify/polaris": "^13.7.0",
+    "@shopify/polaris": "^13.9.0",
     "firebase": "^10.14.1",
     "geoip-lite": "^1.4.10",
     "next": "^15.5.6",
