@@ -13,7 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [host, setHost] = useState<string | null>(null);
 
   useEffect(() => {
-    // ✅ Shopify CDNを完全に使わず、Custom Elementsを手動登録
+    // ✅ CDNに頼らずCustom Elementsを自前登録
     if (!window.customElements.get("s-app-nav")) {
       customElements.define("s-app-nav", class extends HTMLElement {});
     }
@@ -23,10 +23,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!window.customElements.get("s-nav-menu-item")) {
       customElements.define("s-nav-menu-item", class extends HTMLElement {});
     }
+    console.log("✅ Custom Web Components registered manually (no CDN)");
 
-    console.log("✅ Custom Web Components registered manually (no Shopify CDN)");
-
-    // host取得
+    // hostの取得
     const params = new URLSearchParams(window.location.search);
     const h = params.get("host");
     if (h) {
@@ -49,6 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     >
       <AppProvider>
         <Frame>
+          {/* ✅ 自前登録されたタグなのでReactエラーしない */}
           <s-app-nav>
             <s-nav-menu>
               <s-nav-menu-item label="Dashboard" />
