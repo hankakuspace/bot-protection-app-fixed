@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppProvider, Frame } from "@shopify/polaris";
+import { AppProvider, Frame, Navigation } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
 import * as appBridgeReact from "@shopify/app-bridge-react";
 
@@ -13,20 +13,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [host, setHost] = useState<string | null>(null);
 
   useEffect(() => {
-    // ✅ Shopify CDNは完全排除、自前でCustom Elements登録
-    if (!window.customElements.get("s-app-nav")) {
-      customElements.define("s-app-nav", class extends HTMLElement {});
-    }
-    if (!window.customElements.get("s-nav-menu")) {
-      customElements.define("s-nav-menu", class extends HTMLElement {});
-    }
-    if (!window.customElements.get("s-nav-menu-item")) {
-      customElements.define("s-nav-menu-item", class extends HTMLElement {});
-    }
-
-    console.log("✅ Custom Web Components registered manually (no Shopify CDN)");
-
-    // hostの取得
     const params = new URLSearchParams(window.location.search);
     const h = params.get("host");
     if (h) {
@@ -35,9 +21,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } else {
       setHost(sessionStorage.getItem("shopify-host"));
     }
+
+    console.log("✅ Using Polaris Navigation (no s-app-nav, no CDN loader)");
   }, []);
 
   if (!host) return null;
+
+  const navigationMarkup = (
+    <Navigation location="/">
+      <Navigation.Section
+        items={[
+          { label: "Dashboard", url: "/admin" },
+          { label: "Logs", url: "/admin/logs" },
+          { label: "Blocked IPs", url: "/admin/list-ip" },
+        ]}
+      />
+    </Navigation>
+  );
 
   return (
     <AppBridgeProvider
@@ -48,14 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }}
     >
       <AppProvider>
-        <Frame>
-          <s-app-nav>
-            <s-nav-menu>
-              <s-nav-menu-item label="Dashboard" />
-              <s-nav-menu-item label="Logs" />
-              <s-nav-menu-item label="Blocked IPs" />
-            </s-nav-menu>
-          </s-app-nav>
+        <Frame navigation={navigationMarkup}>
           {children}
         </Frame>
       </AppProvider>
