@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { AppProvider, Frame, Navigation } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
 import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
-import { Redirect } from "@shopify/app-bridge/actions";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [host, setHost] = useState<string | null>(null);
@@ -19,36 +18,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } else {
       setHost(sessionStorage.getItem("shopify-host"));
     }
-    console.log("✅ AppBridge v3 active - host param loaded");
+    console.log("✅ AppBridge v3 active - no loader.js dependency");
   }, []);
 
-  if (!host) {
-    console.log("⏳ Waiting for host param...");
-    return null;
-  }
+  if (!host) return null;
 
   const navigationMarkup = (
     <Navigation location="/">
       <Navigation.Section
         items={[
-          {
-            label: "Dashboard",
-            onClick: () => Redirect.create(window.appBridge).dispatch(
-              Redirect.Action.APP, "/admin"
-            ),
-          },
-          {
-            label: "Logs",
-            onClick: () => Redirect.create(window.appBridge).dispatch(
-              Redirect.Action.APP, "/admin/logs"
-            ),
-          },
-          {
-            label: "Blocked IPs",
-            onClick: () => Redirect.create(window.appBridge).dispatch(
-              Redirect.Action.APP, "/admin/list-ip"
-            ),
-          },
+          { label: "Dashboard", url: "/admin" },
+          { label: "Logs", url: "/admin/logs" },
+          { label: "Blocked IPs", url: "/admin/list-ip" },
         ]}
       />
     </Navigation>
