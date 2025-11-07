@@ -24,14 +24,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         items={[
           { label: "Dashboard", url: "/admin" },
           { label: "Logs", url: "/admin/logs" },
-          { label: "Blocked IPs", url: "/admin/list-ip" }
+          { label: "Blocked IPs", url: "/admin/list-ip" },
         ]}
       />
     </Navigation>
   );
 
   return (
-    <AppBridgeProvider config={{ apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!, host, forceRedirect: true }}>
+    <AppBridgeProvider
+      config={{ apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!, host, forceRedirect: true }}
+    >
       <AppProvider>
         <Frame navigation={navigationMarkup}>{children}</Frame>
       </AppProvider>
