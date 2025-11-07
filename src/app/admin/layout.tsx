@@ -4,10 +4,7 @@
 import { useEffect, useState } from "react";
 import { AppProvider, Frame, Navigation } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
-import * as appBridgeReact from "@shopify/app-bridge-react";
-
-const AppBridgeProvider: any =
-  (appBridgeReact as any).Provider || (appBridgeReact as any).default;
+import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [host, setHost] = useState<string | null>(null);
@@ -21,8 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } else {
       setHost(sessionStorage.getItem("shopify-host"));
     }
-
-    console.log("✅ Using Polaris Navigation (no s-app-nav, no CDN loader)");
+    console.log("✅ AppBridge v3 active - Polaris Navigation loaded");
   }, []);
 
   if (!host) return null;
@@ -48,9 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }}
     >
       <AppProvider>
-        <Frame navigation={navigationMarkup}>
-          {children}
-        </Frame>
+        <Frame navigation={navigationMarkup}>{children}</Frame>
       </AppProvider>
     </AppBridgeProvider>
   );
