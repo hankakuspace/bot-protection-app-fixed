@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AppProvider, Frame, Navigation } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
 import { Provider as AppBridgeProvider } from "@shopify/app-bridge-react";
+import { Redirect } from "@shopify/app-bridge/actions";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [host, setHost] = useState<string | null>(null);
@@ -18,18 +19,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } else {
       setHost(sessionStorage.getItem("shopify-host"));
     }
-    console.log("✅ Using App Bridge v3 + Polaris Navigation (no loader.js)");
+    console.log("✅ AppBridge v3 active - host param loaded");
   }, []);
 
-  if (!host) return null;
+  if (!host) {
+    console.log("⏳ Waiting for host param...");
+    return null;
+  }
 
   const navigationMarkup = (
     <Navigation location="/">
       <Navigation.Section
         items={[
-          { label: "Dashboard", url: "/admin" },
-          { label: "Logs", url: "/admin/logs" },
-          { label: "Blocked IPs", url: "/admin/list-ip" },
+          {
+            label: "Dashboard",
+            onClick: () => Redirect.create(window.appBridge).dispatch(
+              Redirect.Action.APP, "/admin"
+            ),
+          },
+          {
+            label: "Logs",
+            onClick: () => Redirect.create(window.appBridge).dispatch(
+              Redirect.Action.APP, "/admin/logs"
+            ),
+          },
+          {
+            label: "Blocked IPs",
+            onClick: () => Redirect.create(window.appBridge).dispatch(
+              Redirect.Action.APP, "/admin/list-ip"
+            ),
+          },
         ]}
       />
     </Navigation>
@@ -39,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <AppBridgeProvider
       config={{
         apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY!,
-        host: host!,
+        host,
         forceRedirect: true,
       }}
     >
