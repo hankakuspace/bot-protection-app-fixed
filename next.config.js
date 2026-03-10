@@ -8,6 +8,9 @@ const nextConfig = {
     // ✅ 型エラーがあってもビルドを止めない
     ignoreBuildErrors: true,
   },
+  outputFileTracingIncludes: {
+    "/api/proxy": ["node_modules/geoip-lite/data/**/*"],
+  },
   webpack: (config) => {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
     return config;
