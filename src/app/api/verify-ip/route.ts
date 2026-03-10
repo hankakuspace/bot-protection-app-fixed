@@ -1,8 +1,8 @@
 // src/app/api/verify-ip/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { isIpBlocked } from "@/lib/check-ip";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
   try {
     const blocked = ip !== "unknown" ? await isIpBlocked(ip) : false;
 
-    await addDoc(collection(db, "logs"), {
+    await adminDb.collection("logs").add({
       type: "verify-ip",
       ip,
       status: blocked ? "blocked" : "allowed",
       path: "/api/verify-ip",
       userAgent: request.headers.get("user-agent") || "",
       referer: request.headers.get("referer") || "",
-      createdAt: serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     return NextResponse.json(
@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
     console.error("verify-ip error:", error);
 
     try {
-      await addDoc(collection(db, "logs"), {
+      await adminDb.collection("logs").add({
         type: "verify-ip",
         ip,
         status: "error",
         path: "/api/verify-ip",
         userAgent: request.headers.get("user-agent") || "",
         referer: request.headers.get("referer") || "",
-        createdAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       });
     } catch (logError) {
       console.error("verify-ip log write error:", logError);

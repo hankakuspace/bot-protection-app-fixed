@@ -1,10 +1,11 @@
-// src/lib/check-ip.ts
-import { db } from './firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { adminDb } from "./firebase-admin";
 
 export async function isIpBlocked(ip: string): Promise<boolean> {
-  const colRef = collection(db, 'blocked_ips');
-  const q = query(colRef, where('ip', '==', ip));
-  const snapshot = await getDocs(q);
+  const snapshot = await adminDb
+    .collection("blocked_ips")
+    .where("ip", "==", ip)
+    .limit(1)
+    .get();
+
   return !snapshot.empty;
 }
