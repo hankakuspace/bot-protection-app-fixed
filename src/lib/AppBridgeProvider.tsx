@@ -1,41 +1,49 @@
-// src/lib/AppBridgeProvider.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { Provider } from "@shopify/app-bridge-react";
+import { useEffect, useMemo, useState } from "react";
 
-// CommonJS の require で Provider を取得
-let Provider: any;
-try {
-  Provider = require("@shopify/app-bridge-react");
-  console.log("🧩 AppBridgeReact Provider loaded:", Provider);
-} catch (e) {
-  console.error("❌ AppBridgeReact require failed:", e);
-}
-
-export default function AppBridgeProvider({
-  children,
-}: {
+type Props = {
   children: React.ReactNode;
-}) {
-  const [config, setConfig] = useState<any>(null);
+};
+
+export default function AppBridgeProvider({ children }: Props) {
+  const [host, setHost] = useState("");
+  const [isReady, setIsReady] = useState(false);
+
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const host = params.get("host");
-    const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
-    console.log("🧩 AppBridge init", { host, apiKey });
-
-    if (!host || !apiKey) {
-      console.error("❌ Missing host or apiKey for App Bridge");
-      return;
-    }
-
-    setConfig({ apiKey, host, forceRedirect: true });
+    const hostParam = params.get("host") || "";
+    setHost(hostParam);
+    setIsReady(true);
   }, []);
 
-  if (!Provider) return <div>❌ AppBridge Provider not loaded</div>;
-  if (!config) return <div>⌛ AppBridge waiting for config...</div>;
+  const config = useMemo(() => {
+    if (!apiKey || !host) {
+      return null;
+    }
 
-  console.log("✅ Rendering AppBridge Provider with config:", config);
+    return {
+      apiKey,
+      host,
+      forceRedirect: true,
+    };
+  }, [apiKey, host]);
+
+  if (!isReady) {
+    return <div style={{ padding: "2rem" }}>⌛ 初期化中...</div>;
+  }
+
+  if (!apiKey || !host || !config) {
+    console.warn("App Bridge disabled: missing host or apiKey", {
+      hasApiKey: Boolean(apiKey),
+      hasHost: Boolean(host),
+    });
+
+    return <>{children}</>;
+  }
+
   return <Provider config={config}>{children}</Provider>;
 }
