@@ -1,24 +1,43 @@
 // src/app/admin/logs/page.tsx
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { getAccessLogs } from '../../../lib/get-access-logs';
+import { useEffect, useState } from "react";
+import { getAccessLogs } from "../../../lib/get-access-logs";
+
+type AccessLog = {
+  id: string;
+  timestamp?: {
+    toDate?: () => Date;
+  };
+  ip?: string;
+  country?: string;
+  isAdmin?: boolean;
+  blocked?: boolean;
+  userAgent?: string;
+};
 
 export default function LogsPage() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [countryFilter, setCountryFilter] = useState('');
+  const [logs, setLogs] = useState<AccessLog[]>([]);
+  const [countryFilter, setCountryFilter] = useState("");
   const [adminOnly, setAdminOnly] = useState(false);
   const [blockedOnly, setBlockedOnly] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
-      const fetched = await getAccessLogs();
-      setLogs(fetched);
+      try {
+        const fetched = await getAccessLogs();
+        setLogs(Array.isArray(fetched) ? fetched : []);
+      } catch (err) {
+        console.error("logs page error:", err);
+        setError("ログの取得に失敗しました");
+      }
     })();
   }, []);
 
   const filteredLogs = logs.filter((log) => {
-    if (countryFilter && log.country !== countryFilter) return false;
+    if (countryFilter && (log.country || "UNKNOWN") !== countryFilter)
+      return false;
     if (adminOnly && !log.isAdmin) return false;
     if (blockedOnly && !log.blocked) return false;
     return true;
@@ -28,8 +47,9 @@ export default function LogsPage() {
     <main className="p-6">
       <h1 className="text-2xl font-bold mb-4">アクセスログ一覧</h1>
 
-      {/* フィルタUI */}
-      <div className="mb-4 flex gap-4 items-center">
+      {error ? <p className="mb-4 text-red-600">{error}</p> : null}
+
+      <div className="mb-4 flex gap-4 items-center flex-wrap">
         <label>
           国コード:
           <select
@@ -43,6 +63,7 @@ export default function LogsPage() {
             <option value="UNKNOWN">UNKNOWN</option>
           </select>
         </label>
+
         <label>
           <input
             type="checkbox"
@@ -52,6 +73,7 @@ export default function LogsPage() {
           />
           管理者のみ
         </label>
+
         <label>
           <input
             type="checkbox"
@@ -63,7 +85,6 @@ export default function LogsPage() {
         </label>
       </div>
 
-      {/* ログテーブル */}
       <table className="min-w-full border text-sm">
         <thead>
           <tr className="bg-gray-100">
@@ -76,24 +97,32 @@ export default function LogsPage() {
           </tr>
         </thead>
         <tbody>
-          {filteredLogs.map((log) => (
-            <tr key={log.id}>
-              <td className="border px-2 py-1">
-                {log.timestamp?.toDate().toLocaleString?.() || '-'}
+          {filteredLogs.length === 0 ? (
+            <tr>
+              <td className="border px-2 py-3 text-center" colSpan={6}>
+                ログがありません
               </td>
-              <td className="border px-2 py-1">{log.ip}</td>
-              <td className="border px-2 py-1">{log.country}</td>
-              <td className="border px-2 py-1">{log.isAdmin ? '✅' : ''}</td>
-              <td className="border px-2 py-1">{log.blocked ? '🚫' : ''}</td>
-              <td className="border px-2 py-1">{log.userAgent?.slice(0, 30)}...</td>
             </tr>
-          ))}
+          ) : (
+            filteredLogs.map((log) => (
+              <tr key={log.id}>
+                <td className="border px-2 py-1">
+                  {log.timestamp?.toDate?.()?.toLocaleString?.() || "-"}
+                </td>
+                <td className="border px-2 py-1">{log.ip || "-"}</td>
+                <td className="border px-2 py-1">{log.country || "UNKNOWN"}</td>
+                <td className="border px-2 py-1">{log.isAdmin ? "✅" : ""}</td>
+                <td className="border px-2 py-1">{log.blocked ? "🚫" : ""}</td>
+                <td className="border px-2 py-1">
+                  {log.userAgent ? `${log.userAgent.slice(0, 30)}...` : "-"}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
-      <div className="force-tailwind-debug">
-  Tailwind デバッグ表示
-</div>
 
+      <div className="force-tailwind-debug">Tailwind デバッグ表示</div>
     </main>
   );
 }

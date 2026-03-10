@@ -1,22 +1,32 @@
-'use client';
+// src/app/admin/add-ip/page.tsx
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 
 export default function AddIpPage() {
-  const [ip, setIp] = useState('');
-  const [message, setMessage] = useState('');
+  const [ip, setIp] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleSubmit = async () => {
-    const res = await fetch('/api/ip', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ip }),
-    });
-    if (res.ok) {
-      setMessage(`登録しました: ${ip}`);
-      setIp('');
-    } else {
-      setMessage('登録に失敗しました');
+    setMessage("");
+
+    try {
+      const res = await fetch("/api/ip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip }),
+      });
+
+      if (res.ok) {
+        setMessage(`登録しました: ${ip}`);
+        setIp("");
+        return;
+      }
+
+      setMessage("登録に失敗しました");
+    } catch (error) {
+      console.error("add-ip page error:", error);
+      setMessage("登録に失敗しました");
     }
   };
 
