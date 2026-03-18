@@ -64,11 +64,11 @@ function formatDateTime(value: string): string {
     }).format(parsed);
   }
 
-  const seconds = Number(trimmed);
-  if (!Number.isNaN(seconds)) {
-    const millis = trimmed.length <= 10 ? seconds * 1000 : seconds;
-
+  const numericValue = Number(trimmed);
+  if (!Number.isNaN(numericValue)) {
+    const millis = trimmed.length <= 10 ? numericValue * 1000 : numericValue;
     const numericDate = new Date(millis);
+
     if (!Number.isNaN(numericDate.getTime())) {
       return new Intl.DateTimeFormat("ja-JP", {
         year: "numeric",
@@ -94,6 +94,7 @@ export default function AdminLogsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [blockedFilter, setBlockedFilter] = useState("all");
+  const [searchText, setSearchText] = useState("");
 
   const fetchLogs = useCallback(async (silent = false) => {
     try {
@@ -197,6 +198,8 @@ export default function AdminLogsPage() {
   }, [rows]);
 
   const filteredRows = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+
     return rows.filter((row) => {
       if (typeFilter !== "all" && row.type !== typeFilter) {
         return false;
@@ -210,9 +213,29 @@ export default function AdminLogsPage() {
         return false;
       }
 
-      return true;
+      if (!keyword) {
+        return true;
+      }
+
+      const searchableText = [
+        row.timestampRaw,
+        row.timestampLabel,
+        row.type,
+        row.status,
+        row.ip,
+        row.blocked,
+        row.path,
+        row.method,
+        row.country,
+        row.userAgent,
+        row.raw,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(keyword);
     });
-  }, [rows, typeFilter, statusFilter, blockedFilter]);
+  }, [rows, typeFilter, statusFilter, blockedFilter, searchText]);
 
   const verifyIpCount = useMemo(() => {
     return rows.filter((row) => row.type === "verify-ip").length;
@@ -279,7 +302,24 @@ export default function AdminLogsPage() {
         </div>
 
         <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="md:col-span-2 xl:col-span-1">
+              <label
+                htmlFor="searchText"
+                className="mb-2 block text-sm font-semibold text-gray-800"
+              >
+                キーワード検索
+              </label>
+              <input
+                id="searchText"
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="IP / path / userAgent / type / status"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="typeFilter"
@@ -344,11 +384,26 @@ export default function AdminLogsPage() {
             </div>
           </div>
 
-          <div className="mt-4 text-sm text-gray-600">
-            表示件数:{" "}
-            <span className="font-semibold text-gray-900">
-              {filteredRows.length}
-            </span>
+          <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              表示件数:{" "}
+              <span className="font-semibold text-gray-900">
+                {filteredRows.length}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSearchText("");
+                setTypeFilter("all");
+                setStatusFilter("all");
+                setBlockedFilter("all");
+              }}
+              className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              条件をクリア
+            </button>
           </div>
         </div>
 
