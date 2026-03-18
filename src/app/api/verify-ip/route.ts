@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   try {
     const blocked = ip !== "unknown" ? await isIpBlocked(ip) : false;
 
-    await adminDb.collection("logs").add({
+    await adminDb.collection("access_logs").add({
       type: "verify-ip",
       ip,
       status: blocked ? "blocked" : "allowed",
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     console.error("verify-ip error:", error);
 
     try {
-      await adminDb.collection("logs").add({
+      await adminDb.collection("access_logs").add({
         type: "verify-ip",
         ip,
         status: "error",
