@@ -13,6 +13,11 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+type SerializedLog = {
+  id: string;
+  [key: string]: JsonValue;
+};
+
 function serializeValue(value: unknown): JsonValue {
   if (value === null || value === undefined) {
     return null;
@@ -51,6 +56,33 @@ function serializeValue(value: unknown): JsonValue {
   return String(value);
 }
 
+function getSortableTime(log: SerializedLog): number {
+  const candidates = [log.timestamp, log.createdAt, log.time, log.date];
+
+  for (const value of candidates) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const parsed = Date.parse(trimmed);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+
+    const numeric = Number(trimmed);
+    if (!Number.isNaN(numeric)) {
+      return trimmed.length <= 10 ? numeric * 1000 : numeric;
+    }
+  }
+
+  return 0;
+}
+
 export async function GET() {
   try {
     const snapshot = await adminDb
@@ -59,10 +91,12 @@ export async function GET() {
       .limit(100)
       .get();
 
-    const logs = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...((serializeValue(doc.data()) as Record<string, JsonValue>) || {}),
-    }));
+    const logs = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...((serializeValue(doc.data()) as Record<string, JsonValue>) || {}),
+      }))
+      .sort((a, b) => getSortableTime(b) - getSortableTime(a));
 
     return NextResponse.json({ logs });
   } catch (error) {
