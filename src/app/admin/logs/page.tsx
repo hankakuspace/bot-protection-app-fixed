@@ -22,8 +22,9 @@ function toArray(data: unknown): LogItem[] {
 function stringifyValue(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean")
+  if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
+  }
 
   try {
     return JSON.stringify(value);
@@ -111,6 +112,8 @@ export default function AdminLogsPage() {
         "time",
         "date",
       ]);
+      const type = getCell(log, ["type", "logType", "eventType"]);
+      const status = getCell(log, ["status", "state", "resultStatus"]);
       const ip = getCell(log, ["ip", "clientIp", "remoteIp"]);
       const blocked = getCell(log, ["blocked", "isBlocked", "result"]);
       const path = getCell(log, ["path", "pathname", "route", "url"]);
@@ -119,8 +122,10 @@ export default function AdminLogsPage() {
       const userAgent = getCell(log, ["userAgent", "ua"]);
 
       return {
-        id: `${index}-${timestamp}-${ip}-${path}`,
+        id: `${index}-${timestamp}-${ip}-${path}-${method}`,
         timestamp,
+        type,
+        status,
         ip,
         blocked,
         path,
@@ -131,6 +136,14 @@ export default function AdminLogsPage() {
       };
     });
   }, [logs]);
+
+  const verifyIpCount = useMemo(() => {
+    return rows.filter((row) => row.type === "verify-ip").length;
+  }, [rows]);
+
+  const blockedCount = useMemo(() => {
+    return rows.filter((row) => row.blocked === "true").length;
+  }, [rows]);
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
@@ -161,10 +174,20 @@ export default function AdminLogsPage() {
           </div>
         ) : null}
 
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-500">取得件数</p>
             <p className="mt-2 text-2xl font-bold">{rows.length}</p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-500">verify-ip 件数</p>
+            <p className="mt-2 text-2xl font-bold">{verifyIpCount}</p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-sm text-gray-500">blocked=true 件数</p>
+            <p className="mt-2 text-2xl font-bold">{blockedCount}</p>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -172,10 +195,6 @@ export default function AdminLogsPage() {
             <p className="mt-2 text-2xl font-bold">
               {loading ? "Loading" : "Ready"}
             </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">API</p>
             <p className="mt-2 text-sm font-semibold text-gray-800">
               /api/admin/logs
             </p>
@@ -189,6 +208,12 @@ export default function AdminLogsPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Time
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Status
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                     IP
@@ -215,7 +240,7 @@ export default function AdminLogsPage() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-4 py-8 text-center text-sm text-gray-500"
                     >
                       読み込み中...
@@ -224,7 +249,7 @@ export default function AdminLogsPage() {
                 ) : rows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-4 py-8 text-center text-sm text-gray-500"
                     >
                       表示できるログがありません
@@ -236,22 +261,56 @@ export default function AdminLogsPage() {
                       key={row.id}
                       className="border-t border-gray-100 align-top"
                     >
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
                         {row.timestamp || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
+                        {row.type ? (
+                          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                            {row.type}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {row.status ? (
+                          <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                            {row.status}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
                         {row.ip || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
-                        {row.blocked || "-"}
+                        {row.blocked === "true" ? (
+                          <span className="inline-flex rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+                            true
+                          </span>
+                        ) : row.blocked === "false" ? (
+                          <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                            false
+                          </span>
+                        ) : (
+                          row.blocked || "-"
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {row.path || "-"}
+                      <td className="max-w-[280px] px-4 py-3 text-sm text-gray-700">
+                        <div className="break-all">{row.path || "-"}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {row.method || "-"}
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
+                        {row.method ? (
+                          <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
+                            {row.method}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
                         {row.country || "-"}
                       </td>
                       <td className="max-w-[320px] px-4 py-3 text-sm text-gray-700">
