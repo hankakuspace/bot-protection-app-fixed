@@ -51,6 +51,8 @@ export default function AdminLogsPage() {
   const [error, setError] = useState("");
   const [raw, setRaw] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [blockedFilter, setBlockedFilter] = useState("all");
 
   const fetchLogs = useCallback(async (silent = false) => {
     try {
@@ -145,12 +147,30 @@ export default function AdminLogsPage() {
     return values.sort((a, b) => a.localeCompare(b, "ja"));
   }, [rows]);
 
+  const statusOptions = useMemo(() => {
+    const values = Array.from(
+      new Set(rows.map((row) => row.status).filter((value) => value)),
+    );
+    return values.sort((a, b) => a.localeCompare(b, "ja"));
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
-    if (typeFilter === "all") {
-      return rows;
-    }
-    return rows.filter((row) => row.type === typeFilter);
-  }, [rows, typeFilter]);
+    return rows.filter((row) => {
+      if (typeFilter !== "all" && row.type !== typeFilter) {
+        return false;
+      }
+
+      if (statusFilter !== "all" && row.status !== statusFilter) {
+        return false;
+      }
+
+      if (blockedFilter !== "all" && row.blocked !== blockedFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [rows, typeFilter, statusFilter, blockedFilter]);
 
   const verifyIpCount = useMemo(() => {
     return rows.filter((row) => row.type === "verify-ip").length;
@@ -217,8 +237,8 @@ export default function AdminLogsPage() {
         </div>
 
         <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="w-full max-w-sm">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
               <label
                 htmlFor="typeFilter"
                 className="mb-2 block text-sm font-semibold text-gray-800"
@@ -240,12 +260,53 @@ export default function AdminLogsPage() {
               </select>
             </div>
 
-            <div className="text-sm text-gray-600">
-              表示件数:{" "}
-              <span className="font-semibold text-gray-900">
-                {filteredRows.length}
-              </span>
+            <div>
+              <label
+                htmlFor="statusFilter"
+                className="mb-2 block text-sm font-semibold text-gray-800"
+              >
+                status フィルタ
+              </label>
+              <select
+                id="statusFilter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+              >
+                <option value="all">すべて</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            <div>
+              <label
+                htmlFor="blockedFilter"
+                className="mb-2 block text-sm font-semibold text-gray-800"
+              >
+                blocked フィルタ
+              </label>
+              <select
+                id="blockedFilter"
+                value={blockedFilter}
+                onChange={(e) => setBlockedFilter(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+              >
+                <option value="all">すべて</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4 text-sm text-gray-600">
+            表示件数:{" "}
+            <span className="font-semibold text-gray-900">
+              {filteredRows.length}
+            </span>
           </div>
         </div>
 
