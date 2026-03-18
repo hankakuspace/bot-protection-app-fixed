@@ -39,9 +39,12 @@ export async function POST(request: NextRequest) {
       type: "verify-ip",
       ip,
       status: blocked ? "blocked" : "allowed",
+      blocked,
       path: "/api/verify-ip",
+      method: "POST",
       userAgent: request.headers.get("user-agent") || "",
       referer: request.headers.get("referer") || "",
+      timestamp: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
     });
 
@@ -61,9 +64,12 @@ export async function POST(request: NextRequest) {
         type: "verify-ip",
         ip,
         status: "error",
+        blocked: false,
         path: "/api/verify-ip",
+        method: "POST",
         userAgent: request.headers.get("user-agent") || "",
         referer: request.headers.get("referer") || "",
+        timestamp: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),
       });
     } catch (logError) {
