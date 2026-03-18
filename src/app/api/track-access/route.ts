@@ -1,7 +1,7 @@
 // src/app/api/track-access/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 
 function getClientIp(req: NextRequest): string {
   const forwardedFor = req.headers.get("x-forwarded-for");
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const shop = req.nextUrl.searchParams.get("shop") || "";
     const source = req.nextUrl.searchParams.get("source") || "theme";
 
-    await addDoc(collection(db, "access_logs"), {
+    await adminDb.collection("access_logs").add({
       type: "theme-access",
       status: "loaded",
       blocked: false,
@@ -43,21 +43,30 @@ export async function GET(req: NextRequest) {
       method: "GET",
       referer,
       userAgent,
-      timestamp: serverTimestamp(),
-      createdAt: serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return new NextResponse(TRANSPARENT_GIF, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/gif",
+        "Content-Length": String(TRANSPARENT_GIF.byteLength),
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
     });
   } catch (error) {
     console.error("track-access error:", error);
-  }
 
-  return new NextResponse(TRANSPARENT_GIF, {
-    status: 200,
-    headers: {
-      "Content-Type": "image/gif",
-      "Content-Length": String(TRANSPARENT_GIF.byteLength),
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      Pragma: "no-cache",
-      Expires: "0",
-    },
-  });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to write access log",
+      },
+      { status: 500 },
+    );
+  }
 }
