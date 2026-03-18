@@ -50,6 +50,7 @@ export default function AdminLogsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [raw, setRaw] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const fetchLogs = useCallback(async (silent = false) => {
     try {
@@ -137,6 +138,20 @@ export default function AdminLogsPage() {
     });
   }, [logs]);
 
+  const typeOptions = useMemo(() => {
+    const values = Array.from(
+      new Set(rows.map((row) => row.type).filter((value) => value)),
+    );
+    return values.sort((a, b) => a.localeCompare(b, "ja"));
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    if (typeFilter === "all") {
+      return rows;
+    }
+    return rows.filter((row) => row.type === typeFilter);
+  }, [rows, typeFilter]);
+
   const verifyIpCount = useMemo(() => {
     return rows.filter((row) => row.type === "verify-ip").length;
   }, [rows]);
@@ -201,6 +216,39 @@ export default function AdminLogsPage() {
           </div>
         </div>
 
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="w-full max-w-sm">
+              <label
+                htmlFor="typeFilter"
+                className="mb-2 block text-sm font-semibold text-gray-800"
+              >
+                type フィルタ
+              </label>
+              <select
+                id="typeFilter"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+              >
+                <option value="all">すべて</option>
+                {typeOptions.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-sm text-gray-600">
+              表示件数:{" "}
+              <span className="font-semibold text-gray-900">
+                {filteredRows.length}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
@@ -246,17 +294,17 @@ export default function AdminLogsPage() {
                       読み込み中...
                     </td>
                   </tr>
-                ) : rows.length === 0 ? (
+                ) : filteredRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan={9}
                       className="px-4 py-8 text-center text-sm text-gray-500"
                     >
-                      表示できるログがありません
+                      条件に一致するログがありません
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => (
+                  filteredRows.map((row) => (
                     <tr
                       key={row.id}
                       className="border-t border-gray-100 align-top"
