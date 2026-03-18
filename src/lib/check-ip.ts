@@ -1,5 +1,6 @@
 import { adminDb } from "./firebase-admin";
 
+// src/lib/check-ip.ts
 export async function isIpBlocked(ip: string): Promise<boolean> {
   const snapshot = await adminDb
     .collection("blocked_ips")

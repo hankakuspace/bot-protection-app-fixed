@@ -1,3 +1,4 @@
+// src/app/layout.tsx
 "use client";
 
 import AppBridgeProvider from "@/lib/AppBridgeProvider";

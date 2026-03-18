@@ -1,3 +1,4 @@
+// src/lib/AppBridgeProvider.tsx
 "use client";
 
 import { Provider } from "@shopify/app-bridge-react";
