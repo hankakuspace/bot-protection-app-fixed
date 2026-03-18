@@ -44,6 +44,47 @@ function getCell(log: LogItem, keys: string[]): string {
   return "";
 }
 
+function formatDateTime(value: string): string {
+  if (!value) return "";
+
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const parsed = new Date(trimmed);
+
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(parsed);
+  }
+
+  const seconds = Number(trimmed);
+  if (!Number.isNaN(seconds)) {
+    const millis = trimmed.length <= 10 ? seconds * 1000 : seconds;
+
+    const numericDate = new Date(millis);
+    if (!Number.isNaN(numericDate.getTime())) {
+      return new Intl.DateTimeFormat("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(numericDate);
+    }
+  }
+
+  return trimmed;
+}
+
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +150,7 @@ export default function AdminLogsPage() {
 
   const rows = useMemo(() => {
     return logs.map((log, index) => {
-      const timestamp = getCell(log, [
+      const timestampRaw = getCell(log, [
         "createdAt",
         "timestamp",
         "time",
@@ -125,8 +166,9 @@ export default function AdminLogsPage() {
       const userAgent = getCell(log, ["userAgent", "ua"]);
 
       return {
-        id: `${index}-${timestamp}-${ip}-${path}-${method}`,
-        timestamp,
+        id: `${index}-${timestampRaw}-${ip}-${path}-${method}`,
+        timestampRaw,
+        timestampLabel: formatDateTime(timestampRaw),
         type,
         status,
         ip,
@@ -371,7 +413,7 @@ export default function AdminLogsPage() {
                       className="border-t border-gray-100 align-top"
                     >
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                        {row.timestamp || "-"}
+                        {row.timestampLabel || row.timestampRaw || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {row.type ? (
