@@ -92,31 +92,34 @@ function formatDateTime(value: string): string {
   }).format(new Date(time));
 }
 
-function getTypeTone(type: string): string {
-  if (type === "theme-access") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
+function badgeClass(
+  type: "type" | "status" | "blocked",
+  value: string,
+): string {
+  if (type === "type") {
+    if (value === "theme-access") {
+      return "border-blue-200 bg-blue-50 text-blue-700";
+    }
+    if (value === "verify-ip") {
+      return "border-violet-200 bg-violet-50 text-violet-700";
+    }
+    return "border-gray-200 bg-gray-50 text-gray-700";
   }
-  if (type === "verify-ip") {
-    return "border-violet-200 bg-violet-50 text-violet-700";
-  }
-  return "border-gray-200 bg-gray-50 text-gray-700";
-}
 
-function getStatusTone(status: string): string {
-  if (status === "blocked") {
+  if (type === "status") {
+    if (value === "blocked") {
+      return "border-red-200 bg-red-50 text-red-700";
+    }
+    if (value === "loaded" || value === "allowed" || value === "success") {
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    }
+    return "border-gray-200 bg-gray-50 text-gray-700";
+  }
+
+  if (value === "true") {
     return "border-red-200 bg-red-50 text-red-700";
   }
-  if (status === "allowed" || status === "loaded" || status === "success") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-  return "border-gray-200 bg-gray-50 text-gray-700";
-}
-
-function getBlockedTone(blocked: string): string {
-  if (blocked === "true") {
-    return "border-red-200 bg-red-50 text-red-700";
-  }
-  if (blocked === "false") {
+  if (value === "false") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
   return "border-gray-200 bg-gray-50 text-gray-700";
@@ -256,7 +259,7 @@ export default function AdminLogsPage() {
 
       if (!keyword) return true;
 
-      const searchable = [
+      const searchableText = [
         row.timestampRaw,
         row.timestampLabel,
         row.type,
@@ -275,7 +278,7 @@ export default function AdminLogsPage() {
         .join(" ")
         .toLowerCase();
 
-      return searchable.includes(keyword);
+      return searchableText.includes(keyword);
     });
   }, [rows, searchText, typeFilter, statusFilter, blockedFilter]);
 
@@ -289,123 +292,105 @@ export default function AdminLogsPage() {
     filteredRows[0]?.timestampLabel || rows[0]?.timestampLabel || "-";
 
   return (
-    <main className="min-h-screen bg-[#fafafa] text-[#111111]">
-      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-[#e5e7eb] px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                  Admin
-                </span>
-                <span className="inline-flex items-center rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                  Logs
-                </span>
-                <span className="inline-flex items-center rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                  /api/admin/logs
-                </span>
-              </div>
-
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Access Logs
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
-                通常アクセス、verify-ip、旧形式ログをまとめて確認できます。
-                既存の検索・絞り込み・生レスポンス確認は維持したまま、見やすさを整理しています。
-              </p>
+    <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
+      <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
+        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
+                Admin
+              </span>
+              <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
+                Logs
+              </span>
+              <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
+                /api/admin/logs
+              </span>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-4 py-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                  Latest
-                </div>
-                <div className="mt-1 text-sm font-medium text-[#111111]">
-                  {latestLabel}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void fetchLogs(true)}
-                disabled={loading || refreshing}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#111111] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {refreshing ? "更新中..." : "再読み込み"}
-              </button>
-            </div>
+            <h1 className="text-[28px] font-semibold tracking-tight text-[#111827]">
+              Access Logs
+            </h1>
+            <p className="mt-2 text-sm text-[#6b7280]">
+              theme-access、verify-ip、旧形式ログを一覧で確認できます。
+            </p>
           </div>
 
-          {error ? (
-            <div className="border-b border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-5">
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                Total
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-xl border border-[#e5e7eb] bg-white px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
+                Latest
               </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight">
-                {totalCount}
-              </div>
-              <div className="mt-2 text-sm text-[#6b7280]">取得件数</div>
-            </div>
-
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                Theme Access
-              </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight">
-                {themeAccessCount}
-              </div>
-              <div className="mt-2 text-sm text-[#6b7280]">
-                通常アクセス記録
+              <div className="mt-1 text-sm font-medium text-[#111827]">
+                {latestLabel}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                Verify IP
-              </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight">
-                {verifyIpCount}
-              </div>
-              <div className="mt-2 text-sm text-[#6b7280]">verify-ipログ</div>
-            </div>
+            <button
+              type="button"
+              onClick={() => void fetchLogs(true)}
+              disabled={loading || refreshing}
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#111827] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {refreshing ? "更新中..." : "再読み込み"}
+            </button>
+          </div>
+        </div>
 
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                Blocked
-              </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight">
-                {blockedCount}
-              </div>
-              <div className="mt-2 text-sm text-[#6b7280]">blocked=true</div>
-            </div>
+        {error ? (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
 
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                Status
-              </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight">
-                {loading ? "Loading" : "Ready"}
-              </div>
-              <div className="mt-2 text-sm text-[#6b7280]">一覧取得状態</div>
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
+              Total
             </div>
+            <div className="mt-2 text-3xl font-semibold text-[#111827]">
+              {totalCount}
+            </div>
+            <div className="mt-2 text-sm text-[#6b7280]">取得件数</div>
+          </div>
+
+          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
+              Theme Access
+            </div>
+            <div className="mt-2 text-3xl font-semibold text-[#111827]">
+              {themeAccessCount}
+            </div>
+            <div className="mt-2 text-sm text-[#6b7280]">通常アクセスログ</div>
+          </div>
+
+          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
+              Verify IP
+            </div>
+            <div className="mt-2 text-3xl font-semibold text-[#111827]">
+              {verifyIpCount}
+            </div>
+            <div className="mt-2 text-sm text-[#6b7280]">verify-ipログ</div>
+          </div>
+
+          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
+              Blocked
+            </div>
+            <div className="mt-2 text-3xl font-semibold text-[#111827]">
+              {blockedCount}
+            </div>
+            <div className="mt-2 text-sm text-[#6b7280]">blocked=true</div>
           </div>
         </div>
 
         <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="border-b border-[#e5e7eb] px-5 py-4">
-            <h2 className="text-sm font-semibold text-[#111111]">Filters</h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              キーワード、type、status、blocked で絞り込めます。
-            </p>
+          <div className="border-b border-[#e5e7eb] px-4 py-4">
+            <h2 className="text-sm font-semibold text-[#111827]">Filters</h2>
           </div>
 
-          <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 px-4 py-4 md:grid-cols-2 xl:grid-cols-4">
             <div>
               <label
                 htmlFor="searchText"
@@ -419,7 +404,7 @@ export default function AdminLogsPage() {
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="type / shop / path / ip / userAgent"
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               />
             </div>
 
@@ -434,7 +419,7 @@ export default function AdminLogsPage() {
                 id="typeFilter"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               >
                 <option value="all">すべて</option>
                 {typeOptions.map((type) => (
@@ -456,7 +441,7 @@ export default function AdminLogsPage() {
                 id="statusFilter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               >
                 <option value="all">すべて</option>
                 {statusOptions.map((status) => (
@@ -478,7 +463,7 @@ export default function AdminLogsPage() {
                 id="blockedFilter"
                 value={blockedFilter}
                 onChange={(e) => setBlockedFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               >
                 <option value="all">すべて</option>
                 <option value="true">true</option>
@@ -487,10 +472,10 @@ export default function AdminLogsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-[#e5e7eb] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-[#e5e7eb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-[#6b7280]">
               表示件数:{" "}
-              <span className="font-semibold text-[#111111]">
+              <span className="font-semibold text-[#111827]">
                 {filteredRows.length}
               </span>
             </div>
@@ -511,174 +496,197 @@ export default function AdminLogsPage() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="border-b border-[#e5e7eb] px-5 py-4">
-            <h2 className="text-sm font-semibold text-[#111111]">
+          <div className="border-b border-[#e5e7eb] px-4 py-4">
+            <h2 className="text-sm font-semibold text-[#111827]">
               Log entries
             </h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              各ログをカード形式で確認できます。クリックで詳細を開きます。
-            </p>
           </div>
 
           {loading ? (
-            <div className="px-5 py-16 text-center text-sm text-[#6b7280]">
+            <div className="px-4 py-16 text-center text-sm text-[#6b7280]">
               読み込み中...
             </div>
           ) : filteredRows.length === 0 ? (
-            <div className="px-5 py-16 text-center text-sm text-[#6b7280]">
+            <div className="px-4 py-16 text-center text-sm text-[#6b7280]">
               条件に一致するログがありません
             </div>
           ) : (
-            <div className="divide-y divide-[#eef2f7]">
-              {filteredRows.map((row) => {
-                const isExpanded = expandedRowId === row.id;
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-[1280px] w-full border-collapse text-left">
+                <thead className="bg-[#fafafa]">
+                  <tr className="border-b border-[#e5e7eb]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Time
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      IP
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Shop
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Path
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Method
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Country
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Source
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                      Detail
+                    </th>
+                  </tr>
+                </thead>
 
-                return (
-                  <div key={row.id} className="px-5 py-4">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedRowId(isExpanded ? "" : row.id)}
-                      className="w-full rounded-2xl border border-[#e5e7eb] bg-white p-4 text-left transition hover:bg-[#fafafa]"
-                    >
-                      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                <tbody>
+                  {filteredRows.map((row) => {
+                    const isExpanded = expandedRowId === row.id;
+
+                    return (
+                      <>
+                        <tr
+                          key={row.id}
+                          className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]"
+                        >
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.timestampLabel}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-[#111827]">
                             <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTypeTone(row.type)}`}
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass("type", row.type)}`}
                             >
                               {row.type || "-"}
                             </span>
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(row.status)}`}
-                            >
-                              {row.status || "-"}
-                            </span>
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getBlockedTone(row.blocked)}`}
-                            >
-                              blocked: {row.blocked || "-"}
-                            </span>
-                            {row.method ? (
-                              <span className="inline-flex rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                                {row.method}
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="flex flex-wrap gap-2">
+                              <span
+                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass("status", row.status)}`}
+                              >
+                                {row.status || "-"}
                               </span>
-                            ) : null}
-                          </div>
+                              <span
+                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass("blocked", row.blocked)}`}
+                              >
+                                blocked:{row.blocked || "-"}
+                              </span>
+                            </div>
+                          </td>
 
-                          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                                Time
-                              </div>
-                              <div className="mt-1 break-all text-sm text-[#111111]">
-                                {row.timestampLabel}
-                              </div>
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.ip || "-"}
                             </div>
+                          </td>
 
-                            <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                                IP
-                              </div>
-                              <div className="mt-1 break-all text-sm text-[#111111]">
-                                {row.ip || "-"}
-                              </div>
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="max-w-[220px] break-all">
+                              {row.shop || "-"}
                             </div>
+                          </td>
 
-                            <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                                Shop
-                              </div>
-                              <div className="mt-1 break-all text-sm text-[#111111]">
-                                {row.shop || "-"}
-                              </div>
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="max-w-[420px] break-all">
+                              {row.path || "-"}
                             </div>
+                          </td>
 
-                            <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                                Source
-                              </div>
-                              <div className="mt-1 break-all text-sm text-[#111111]">
-                                {row.source || "-"}
-                              </div>
-                            </div>
-                          </div>
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <span className="inline-flex rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
+                              {row.method || "-"}
+                            </span>
+                          </td>
 
-                          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                            <div className="xl:col-span-2">
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                                Path
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.country || "-"}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.source || "-"}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedRowId(isExpanded ? "" : row.id)
+                              }
+                              className="inline-flex items-center rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-xs font-medium text-[#374151] transition hover:bg-[#f9fafb]"
+                            >
+                              {isExpanded ? "閉じる" : "開く"}
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded ? (
+                          <tr className="border-b border-[#eef2f7] bg-[#fcfcfd]">
+                            <td colSpan={10} className="px-4 py-4">
+                              <div className="grid gap-4 lg:grid-cols-2">
+                                <div>
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    Referer
+                                  </div>
+                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
+                                    {row.referer || "-"}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    User-Agent
+                                  </div>
+                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
+                                    {row.userAgent || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="lg:col-span-2">
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    Raw
+                                  </div>
+                                  <pre className="max-h-[320px] overflow-auto rounded-xl border border-[#e5e7eb] bg-white p-3 text-xs leading-6 text-[#374151]">
+                                    {row.raw}
+                                  </pre>
+                                </div>
                               </div>
-                              <div className="mt-1 break-all text-sm text-[#111111]">
-                                {row.path || "-"}
-                              </div>
-                            </div>
-
-                            <div>
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                                Country
-                              </div>
-                              <div className="mt-1 break-all text-sm text-[#111111]">
-                                {row.country || "-"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-sm font-medium text-[#6b7280]">
-                          {isExpanded ? "詳細を閉じる" : "詳細を開く"}
-                        </div>
-                      </div>
-
-                      {isExpanded ? (
-                        <div className="mt-5 grid gap-4 border-t border-[#eef2f7] pt-5 lg:grid-cols-2">
-                          <div>
-                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              Referer
-                            </div>
-                            <div className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-3 text-sm break-all text-[#111111]">
-                              {row.referer || "-"}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              User-Agent
-                            </div>
-                            <div className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-3 text-sm break-all text-[#111111]">
-                              {row.userAgent || "-"}
-                            </div>
-                          </div>
-
-                          <div className="lg:col-span-2">
-                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
-                              Raw
-                            </div>
-                            <pre className="max-h-[320px] overflow-auto rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-3 text-xs leading-6 text-[#374151]">
-                              {row.raw}
-                            </pre>
-                          </div>
-                        </div>
-                      ) : null}
-                    </button>
-                  </div>
-                );
-              })}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="border-b border-[#e5e7eb] px-5 py-4">
-            <h2 className="text-sm font-semibold text-[#111111]">
+          <div className="border-b border-[#e5e7eb] px-4 py-4">
+            <h2 className="text-sm font-semibold text-[#111827]">
               Raw API response
             </h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              `/api/admin/logs` の生レスポンス確認用です。
-            </p>
           </div>
 
-          <div className="px-5 py-5">
-            <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-4 text-xs leading-6 text-[#374151]">
+          <div className="px-4 py-4">
+            <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-4 text-xs leading-6 text-[#374151]">
               {raw || "(empty)"}
             </pre>
           </div>
