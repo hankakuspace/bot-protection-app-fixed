@@ -5,6 +5,24 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type LogItem = Record<string, unknown>;
 
+type DisplayRow = {
+  id: string;
+  timestampRaw: string;
+  timestampLabel: string;
+  type: string;
+  status: string;
+  ip: string;
+  blocked: string;
+  path: string;
+  method: string;
+  country: string;
+  shop: string;
+  source: string;
+  referer: string;
+  userAgent: string;
+  raw: string;
+};
+
 function toArray(data: unknown): LogItem[] {
   if (Array.isArray(data)) return data as LogItem[];
 
@@ -36,93 +54,72 @@ function stringifyValue(value: unknown): string {
 function getCell(log: LogItem, keys: string[]): string {
   for (const key of keys) {
     if (key in log) {
-      const value = log[key];
-      const text = stringifyValue(value);
+      const text = stringifyValue(log[key]);
       if (text) return text;
     }
   }
   return "";
 }
 
+function parseTimestamp(value: string): number {
+  if (!value) return 0;
+
+  const parsed = Date.parse(value);
+  if (!Number.isNaN(parsed)) return parsed;
+
+  const numeric = Number(value);
+  if (!Number.isNaN(numeric)) {
+    return value.length <= 10 ? numeric * 1000 : numeric;
+  }
+
+  return 0;
+}
+
 function formatDateTime(value: string): string {
-  if (!value) return "";
+  if (!value) return "-";
 
-  const trimmed = value.trim();
-  if (!trimmed) return "";
+  const time = parseTimestamp(value);
+  if (!time) return value;
 
-  const parsed = new Date(trimmed);
-
-  if (!Number.isNaN(parsed.getTime())) {
-    return new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(parsed);
-  }
-
-  const numericValue = Number(trimmed);
-  if (!Number.isNaN(numericValue)) {
-    const millis = trimmed.length <= 10 ? numericValue * 1000 : numericValue;
-    const numericDate = new Date(millis);
-
-    if (!Number.isNaN(numericDate.getTime())) {
-      return new Intl.DateTimeFormat("ja-JP", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }).format(numericDate);
-    }
-  }
-
-  return trimmed;
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(time));
 }
 
-function getTypeBadgeClass(type: string): string {
+function getTypeTone(type: string): string {
+  if (type === "theme-access") {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
   if (type === "verify-ip") {
-    return "border border-blue-200 bg-blue-50 text-blue-700";
+    return "border-violet-200 bg-violet-50 text-violet-700";
   }
-
-  if (type) {
-    return "border border-gray-200 bg-gray-50 text-gray-700";
-  }
-
-  return "border border-gray-200 bg-white text-gray-500";
+  return "border-gray-200 bg-gray-50 text-gray-700";
 }
 
-function getStatusBadgeClass(status: string): string {
+function getStatusTone(status: string): string {
   if (status === "blocked") {
-    return "border border-red-200 bg-red-50 text-red-700";
+    return "border-red-200 bg-red-50 text-red-700";
   }
-
-  if (status === "allowed" || status === "success") {
-    return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "allowed" || status === "loaded" || status === "success") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
-
-  if (status) {
-    return "border border-gray-200 bg-gray-50 text-gray-700";
-  }
-
-  return "border border-gray-200 bg-white text-gray-500";
+  return "border-gray-200 bg-gray-50 text-gray-700";
 }
 
-function getBlockedBadgeClass(blocked: string): string {
+function getBlockedTone(blocked: string): string {
   if (blocked === "true") {
-    return "border border-red-200 bg-red-50 text-red-700";
+    return "border-red-200 bg-red-50 text-red-700";
   }
-
   if (blocked === "false") {
-    return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
-
-  return "border border-gray-200 bg-white text-gray-500";
+  return "border-gray-200 bg-gray-50 text-gray-700";
 }
 
 export default function AdminLogsPage() {
@@ -131,10 +128,11 @@ export default function AdminLogsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [raw, setRaw] = useState("");
+  const [searchText, setSearchText] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [blockedFilter, setBlockedFilter] = useState("all");
-  const [searchText, setSearchText] = useState("");
+  const [expandedRowId, setExpandedRowId] = useState("");
 
   const fetchLogs = useCallback(async (silent = false) => {
     try {
@@ -146,28 +144,29 @@ export default function AdminLogsPage() {
 
       setError("");
 
-      const res = await fetch("/api/admin/logs", {
+      const response = await fetch("/api/admin/logs", {
         method: "GET",
         cache: "no-store",
       });
 
-      const text = await res.text();
+      const text = await response.text();
       setRaw(text);
 
       let parsed: unknown = null;
+
       try {
         parsed = text ? JSON.parse(text) : null;
       } catch {
         parsed = text;
       }
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error(
           typeof parsed === "object" &&
             parsed !== null &&
             "error" in (parsed as Record<string, unknown>)
             ? String((parsed as Record<string, unknown>).error)
-            : `ログ取得に失敗しました (${res.status})`,
+            : `ログ取得に失敗しました (${response.status})`,
         );
       }
 
@@ -189,75 +188,75 @@ export default function AdminLogsPage() {
     void fetchLogs(false);
   }, [fetchLogs]);
 
-  const rows = useMemo(() => {
-    return logs.map((log, index) => {
-      const timestampRaw = getCell(log, [
-        "createdAt",
-        "timestamp",
-        "time",
-        "date",
-      ]);
-      const type = getCell(log, ["type", "logType", "eventType"]);
-      const status = getCell(log, ["status", "state", "resultStatus"]);
-      const ip = getCell(log, ["ip", "clientIp", "remoteIp"]);
-      const blocked = getCell(log, ["blocked", "isBlocked", "result"]);
-      const path = getCell(log, ["path", "pathname", "route", "url"]);
-      const method = getCell(log, ["method", "httpMethod"]);
-      const country = getCell(log, ["country", "countryCode", "geo"]);
-      const userAgent = getCell(log, ["userAgent", "ua"]);
+  const rows = useMemo<DisplayRow[]>(() => {
+    return logs
+      .map((log, index) => {
+        const timestampRaw = getCell(log, [
+          "timestamp",
+          "createdAt",
+          "time",
+          "date",
+        ]);
+        const type = getCell(log, ["type", "logType", "eventType"]);
+        const status = getCell(log, ["status", "state", "resultStatus"]);
+        const ip = getCell(log, ["ip", "clientIp", "remoteIp"]);
+        const blocked = getCell(log, ["blocked", "isBlocked", "result"]);
+        const path = getCell(log, ["path", "pathname", "route", "url", "page"]);
+        const method = getCell(log, ["method", "httpMethod"]);
+        const country = getCell(log, ["country", "countryCode", "geo"]);
+        const shop = getCell(log, ["shop"]);
+        const source = getCell(log, ["source"]);
+        const referer = getCell(log, ["referer", "referrer"]);
+        const userAgent = getCell(log, ["userAgent", "ua"]);
 
-      return {
-        id: `${index}-${timestampRaw}-${ip}-${path}-${method}`,
-        timestampRaw,
-        timestampLabel: formatDateTime(timestampRaw),
-        type,
-        status,
-        ip,
-        blocked,
-        path,
-        method,
-        country,
-        userAgent,
-        raw: stringifyValue(log),
-      };
-    });
+        return {
+          id: `${index}-${timestampRaw}-${ip}-${path}-${method}`,
+          timestampRaw,
+          timestampLabel: formatDateTime(timestampRaw),
+          type,
+          status,
+          ip,
+          blocked,
+          path,
+          method,
+          country,
+          shop,
+          source,
+          referer,
+          userAgent,
+          raw: stringifyValue(log),
+        };
+      })
+      .sort(
+        (a, b) =>
+          parseTimestamp(b.timestampRaw) - parseTimestamp(a.timestampRaw),
+      );
   }, [logs]);
 
   const typeOptions = useMemo(() => {
-    const values = Array.from(
+    return Array.from(
       new Set(rows.map((row) => row.type).filter((value) => value)),
-    );
-    return values.sort((a, b) => a.localeCompare(b, "ja"));
+    ).sort((a, b) => a.localeCompare(b, "ja"));
   }, [rows]);
 
   const statusOptions = useMemo(() => {
-    const values = Array.from(
+    return Array.from(
       new Set(rows.map((row) => row.status).filter((value) => value)),
-    );
-    return values.sort((a, b) => a.localeCompare(b, "ja"));
+    ).sort((a, b) => a.localeCompare(b, "ja"));
   }, [rows]);
 
   const filteredRows = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
 
     return rows.filter((row) => {
-      if (typeFilter !== "all" && row.type !== typeFilter) {
+      if (typeFilter !== "all" && row.type !== typeFilter) return false;
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      if (blockedFilter !== "all" && row.blocked !== blockedFilter)
         return false;
-      }
 
-      if (statusFilter !== "all" && row.status !== statusFilter) {
-        return false;
-      }
+      if (!keyword) return true;
 
-      if (blockedFilter !== "all" && row.blocked !== blockedFilter) {
-        return false;
-      }
-
-      if (!keyword) {
-        return true;
-      }
-
-      const searchableText = [
+      const searchable = [
         row.timestampRaw,
         row.timestampLabel,
         row.type,
@@ -267,41 +266,42 @@ export default function AdminLogsPage() {
         row.path,
         row.method,
         row.country,
+        row.shop,
+        row.source,
+        row.referer,
         row.userAgent,
         row.raw,
       ]
         .join(" ")
         .toLowerCase();
 
-      return searchableText.includes(keyword);
+      return searchable.includes(keyword);
     });
-  }, [rows, typeFilter, statusFilter, blockedFilter, searchText]);
+  }, [rows, searchText, typeFilter, statusFilter, blockedFilter]);
 
-  const verifyIpCount = useMemo(() => {
-    return rows.filter((row) => row.type === "verify-ip").length;
-  }, [rows]);
-
-  const blockedCount = useMemo(() => {
-    return rows.filter((row) => row.blocked === "true").length;
-  }, [rows]);
-
-  const latestTimeLabel = useMemo(() => {
-    const first = filteredRows[0] ?? rows[0];
-    if (!first) return "-";
-    return first.timestampLabel || first.timestampRaw || "-";
-  }, [filteredRows, rows]);
+  const totalCount = rows.length;
+  const themeAccessCount = rows.filter(
+    (row) => row.type === "theme-access",
+  ).length;
+  const verifyIpCount = rows.filter((row) => row.type === "verify-ip").length;
+  const blockedCount = rows.filter((row) => row.blocked === "true").length;
+  const latestLabel =
+    filteredRows[0]?.timestampLabel || rows[0]?.timestampLabel || "-";
 
   return (
-    <main className="min-h-screen bg-white text-gray-950">
-      <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 rounded-2xl border border-gray-200 bg-white">
-          <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600">
+    <main className="min-h-screen bg-[#fafafa] text-[#111111]">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-[#e5e7eb] px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
                   Admin
                 </span>
-                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600">
+                <span className="inline-flex items-center rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
+                  Logs
+                </span>
+                <span className="inline-flex items-center rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
                   /api/admin/logs
                 </span>
               </div>
@@ -309,28 +309,27 @@ export default function AdminLogsPage() {
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                 Access Logs
               </h1>
-
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                管理用ログAPIの取得結果を表示します。既存の検索・フィルタ・生レスポンス確認機能は維持したまま、
-                管理画面として見やすい表示に整理しています。
+              <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+                通常アクセス、verify-ip、旧形式ログをまとめて確認できます。
+                既存の検索・絞り込み・生レスポンス確認は維持したまま、見やすさを整理しています。
               </p>
             </div>
 
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-4 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
                   Latest
                 </div>
-                <div className="mt-1 font-medium text-gray-900">
-                  {latestTimeLabel}
+                <div className="mt-1 text-sm font-medium text-[#111111]">
+                  {latestLabel}
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => void fetchLogs(true)}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-900 bg-gray-900 px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={loading || refreshing}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#111111] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {refreshing ? "更新中..." : "再読み込み"}
               </button>
@@ -343,70 +342,74 @@ export default function AdminLogsPage() {
             </div>
           ) : null}
 
-          <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Total rows
+          <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                Total
               </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-gray-950">
-                {rows.length}
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
+                {totalCount}
               </div>
-              <div className="mt-2 text-sm text-gray-500">
-                APIから取得した全件数
+              <div className="mt-2 text-sm text-[#6b7280]">取得件数</div>
+            </div>
+
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                Theme Access
+              </div>
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
+                {themeAccessCount}
+              </div>
+              <div className="mt-2 text-sm text-[#6b7280]">
+                通常アクセス記録
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                verify-ip
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                Verify IP
               </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-gray-950">
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
                 {verifyIpCount}
               </div>
-              <div className="mt-2 text-sm text-gray-500">
-                type=verify-ip の件数
-              </div>
+              <div className="mt-2 text-sm text-[#6b7280]">verify-ipログ</div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                blocked=true
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                Blocked
               </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-gray-950">
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
                 {blockedCount}
               </div>
-              <div className="mt-2 text-sm text-gray-500">
-                blocked=true の件数
-              </div>
+              <div className="mt-2 text-sm text-[#6b7280]">blocked=true</div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
                 Status
               </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-gray-950">
+              <div className="mt-2 text-3xl font-semibold tracking-tight">
                 {loading ? "Loading" : "Ready"}
               </div>
-              <div className="mt-2 text-sm text-gray-500">
-                管理ログAPIの読込状態
-              </div>
+              <div className="mt-2 text-sm text-[#6b7280]">一覧取得状態</div>
             </div>
           </div>
         </div>
 
-        <div className="mb-6 rounded-2xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-900">Filters</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              既存の検索・絞り込み機能をそのまま使えます。
+        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
+          <div className="border-b border-[#e5e7eb] px-5 py-4">
+            <h2 className="text-sm font-semibold text-[#111111]">Filters</h2>
+            <p className="mt-1 text-sm text-[#6b7280]">
+              キーワード、type、status、blocked で絞り込めます。
             </p>
           </div>
 
           <div className="grid gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
-            <div className="md:col-span-2 xl:col-span-1">
+            <div>
               <label
                 htmlFor="searchText"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-[#374151]"
               >
                 キーワード検索
               </label>
@@ -415,15 +418,15 @@ export default function AdminLogsPage() {
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="IP / path / userAgent / type / status"
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-900"
+                placeholder="type / shop / path / ip / userAgent"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
               />
             </div>
 
             <div>
               <label
                 htmlFor="typeFilter"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-[#374151]"
               >
                 type
               </label>
@@ -431,7 +434,7 @@ export default function AdminLogsPage() {
                 id="typeFilter"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-gray-900"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
               >
                 <option value="all">すべて</option>
                 {typeOptions.map((type) => (
@@ -445,7 +448,7 @@ export default function AdminLogsPage() {
             <div>
               <label
                 htmlFor="statusFilter"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-[#374151]"
               >
                 status
               </label>
@@ -453,7 +456,7 @@ export default function AdminLogsPage() {
                 id="statusFilter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-gray-900"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
               >
                 <option value="all">すべて</option>
                 {statusOptions.map((status) => (
@@ -467,7 +470,7 @@ export default function AdminLogsPage() {
             <div>
               <label
                 htmlFor="blockedFilter"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-[#374151]"
               >
                 blocked
               </label>
@@ -475,7 +478,7 @@ export default function AdminLogsPage() {
                 id="blockedFilter"
                 value={blockedFilter}
                 onChange={(e) => setBlockedFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-gray-900"
+                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none transition focus:border-[#111111]"
               >
                 <option value="all">すべて</option>
                 <option value="true">true</option>
@@ -484,10 +487,10 @@ export default function AdminLogsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-gray-600">
+          <div className="flex flex-col gap-3 border-t border-[#e5e7eb] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-[#6b7280]">
               表示件数:{" "}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-[#111111]">
                 {filteredRows.length}
               </span>
             </div>
@@ -500,167 +503,182 @@ export default function AdminLogsPage() {
                 setStatusFilter("all");
                 setBlockedFilter("all");
               }}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d1d5db] bg-white px-4 text-sm font-medium text-[#374151] transition hover:bg-[#f9fafb]"
             >
               条件をクリア
             </button>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-900">Log entries</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              生ログを一覧で確認できます。
+        <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
+          <div className="border-b border-[#e5e7eb] px-5 py-4">
+            <h2 className="text-sm font-semibold text-[#111111]">
+              Log entries
+            </h2>
+            <p className="mt-1 text-sm text-[#6b7280]">
+              各ログをカード形式で確認できます。クリックで詳細を開きます。
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse">
-              <thead className="bg-gray-50">
-                <tr className="border-b border-gray-200">
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Time
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Type
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Status
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    IP
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Blocked
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Path
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Method
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Country
-                  </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    User-Agent
-                  </th>
-                </tr>
-              </thead>
+          {loading ? (
+            <div className="px-5 py-16 text-center text-sm text-[#6b7280]">
+              読み込み中...
+            </div>
+          ) : filteredRows.length === 0 ? (
+            <div className="px-5 py-16 text-center text-sm text-[#6b7280]">
+              条件に一致するログがありません
+            </div>
+          ) : (
+            <div className="divide-y divide-[#eef2f7]">
+              {filteredRows.map((row) => {
+                const isExpanded = expandedRowId === row.id;
 
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-4 py-16 text-center text-sm text-gray-500"
+                return (
+                  <div key={row.id} className="px-5 py-4">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedRowId(isExpanded ? "" : row.id)}
+                      className="w-full rounded-2xl border border-[#e5e7eb] bg-white p-4 text-left transition hover:bg-[#fafafa]"
                     >
-                      読み込み中...
-                    </td>
-                  </tr>
-                ) : filteredRows.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="px-4 py-16 text-center text-sm text-gray-500"
-                    >
-                      条件に一致するログがありません
-                    </td>
-                  </tr>
-                ) : (
-                  filteredRows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="border-b border-gray-100 align-top last:border-b-0"
-                    >
-                      <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                        {row.timestampLabel || row.timestampRaw || "-"}
-                      </td>
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getTypeTone(row.type)}`}
+                            >
+                              {row.type || "-"}
+                            </span>
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusTone(row.status)}`}
+                            >
+                              {row.status || "-"}
+                            </span>
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getBlockedTone(row.blocked)}`}
+                            >
+                              blocked: {row.blocked || "-"}
+                            </span>
+                            {row.method ? (
+                              <span className="inline-flex rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-1 text-xs font-medium text-[#4b5563]">
+                                {row.method}
+                              </span>
+                            ) : null}
+                          </div>
 
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {row.type ? (
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getTypeBadgeClass(row.type)}`}
-                          >
-                            {row.type}
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
+                          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                                Time
+                              </div>
+                              <div className="mt-1 break-all text-sm text-[#111111]">
+                                {row.timestampLabel}
+                              </div>
+                            </div>
 
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {row.status ? (
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusBadgeClass(row.status)}`}
-                          >
-                            {row.status}
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                                IP
+                              </div>
+                              <div className="mt-1 break-all text-sm text-[#111111]">
+                                {row.ip || "-"}
+                              </div>
+                            </div>
 
-                      <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-gray-900">
-                        {row.ip || "-"}
-                      </td>
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                                Shop
+                              </div>
+                              <div className="mt-1 break-all text-sm text-[#111111]">
+                                {row.shop || "-"}
+                              </div>
+                            </div>
 
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {row.blocked ? (
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getBlockedBadgeClass(row.blocked)}`}
-                          >
-                            {row.blocked}
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                                Source
+                              </div>
+                              <div className="mt-1 break-all text-sm text-[#111111]">
+                                {row.source || "-"}
+                              </div>
+                            </div>
+                          </div>
 
-                      <td className="max-w-[300px] px-4 py-4 text-sm text-gray-700">
-                        <div className="break-all">{row.path || "-"}</div>
-                      </td>
+                          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                            <div className="xl:col-span-2">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                                Path
+                              </div>
+                              <div className="mt-1 break-all text-sm text-[#111111]">
+                                {row.path || "-"}
+                              </div>
+                            </div>
 
-                      <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                        {row.method ? (
-                          <span className="inline-flex rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
-                            {row.method}
-                          </span>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-
-                      <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                        {row.country || "-"}
-                      </td>
-
-                      <td className="max-w-[360px] px-4 py-4 text-sm text-gray-700">
-                        <div className="line-clamp-3 break-all">
-                          {row.userAgent || "-"}
+                            <div>
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                                Country
+                              </div>
+                              <div className="mt-1 break-all text-sm text-[#111111]">
+                                {row.country || "-"}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+
+                        <div className="text-sm font-medium text-[#6b7280]">
+                          {isExpanded ? "詳細を閉じる" : "詳細を開く"}
+                        </div>
+                      </div>
+
+                      {isExpanded ? (
+                        <div className="mt-5 grid gap-4 border-t border-[#eef2f7] pt-5 lg:grid-cols-2">
+                          <div>
+                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                              Referer
+                            </div>
+                            <div className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-3 text-sm break-all text-[#111111]">
+                              {row.referer || "-"}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                              User-Agent
+                            </div>
+                            <div className="rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-3 text-sm break-all text-[#111111]">
+                              {row.userAgent || "-"}
+                            </div>
+                          </div>
+
+                          <div className="lg:col-span-2">
+                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                              Raw
+                            </div>
+                            <pre className="max-h-[320px] overflow-auto rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-3 text-xs leading-6 text-[#374151]">
+                              {row.raw}
+                            </pre>
+                          </div>
+                        </div>
+                      ) : null}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-900">
+        <div className="mt-6 overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
+          <div className="border-b border-[#e5e7eb] px-5 py-4">
+            <h2 className="text-sm font-semibold text-[#111111]">
               Raw API response
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-[#6b7280]">
               `/api/admin/logs` の生レスポンス確認用です。
             </p>
           </div>
 
           <div className="px-5 py-5">
-            <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs leading-6 text-gray-700">
+            <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all rounded-2xl border border-[#e5e7eb] bg-[#fafafa] p-4 text-xs leading-6 text-[#374151]">
               {raw || "(empty)"}
             </pre>
           </div>
