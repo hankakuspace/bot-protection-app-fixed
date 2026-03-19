@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 "use client";
 
+import "./globals.css";
 import AppBridgeProvider from "@/lib/AppBridgeProvider";
 import { useEffect } from "react";
 
