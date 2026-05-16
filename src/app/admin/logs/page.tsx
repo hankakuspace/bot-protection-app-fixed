@@ -344,71 +344,7 @@ export default function AdminLogsPage() {
         ) : null}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
-              Total
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-[#111827]">
-              {totalCount}
-            </div>
-            <div className="mt-2 text-sm text-[#6b7280]">取得件数</div>
-          </div>
-
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
-              Theme Access
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-[#111827]">
-              {themeAccessCount}
-            </div>
-            <div className="mt-2 text-sm text-[#6b7280]">通常アクセスログ</div>
-          </div>
-
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
-              Verify IP
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-[#111827]">
-              {verifyIpCount}
-            </div>
-            <div className="mt-2 text-sm text-[#6b7280]">verify-ipログ</div>
-          </div>
-
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
-              Blocked
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-[#111827]">
-              {blockedCount}
-            </div>
-            <div className="mt-2 text-sm text-[#6b7280]">blocked=true</div>
-          </div>
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="border-b border-[#e5e7eb] px-4 py-4">
-            <h2 className="text-sm font-semibold text-[#111827]">Filters</h2>
-          </div>
-
-          <div className="grid gap-4 px-4 py-4 md:grid-cols-2 xl:grid-cols-4">
-            <div>
-              <label
-                htmlFor="searchText"
-                className="mb-2 block text-sm font-medium text-[#374151]"
-              >
-                キーワード検索
-              </label>
-              <input
-                id="searchText"
-                type="text"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="time / ip / path / country / user-agent / allowed / blocked"
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
-              />
-            </div>
-
-            <div>
+<div>
               <label
                 htmlFor="typeFilter"
                 className="mb-2 block text-sm font-medium text-[#374151]"
