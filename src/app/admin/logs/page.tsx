@@ -5,23 +5,26 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type LogItem = Record<string, unknown>;
 
+type LogsResponse = {
+  logs?: LogItem[];
+  hasMore?: boolean;
+  nextOffset?: number | null;
+  error?: string;
+};
+
 type DisplayRow = {
   id: string;
   timestampRaw: string;
   timestampLabel: string;
-  type: string;
   status: string;
   ip: string;
   blocked: string;
   path: string;
-  method: string;
   country: string;
-  shop: string;
-  source: string;
-  referer: string;
   userAgent: string;
-  raw: string;
 };
+
+const PAGE_SIZE = 100;
 
 function toArray(data: unknown): LogItem[] {
   if (Array.isArray(data)) return data as LogItem[];
@@ -95,62 +98,90 @@ function formatDateTime(value: string): string {
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [searchText, setSearchText] = useState("");
   const [expandedTextKey, setExpandedTextKey] = useState("");
+  const [hasMore, setHasMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
 
-  const fetchLogs = useCallback(async (silent = false) => {
-    try {
-      if (silent) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      setError("");
-
-      const response = await fetch("/api/admin/logs", {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      const text = await response.text();
-
-      let parsed: unknown = null;
-
+  const fetchLogs = useCallback(
+    async ({
+      reset,
+      offset,
+      silent,
+    }: {
+      reset: boolean;
+      offset: number;
+      silent: boolean;
+    }) => {
       try {
-        parsed = text ? JSON.parse(text) : null;
-      } catch {
-        parsed = text;
-      }
+        if (silent) {
+          setRefreshing(true);
+        } else if (reset) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
 
-      if (!response.ok) {
-        throw new Error(
-          typeof parsed === "object" &&
-            parsed !== null &&
-            "error" in (parsed as Record<string, unknown>)
-            ? String((parsed as Record<string, unknown>).error)
-            : `ログ取得に失敗しました (${response.status})`,
+        setError("");
+
+        const response = await fetch(
+          `/api/admin/logs?offset=${offset}&limit=${PAGE_SIZE}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          },
         );
-      }
 
-      setLogs(toArray(parsed));
-    } catch (err) {
-      setLogs([]);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "ログ取得中に不明なエラーが発生しました",
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+        const parsed = (await response.json()) as LogsResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            parsed?.error || `ログ取得に失敗しました (${response.status})`,
+          );
+        }
+
+        const incomingLogs = toArray(parsed);
+        const mergedLogs = reset
+          ? incomingLogs
+          : [
+              ...logs,
+              ...incomingLogs.filter((incoming) => {
+                const incomingId = stringifyValue(
+                  (incoming as Record<string, unknown>).id,
+                );
+                return !logs.some(
+                  (existing) =>
+                    stringifyValue((existing as Record<string, unknown>).id) ===
+                    incomingId,
+                );
+              }),
+            ];
+
+        setLogs(mergedLogs);
+        setHasMore(Boolean(parsed.hasMore));
+        setNextOffset(
+          typeof parsed.nextOffset === "number" ? parsed.nextOffset : null,
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "ログ取得中に不明なエラーが発生しました",
+        );
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+      }
+    },
+    [logs],
+  );
 
   useEffect(() => {
-    void fetchLogs(false);
+    void fetchLogs({ reset: true, offset: 0, silent: false });
   }, [fetchLogs]);
 
   const rows = useMemo<DisplayRow[]>(() => {
@@ -162,34 +193,23 @@ export default function AdminLogsPage() {
           "time",
           "date",
         ]);
-        const type = getCell(log, ["type", "logType", "eventType"]);
         const status = getCell(log, ["status", "state", "resultStatus"]);
         const ip = getCell(log, ["ip", "clientIp", "remoteIp"]);
         const blocked = getCell(log, ["blocked", "isBlocked", "result"]);
         const path = getCell(log, ["path", "pathname", "route", "url", "page"]);
-        const method = getCell(log, ["method", "httpMethod"]);
         const country = getCell(log, ["country", "countryCode", "geo"]);
-        const shop = getCell(log, ["shop"]);
-        const source = getCell(log, ["source"]);
-        const referer = getCell(log, ["referer", "referrer"]);
         const userAgent = getCell(log, ["userAgent", "ua"]);
 
         return {
-          id: `${index}-${timestampRaw}-${ip}-${path}-${method}`,
+          id: `${getCell(log, ["id"]) || index}-${timestampRaw}-${ip}-${path}`,
           timestampRaw,
           timestampLabel: formatDateTime(timestampRaw),
-          type,
           status,
           ip,
           blocked,
           path,
-          method,
           country,
-          shop,
-          source,
-          referer,
           userAgent,
-          raw: stringifyValue(log),
         };
       })
       .sort(
@@ -207,18 +227,12 @@ export default function AdminLogsPage() {
       const searchableText = [
         row.timestampRaw,
         row.timestampLabel,
-        row.type,
         row.status,
         row.ip,
         row.blocked,
         row.path,
-        row.method,
         row.country,
-        row.shop,
-        row.source,
-        row.referer,
         row.userAgent,
-        row.raw,
       ]
         .join(" ")
         .toLowerCase();
@@ -251,7 +265,7 @@ export default function AdminLogsPage() {
               Access Logs
             </h1>
             <p className="mt-1 text-xs text-[#6b7280]">
-              theme-access、verify-ip、旧形式ログを一覧で確認できます。
+              最新ログを100件ずつ追加表示できます。
             </p>
           </div>
 
@@ -267,7 +281,7 @@ export default function AdminLogsPage() {
 
             <button
               type="button"
-              onClick={() => void fetchLogs(true)}
+              onClick={() => void fetchLogs({ reset: true, offset: 0, silent: true })}
               disabled={loading || refreshing}
               className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -309,133 +323,158 @@ export default function AdminLogsPage() {
               条件に一致するログがありません
             </div>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <table className="min-w-[1760px] w-full border-collapse text-left">
-                <thead className="bg-[#fafafa]">
-                  <tr className="border-b border-[#e5e7eb]">
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
-                      Time
-                    </th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
-                      IP
-                    </th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
-                      Path
-                    </th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
-                      Country
-                    </th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
-                      User-Agent
-                    </th>
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
+            <>
+              <div className="w-full overflow-x-auto">
+                <table className="min-w-[1760px] w-full border-collapse text-left">
+                  <thead className="bg-[#fafafa]">
+                    <tr className="border-b border-[#e5e7eb]">
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
+                        Time
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
+                        IP
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
+                        Path
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
+                        Country
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
+                        User-Agent
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
 
-                <tbody>
-                  {filteredRows.map((row) => {
-                    const isBlocked =
-                      row.blocked === "true" ||
-                      row.blocked === "blocked" ||
-                      row.status === "blocked";
+                  <tbody>
+                    {filteredRows.map((row) => {
+                      const isBlocked =
+                        row.blocked === "true" ||
+                        row.blocked === "blocked" ||
+                        row.status === "blocked";
 
-                    const isPathExpanded = expandedTextKey === `${row.id}:path`;
-                    const isUserAgentExpanded =
-                      expandedTextKey === `${row.id}:userAgent`;
+                      const isPathExpanded =
+                        expandedTextKey === `${row.id}:path`;
+                      const isUserAgentExpanded =
+                        expandedTextKey === `${row.id}:userAgent`;
 
-                    return (
-                      <tr
-                        key={row.id}
-                        className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]"
-                      >
-                        <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="whitespace-nowrap">
-                            {row.timestampLabel}
-                          </div>
-                        </td>
+                      return (
+                        <tr
+                          key={row.id}
+                          className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]"
+                        >
+                          <td className="px-3 py-3 text-xs text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.timestampLabel}
+                            </div>
+                          </td>
 
-                        <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="whitespace-nowrap">
-                            {row.ip || "-"}
-                          </div>
-                        </td>
+                          <td className="px-3 py-3 text-xs text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.ip || "-"}
+                            </div>
+                          </td>
 
-                        <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="w-[900px] max-w-[900px]">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedTextKey(
-                                  isPathExpanded ? "" : `${row.id}:path`
-                                )
-                              }
-                              className="w-full cursor-pointer text-left"
-                              title={row.path || "-"}
-                            >
-                              <div
-                                className={
-                                  isPathExpanded
-                                    ? "break-all"
-                                    : "overflow-hidden text-ellipsis whitespace-nowrap"
+                          <td className="px-3 py-3 text-xs text-[#111827]">
+                            <div className="w-[900px] max-w-[900px]">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedTextKey(
+                                    isPathExpanded ? "" : `${row.id}:path`,
+                                  )
                                 }
+                                className="w-full cursor-pointer text-left"
+                                title={row.path || "-"}
                               >
-                                {row.path || "-"}
-                              </div>
-                            </button>
-                          </div>
-                        </td>
+                                <div
+                                  className={
+                                    isPathExpanded
+                                      ? "break-all"
+                                      : "overflow-hidden text-ellipsis whitespace-nowrap"
+                                  }
+                                >
+                                  {row.path || "-"}
+                                </div>
+                              </button>
+                            </div>
+                          </td>
 
-                        <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="whitespace-nowrap">
-                            {row.country || "-"}
-                          </div>
-                        </td>
+                          <td className="px-3 py-3 text-xs text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.country || "-"}
+                            </div>
+                          </td>
 
-                        <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="w-[620px] max-w-[620px]">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedTextKey(
-                                  isUserAgentExpanded ? "" : `${row.id}:userAgent`
-                                )
-                              }
-                              className="w-full cursor-pointer text-left"
-                              title={row.userAgent || "-"}
-                            >
-                              <div
-                                className={
-                                  isUserAgentExpanded
-                                    ? "break-all"
-                                    : "overflow-hidden text-ellipsis whitespace-nowrap"
+                          <td className="px-3 py-3 text-xs text-[#111827]">
+                            <div className="w-[620px] max-w-[620px]">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedTextKey(
+                                    isUserAgentExpanded
+                                      ? ""
+                                      : `${row.id}:userAgent`,
+                                  )
                                 }
+                                className="w-full cursor-pointer text-left"
+                                title={row.userAgent || "-"}
                               >
-                                {row.userAgent || "-"}
-                              </div>
-                            </button>
-                          </div>
-                        </td>
+                                <div
+                                  className={
+                                    isUserAgentExpanded
+                                      ? "break-all"
+                                      : "overflow-hidden text-ellipsis whitespace-nowrap"
+                                  }
+                                >
+                                  {row.userAgent || "-"}
+                                </div>
+                              </button>
+                            </div>
+                          </td>
 
-                        <td className="px-3 py-3 text-xs text-[#111827]">
-                          {isBlocked ? (
-                            <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
-                              Blocked
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
-                              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                              Allowed
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          <td className="px-3 py-3 text-xs text-[#111827]">
+                            {isBlocked ? (
+                              <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                                Blocked
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+                                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                                Allowed
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {hasMore ? (
+                <div className="border-t border-[#e5e7eb] px-4 py-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (nextOffset == null || loadingMore) return;
+                      void fetchLogs({
+                        reset: false,
+                        offset: nextOffset,
+                        silent: false,
+                      });
+                    }}
+                    disabled={loadingMore}
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d1d5db] bg-white px-5 text-xs font-medium text-[#111827] transition hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loadingMore ? "読み込み中..." : "Load More"}
+                  </button>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
       </div>
