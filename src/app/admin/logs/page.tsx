@@ -1,7 +1,7 @@
 // src/app/admin/logs/page.tsx
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type LogItem = Record<string, unknown>;
 
@@ -403,7 +403,7 @@ export default function AdminLogsPage() {
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="time / ip / path / country / status"
+                placeholder="time / ip / path / country / user-agent"
                 className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               />
             </div>
@@ -512,7 +512,7 @@ export default function AdminLogsPage() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="min-w-[1080px] w-full border-collapse text-left">
+              <table className="min-w-[1280px] w-full border-collapse text-left">
                 <thead className="bg-[#fafafa]">
                   <tr className="border-b border-[#e5e7eb]">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
@@ -528,143 +528,67 @@ export default function AdminLogsPage() {
                       Country
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Status
+                      User-Agent
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Detail
+                      Status
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {filteredRows.map((row) => {
-                    const isExpanded = expandedRowId === row.id;
+                    const isBlocked =
+                      row.blocked === "true" ||
+                      row.blocked === "blocked" ||
+                      row.status === "blocked";
 
                     return (
-                      <Fragment key={row.id}>
-                        <tr className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]">
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="whitespace-nowrap">
-                              {row.timestampLabel}
-                            </div>
-                          </td>
+                      <tr
+                        key={row.id}
+                        className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]"
+                      >
+                        <td className="px-4 py-4 text-sm text-[#111827]">
+                          <div className="whitespace-nowrap">
+                            {row.timestampLabel}
+                          </div>
+                        </td>
 
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="whitespace-nowrap">
-                              {row.ip || "-"}
-                            </div>
-                          </td>
+                        <td className="px-4 py-4 text-sm text-[#111827]">
+                          <div className="whitespace-nowrap">
+                            {row.ip || "-"}
+                          </div>
+                        </td>
 
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="max-w-[420px] break-all">
-                              {row.path || "-"}
-                            </div>
-                          </td>
+                        <td className="px-4 py-4 text-sm text-[#111827]">
+                          <div className="max-w-[420px] break-all">
+                            {row.path || "-"}
+                          </div>
+                        </td>
 
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="whitespace-nowrap">
-                              {row.country || "-"}
-                            </div>
-                          </td>
+                        <td className="px-4 py-4 text-sm text-[#111827]">
+                          <div className="whitespace-nowrap">
+                            {row.country || "-"}
+                          </div>
+                        </td>
 
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="flex flex-wrap gap-2">
-                              <span
-                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass("status", row.status)}`}
-                              >
-                                {row.status || "-"}
-                              </span>
-                              <span
-                                className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass("blocked", row.blocked)}`}
-                              >
-                                blocked:{row.blocked || "-"}
-                              </span>
-                            </div>
-                          </td>
+                        <td className="px-4 py-4 text-sm text-[#111827]">
+                          <div
+                            className="max-w-[420px] overflow-hidden text-ellipsis whitespace-nowrap"
+                            title={row.userAgent || "-"}
+                          >
+                            {row.userAgent || "-"}
+                          </div>
+                        </td>
 
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedRowId(isExpanded ? "" : row.id)
-                              }
-                              className="inline-flex items-center rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-xs font-medium text-[#374151] transition hover:bg-[#f9fafb]"
-                            >
-                              {isExpanded ? "閉じる" : "詳細を見る"}
-                            </button>
-                          </td>
-                        </tr>
-                        {isExpanded ? (
-                          <tr className="border-b border-[#eef2f7] bg-[#fcfcfd]">
-                            <td colSpan={6} className="px-4 py-4">
-                              <div className="grid gap-4 lg:grid-cols-2">
-                                <div>
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    Type
-                                  </div>
-                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
-                                    {row.type || "-"}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    Method
-                                  </div>
-                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
-                                    {row.method || "-"}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    Source
-                                  </div>
-                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
-                                    {row.source || "-"}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    Shop
-                                  </div>
-                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
-                                    {row.shop || "-"}
-                                  </div>
-                                </div>
-
-                                <div className="lg:col-span-2">
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    Referer
-                                  </div>
-                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
-                                    {row.referer || "-"}
-                                  </div>
-                                </div>
-
-                                <div className="lg:col-span-2">
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    User-Agent
-                                  </div>
-                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
-                                    {row.userAgent || "-"}
-                                  </div>
-                                </div>
-
-                                <div className="lg:col-span-2">
-                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
-                                    Raw
-                                  </div>
-                                  <pre className="max-h-[320px] overflow-auto rounded-xl border border-[#e5e7eb] bg-white p-3 text-xs leading-6 text-[#374151]">
-                                    {row.raw}
-                                  </pre>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : null}
-                      </Fragment>
+                        <td className="px-4 py-4 text-sm text-[#111827]">
+                          {isBlocked ? (
+                            <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+                              Blocked
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
