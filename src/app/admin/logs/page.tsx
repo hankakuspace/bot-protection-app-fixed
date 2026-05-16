@@ -282,12 +282,6 @@ export default function AdminLogsPage() {
     });
   }, [rows, searchText, typeFilter, statusFilter, blockedFilter]);
 
-  const totalCount = rows.length;
-  const themeAccessCount = rows.filter(
-    (row) => row.type === "theme-access",
-  ).length;
-  const verifyIpCount = rows.filter((row) => row.type === "verify-ip").length;
-  const blockedCount = rows.filter((row) => row.blocked === "true").length;
   const latestLabel =
     filteredRows[0]?.timestampLabel || rows[0]?.timestampLabel || "-";
 
@@ -361,7 +355,6 @@ export default function AdminLogsPage() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-
           {loading ? (
             <div className="px-4 py-16 text-center text-sm text-[#6b7280]">
               読み込み中...
@@ -433,7 +426,7 @@ export default function AdminLogsPage() {
                                   isPathExpanded ? "" : `${row.id}:path`
                                 )
                               }
-                              className="w-full text-left cursor-pointer"
+                              className="w-full cursor-pointer text-left"
                               title={row.path || "-"}
                             >
                               <div
@@ -464,7 +457,7 @@ export default function AdminLogsPage() {
                                   isUserAgentExpanded ? "" : `${row.id}:userAgent`
                                 )
                               }
-                              className="w-full text-left cursor-pointer"
+                              className="w-full cursor-pointer text-left"
                               title={row.userAgent || "-"}
                             >
                               <div
