@@ -91,11 +91,14 @@ export async function GET() {
       .limit(100)
       .get();
 
+    const cutoffTime = Date.parse("2025-09-16T23:59:59.999Z");
+
     const logs = snapshot.docs
       .map((doc) => ({
         id: doc.id,
         ...((serializeValue(doc.data()) as Record<string, JsonValue>) || {}),
       }))
+      .filter((log) => getSortableTime(log) > cutoffTime)
       .sort((a, b) => getSortableTime(b) - getSortableTime(a));
 
     return NextResponse.json({ logs });
