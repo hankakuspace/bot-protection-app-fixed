@@ -144,23 +144,28 @@ export default function AdminLogsPage() {
         }
 
         const incomingLogs = toArray(parsed);
-        const mergedLogs = reset
-          ? incomingLogs
-          : [
-              ...logs,
-              ...incomingLogs.filter((incoming) => {
-                const incomingId = stringifyValue(
-                  (incoming as Record<string, unknown>).id,
-                );
-                return !logs.some(
-                  (existing) =>
-                    stringifyValue((existing as Record<string, unknown>).id) ===
-                    incomingId,
-                );
-              }),
-            ];
 
-        setLogs(mergedLogs);
+        setLogs((prevLogs) => {
+          if (reset) {
+            return incomingLogs;
+          }
+
+          return [
+            ...prevLogs,
+            ...incomingLogs.filter((incoming) => {
+              const incomingId = stringifyValue(
+                (incoming as Record<string, unknown>).id,
+              );
+
+              return !prevLogs.some(
+                (existing) =>
+                  stringifyValue((existing as Record<string, unknown>).id) ===
+                  incomingId,
+              );
+            }),
+          ];
+        });
+
         setHasMore(Boolean(parsed.hasMore));
         setNextOffset(
           typeof parsed.nextOffset === "number" ? parsed.nextOffset : null,
@@ -177,7 +182,7 @@ export default function AdminLogsPage() {
         setRefreshing(false);
       }
     },
-    [logs],
+    [],
   );
 
   useEffect(() => {
