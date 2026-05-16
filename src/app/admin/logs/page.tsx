@@ -343,78 +343,23 @@ export default function AdminLogsPage() {
           </div>
         ) : null}
 
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-<div>
-              <label
-                htmlFor="typeFilter"
-                className="mb-2 block text-sm font-medium text-[#374151]"
-              >
-                type
-              </label>
-              <select
-                id="typeFilter"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
-              >
-                <option value="all">すべて</option>
-                {typeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+          <label
+            htmlFor="searchText"
+            className="mb-2 block text-sm font-medium text-[#374151]"
+          >
+            Search
+          </label>
+          <input
+            id="searchText"
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="time / ip / path / country / user-agent / allowed / blocked"
+            className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none focus:border-[#111827]"
+          />
+        </div>
 
-            <div>
-              <label
-                htmlFor="statusFilter"
-                className="mb-2 block text-sm font-medium text-[#374151]"
-              >
-                status
-              </label>
-              <select
-                id="statusFilter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
-              >
-                <option value="all">すべて</option>
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="blockedFilter"
-                className="mb-2 block text-sm font-medium text-[#374151]"
-              >
-                blocked
-              </label>
-              <select
-                id="blockedFilter"
-                value={blockedFilter}
-                onChange={(e) => setBlockedFilter(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
-              >
-                <option value="all">すべて</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-[#e5e7eb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-[#6b7280]">
-              表示件数:{" "}
-              <span className="font-semibold text-[#111827]">
-                {filteredRows.length}
-              </span>
-            </div>
         <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
 
           {loading ? (
