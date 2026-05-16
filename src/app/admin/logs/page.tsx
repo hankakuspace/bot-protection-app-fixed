@@ -92,49 +92,12 @@ function formatDateTime(value: string): string {
   }).format(new Date(time));
 }
 
-function badgeClass(
-  type: "type" | "status" | "blocked",
-  value: string,
-): string {
-  if (type === "type") {
-    if (value === "theme-access") {
-      return "border-blue-200 bg-blue-50 text-blue-700";
-    }
-    if (value === "verify-ip") {
-      return "border-violet-200 bg-violet-50 text-violet-700";
-    }
-    return "border-gray-200 bg-gray-50 text-gray-700";
-  }
-
-  if (type === "status") {
-    if (value === "blocked") {
-      return "border-red-200 bg-red-50 text-red-700";
-    }
-    if (value === "loaded" || value === "allowed" || value === "success") {
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    }
-    return "border-gray-200 bg-gray-50 text-gray-700";
-  }
-
-  if (value === "true") {
-    return "border-red-200 bg-red-50 text-red-700";
-  }
-  if (value === "false") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-  return "border-gray-200 bg-gray-50 text-gray-700";
-}
-
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [raw, setRaw] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [blockedFilter, setBlockedFilter] = useState("all");
   const [expandedTextKey, setExpandedTextKey] = useState("");
 
   const fetchLogs = useCallback(async (silent = false) => {
@@ -153,7 +116,6 @@ export default function AdminLogsPage() {
       });
 
       const text = await response.text();
-      setRaw(text);
 
       let parsed: unknown = null;
 
@@ -236,27 +198,10 @@ export default function AdminLogsPage() {
       );
   }, [logs]);
 
-  const typeOptions = useMemo(() => {
-    return Array.from(
-      new Set(rows.map((row) => row.type).filter((value) => value)),
-    ).sort((a, b) => a.localeCompare(b, "ja"));
-  }, [rows]);
-
-  const statusOptions = useMemo(() => {
-    return Array.from(
-      new Set(rows.map((row) => row.status).filter((value) => value)),
-    ).sort((a, b) => a.localeCompare(b, "ja"));
-  }, [rows]);
-
   const filteredRows = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
 
     return rows.filter((row) => {
-      if (typeFilter !== "all" && row.type !== typeFilter) return false;
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (blockedFilter !== "all" && row.blocked !== blockedFilter)
-        return false;
-
       if (!keyword) return true;
 
       const searchableText = [
@@ -280,7 +225,7 @@ export default function AdminLogsPage() {
 
       return searchableText.includes(keyword);
     });
-  }, [rows, searchText, typeFilter, statusFilter, blockedFilter]);
+  }, [rows, searchText]);
 
   const latestLabel =
     filteredRows[0]?.timestampLabel || rows[0]?.timestampLabel || "-";
@@ -288,7 +233,7 @@ export default function AdminLogsPage() {
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="mb-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
@@ -302,10 +247,10 @@ export default function AdminLogsPage() {
               </span>
             </div>
 
-            <h1 className="text-[28px] font-semibold tracking-tight text-[#111827]">
+            <h1 className="text-base font-semibold text-[#111827]">
               Access Logs
             </h1>
-            <p className="mt-2 text-sm text-[#6b7280]">
+            <p className="mt-1 text-xs text-[#6b7280]">
               theme-access、verify-ip、旧形式ログを一覧で確認できます。
             </p>
           </div>
@@ -315,7 +260,7 @@ export default function AdminLogsPage() {
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280]">
                 Latest
               </div>
-              <div className="mt-1 text-sm font-medium text-[#111827]">
+              <div className="mt-1 text-xs font-medium text-[#111827]">
                 {latestLabel}
               </div>
             </div>
@@ -324,7 +269,7 @@ export default function AdminLogsPage() {
               type="button"
               onClick={() => void fetchLogs(true)}
               disabled={loading || refreshing}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#111827] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {refreshing ? "更新中..." : "再読み込み"}
             </button>
@@ -332,15 +277,15 @@ export default function AdminLogsPage() {
         </div>
 
         {error ? (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
             {error}
           </div>
         ) : null}
 
-        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
+        <div className="mb-4 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
           <label
             htmlFor="searchText"
-            className="mb-2 block text-sm font-medium text-[#374151]"
+            className="mb-2 block text-xs font-medium text-[#374151]"
           >
             Search
           </label>
@@ -350,22 +295,22 @@ export default function AdminLogsPage() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="time / ip / path / country / user-agent / allowed / blocked"
-            className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm outline-none focus:border-[#111827]"
+            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-xs outline-none focus:border-[#111827]"
           />
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
           {loading ? (
-            <div className="px-4 py-16 text-center text-sm text-[#6b7280]">
+            <div className="px-4 py-16 text-center text-xs text-[#6b7280]">
               読み込み中...
             </div>
           ) : filteredRows.length === 0 ? (
-            <div className="px-4 py-16 text-center text-sm text-[#6b7280]">
+            <div className="px-4 py-16 text-center text-xs text-[#6b7280]">
               条件に一致するログがありません
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="min-w-[1700px] w-full border-collapse text-left">
+              <table className="min-w-[1760px] w-full border-collapse text-left">
                 <thead className="bg-[#fafafa]">
                   <tr className="border-b border-[#e5e7eb]">
                     <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
@@ -418,7 +363,7 @@ export default function AdminLogsPage() {
                         </td>
 
                         <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="w-[760px] max-w-[760px]">
+                          <div className="w-[900px] max-w-[900px]">
                             <button
                               type="button"
                               onClick={() =>
@@ -449,7 +394,7 @@ export default function AdminLogsPage() {
                         </td>
 
                         <td className="px-3 py-3 text-xs text-[#111827]">
-                          <div className="w-[520px] max-w-[520px]">
+                          <div className="w-[620px] max-w-[620px]">
                             <button
                               type="button"
                               onClick={() =>
