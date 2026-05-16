@@ -415,28 +415,7 @@ export default function AdminLogsPage() {
                 {filteredRows.length}
               </span>
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSearchText("");
-                setTypeFilter("all");
-                setStatusFilter("all");
-                setBlockedFilter("all");
-              }}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d1d5db] bg-white px-4 text-sm font-medium text-[#374151] transition hover:bg-[#f9fafb]"
-            >
-              条件をクリア
-            </button>
-          </div>
-        </div>
-
         <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="border-b border-[#e5e7eb] px-4 py-4">
-            <h2 className="text-sm font-semibold text-[#111827]">
-              Log entries
-            </h2>
-          </div>
 
           {loading ? (
             <div className="px-4 py-16 text-center text-sm text-[#6b7280]">
