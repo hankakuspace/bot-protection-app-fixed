@@ -640,7 +640,6 @@ export default function AdminLogsPage() {
             </div>
           )}
         </div>
-</div>
       </div>
     </main>
   );
