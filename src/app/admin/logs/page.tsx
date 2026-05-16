@@ -473,7 +473,7 @@ export default function AdminLogsPage() {
           </div>
 
           <div className="flex flex-col gap-3 border-t border-[#e5e7eb] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-[#6b7280]">
+            <div className="text-xs text-[#6b7280]">
               表示件数:{" "}
               <span className="font-semibold text-[#111827]">
                 {filteredRows.length}
@@ -512,25 +512,25 @@ export default function AdminLogsPage() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="min-w-[1520px] w-full border-collapse text-left">
+              <table className="min-w-[1700px] w-full border-collapse text-left">
                 <thead className="bg-[#fafafa]">
                   <tr className="border-b border-[#e5e7eb]">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
                       Time
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
                       IP
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
                       Path
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
                       Country
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
                       User-Agent
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">
                       Status
                     </th>
                   </tr>
@@ -552,20 +552,20 @@ export default function AdminLogsPage() {
                         key={row.id}
                         className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]"
                       >
-                        <td className="px-4 py-4 text-sm text-[#111827]">
+                        <td className="px-3 py-3 text-xs text-[#111827]">
                           <div className="whitespace-nowrap">
                             {row.timestampLabel}
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 text-sm text-[#111827]">
+                        <td className="px-3 py-3 text-xs text-[#111827]">
                           <div className="whitespace-nowrap">
                             {row.ip || "-"}
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 text-sm text-[#111827]">
-                          <div className="max-w-[640px]">
+                        <td className="px-3 py-3 text-xs text-[#111827]">
+                          <div className="w-[760px] max-w-[760px]">
                             <button
                               type="button"
                               onClick={() =>
@@ -573,7 +573,7 @@ export default function AdminLogsPage() {
                                   isPathExpanded ? "" : `${row.id}:path`
                                 )
                               }
-                              className="w-full text-left"
+                              className="w-full text-left cursor-pointer"
                               title={row.path || "-"}
                             >
                               <div
@@ -589,14 +589,14 @@ export default function AdminLogsPage() {
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 text-sm text-[#111827]">
+                        <td className="px-3 py-3 text-xs text-[#111827]">
                           <div className="whitespace-nowrap">
                             {row.country || "-"}
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 text-sm text-[#111827]">
-                          <div className="max-w-[420px]">
+                        <td className="px-3 py-3 text-xs text-[#111827]">
+                          <div className="w-[520px] max-w-[520px]">
                             <button
                               type="button"
                               onClick={() =>
@@ -604,7 +604,7 @@ export default function AdminLogsPage() {
                                   isUserAgentExpanded ? "" : `${row.id}:userAgent`
                                 )
                               }
-                              className="w-full text-left"
+                              className="w-full text-left cursor-pointer"
                               title={row.userAgent || "-"}
                             >
                               <div
@@ -620,14 +620,14 @@ export default function AdminLogsPage() {
                           </div>
                         </td>
 
-                        <td className="px-4 py-4 text-sm text-[#111827]">
+                        <td className="px-3 py-3 text-xs text-[#111827]">
                           {isBlocked ? (
-                            <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+                            <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
                               Blocked
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-2 text-xs font-medium text-emerald-700">
-                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+                              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                               Allowed
                             </span>
                           )}
