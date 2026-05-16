@@ -640,20 +640,7 @@ export default function AdminLogsPage() {
             </div>
           )}
         </div>
-
-        <div className="mt-6 overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
-          <div className="border-b border-[#e5e7eb] px-4 py-4">
-            <h2 className="text-sm font-semibold text-[#111827]">
-              Raw API response
-            </h2>
-          </div>
-
-          <div className="px-4 py-4">
-            <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all rounded-xl border border-[#e5e7eb] bg-[#fafafa] p-4 text-xs leading-6 text-[#374151]">
-              {raw || "(empty)"}
-            </pre>
-          </div>
-        </div>
+</div>
       </div>
     </main>
   );
