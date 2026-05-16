@@ -1,7 +1,7 @@
 // src/app/admin/logs/page.tsx
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 type LogItem = Record<string, unknown>;
 
@@ -403,7 +403,7 @@ export default function AdminLogsPage() {
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="type / shop / path / ip / userAgent"
+                placeholder="time / ip / path / country / status"
                 className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               />
             </div>
@@ -512,35 +512,23 @@ export default function AdminLogsPage() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="min-w-[1280px] w-full border-collapse text-left">
+              <table className="min-w-[1080px] w-full border-collapse text-left">
                 <thead className="bg-[#fafafa]">
                   <tr className="border-b border-[#e5e7eb]">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
                       Time
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Type
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
                       IP
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Shop
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
                       Path
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Method
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
                       Country
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
-                      Source
+                      Status
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
                       Detail
@@ -553,11 +541,8 @@ export default function AdminLogsPage() {
                     const isExpanded = expandedRowId === row.id;
 
                     return (
-                      <>
-                        <tr
-                          key={row.id}
-                          className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]"
-                        >
+                      <Fragment key={row.id}>
+                        <tr className="border-b border-[#eef2f7] align-top hover:bg-[#fafafa]">
                           <td className="px-4 py-4 text-sm text-[#111827]">
                             <div className="whitespace-nowrap">
                               {row.timestampLabel}
@@ -565,11 +550,21 @@ export default function AdminLogsPage() {
                           </td>
 
                           <td className="px-4 py-4 text-sm text-[#111827]">
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass("type", row.type)}`}
-                            >
-                              {row.type || "-"}
-                            </span>
+                            <div className="whitespace-nowrap">
+                              {row.ip || "-"}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="max-w-[420px] break-all">
+                              {row.path || "-"}
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-4 text-sm text-[#111827]">
+                            <div className="whitespace-nowrap">
+                              {row.country || "-"}
+                            </div>
                           </td>
 
                           <td className="px-4 py-4 text-sm text-[#111827]">
@@ -588,42 +583,6 @@ export default function AdminLogsPage() {
                           </td>
 
                           <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="whitespace-nowrap">
-                              {row.ip || "-"}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="max-w-[220px] break-all">
-                              {row.shop || "-"}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="max-w-[420px] break-all">
-                              {row.path || "-"}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <span className="inline-flex rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                              {row.method || "-"}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="whitespace-nowrap">
-                              {row.country || "-"}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-[#111827]">
-                            <div className="whitespace-nowrap">
-                              {row.source || "-"}
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-[#111827]">
                             <button
                               type="button"
                               onClick={() =>
@@ -631,15 +590,51 @@ export default function AdminLogsPage() {
                               }
                               className="inline-flex items-center rounded-lg border border-[#d1d5db] bg-white px-3 py-2 text-xs font-medium text-[#374151] transition hover:bg-[#f9fafb]"
                             >
-                              {isExpanded ? "閉じる" : "開く"}
+                              {isExpanded ? "閉じる" : "詳細を見る"}
                             </button>
                           </td>
                         </tr>
                         {isExpanded ? (
                           <tr className="border-b border-[#eef2f7] bg-[#fcfcfd]">
-                            <td colSpan={10} className="px-4 py-4">
+                            <td colSpan={6} className="px-4 py-4">
                               <div className="grid gap-4 lg:grid-cols-2">
                                 <div>
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    Type
+                                  </div>
+                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
+                                    {row.type || "-"}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    Method
+                                  </div>
+                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
+                                    {row.method || "-"}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    Source
+                                  </div>
+                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
+                                    {row.source || "-"}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="mb-2 text-xs font-semibold text-[#6b7280]">
+                                    Shop
+                                  </div>
+                                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-3 text-sm break-all text-[#111827]">
+                                    {row.shop || "-"}
+                                  </div>
+                                </div>
+
+                                <div className="lg:col-span-2">
                                   <div className="mb-2 text-xs font-semibold text-[#6b7280]">
                                     Referer
                                   </div>
@@ -648,7 +643,7 @@ export default function AdminLogsPage() {
                                   </div>
                                 </div>
 
-                                <div>
+                                <div className="lg:col-span-2">
                                   <div className="mb-2 text-xs font-semibold text-[#6b7280]">
                                     User-Agent
                                   </div>
@@ -669,7 +664,7 @@ export default function AdminLogsPage() {
                             </td>
                           </tr>
                         ) : null}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
