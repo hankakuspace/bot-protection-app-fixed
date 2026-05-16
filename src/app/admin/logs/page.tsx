@@ -135,7 +135,7 @@ export default function AdminLogsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [blockedFilter, setBlockedFilter] = useState("all");
-  const [expandedRowId, setExpandedRowId] = useState("");
+  const [expandedTextKey, setExpandedTextKey] = useState("");
 
   const fetchLogs = useCallback(async (silent = false) => {
     try {
@@ -403,7 +403,7 @@ export default function AdminLogsPage() {
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                placeholder="time / ip / path / country / user-agent"
+                placeholder="time / ip / path / country / user-agent / allowed / blocked"
                 className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-left outline-none focus:border-[#111827]"
               />
             </div>
@@ -512,7 +512,7 @@ export default function AdminLogsPage() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <table className="min-w-[1280px] w-full border-collapse text-left">
+              <table className="min-w-[1520px] w-full border-collapse text-left">
                 <thead className="bg-[#fafafa]">
                   <tr className="border-b border-[#e5e7eb]">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-[#6b7280]">
@@ -543,6 +543,10 @@ export default function AdminLogsPage() {
                       row.blocked === "blocked" ||
                       row.status === "blocked";
 
+                    const isPathExpanded = expandedTextKey === `${row.id}:path`;
+                    const isUserAgentExpanded =
+                      expandedTextKey === `${row.id}:userAgent`;
+
                     return (
                       <tr
                         key={row.id}
@@ -561,8 +565,27 @@ export default function AdminLogsPage() {
                         </td>
 
                         <td className="px-4 py-4 text-sm text-[#111827]">
-                          <div className="max-w-[420px] break-all">
-                            {row.path || "-"}
+                          <div className="max-w-[640px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedTextKey(
+                                  isPathExpanded ? "" : `${row.id}:path`
+                                )
+                              }
+                              className="w-full text-left"
+                              title={row.path || "-"}
+                            >
+                              <div
+                                className={
+                                  isPathExpanded
+                                    ? "break-all"
+                                    : "overflow-hidden text-ellipsis whitespace-nowrap"
+                                }
+                              >
+                                {row.path || "-"}
+                              </div>
+                            </button>
                           </div>
                         </td>
 
@@ -573,20 +596,41 @@ export default function AdminLogsPage() {
                         </td>
 
                         <td className="px-4 py-4 text-sm text-[#111827]">
-                          <div
-                            className="max-w-[420px] overflow-hidden text-ellipsis whitespace-nowrap"
-                            title={row.userAgent || "-"}
-                          >
-                            {row.userAgent || "-"}
+                          <div className="max-w-[420px]">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedTextKey(
+                                  isUserAgentExpanded ? "" : `${row.id}:userAgent`
+                                )
+                              }
+                              className="w-full text-left"
+                              title={row.userAgent || "-"}
+                            >
+                              <div
+                                className={
+                                  isUserAgentExpanded
+                                    ? "break-all"
+                                    : "overflow-hidden text-ellipsis whitespace-nowrap"
+                                }
+                              >
+                                {row.userAgent || "-"}
+                              </div>
+                            </button>
                           </div>
                         </td>
 
                         <td className="px-4 py-4 text-sm text-[#111827]">
                           {isBlocked ? (
-                            <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+                            <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
                               Blocked
                             </span>
-                          ) : null}
+                          ) : (
+                            <span className="inline-flex items-center gap-2 text-xs font-medium text-emerald-700">
+                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                              Allowed
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
