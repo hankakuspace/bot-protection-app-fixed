@@ -336,18 +336,6 @@ export default function AdminLogsPage() {
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
         <div className="mb-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                Admin
-              </span>
-              <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                Logs
-              </span>
-              <span className="inline-flex items-center rounded-md border border-[#e5e7eb] bg-white px-2.5 py-1 text-xs font-medium text-[#4b5563]">
-                /api/admin/logs
-              </span>
-            </div>
-
             <h1 className="text-base font-semibold text-[#111827]">
               Access Logs
             </h1>
