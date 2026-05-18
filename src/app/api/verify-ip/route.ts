@@ -29,8 +29,31 @@ function getClientIp(request: NextRequest): string {
   return "unknown";
 }
 
+function normalizeIp(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed.replace(/^::ffff:/, "");
+}
+
 export async function POST(request: NextRequest) {
-  const ip = getClientIp(request);
+  let bodyIp = "";
+
+  try {
+    const body = await request.json().catch(() => null);
+    bodyIp = normalizeIp(body?.ip);
+  } catch {
+    bodyIp = "";
+  }
+
+  const headerIp = normalizeIp(getClientIp(request));
+  const ip = bodyIp || headerIp || "unknown";
 
   try {
     const blocked = ip !== "unknown" ? await isIpBlocked(ip) : false;
