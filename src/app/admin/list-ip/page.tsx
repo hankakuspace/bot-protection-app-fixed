@@ -48,7 +48,6 @@ export default function AdminListIpPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
-  const [raw, setRaw] = useState("");
 
   const fetchList = useCallback(async (silent = false) => {
     try {
@@ -66,7 +65,6 @@ export default function AdminListIpPage() {
       });
 
       const body = await res.text();
-      setRaw(body);
 
       let parsed: unknown = null;
       try {
@@ -103,47 +101,40 @@ export default function AdminListIpPage() {
     void fetchList(false);
   }, [fetchList]);
 
-  const handleDelete = useCallback(
-    async (id: string, ip: string) => {
-      const ok = window.confirm(
-        `このIPを削除しますか？\n\nIP: ${ip || "-"}`
+  const handleDelete = useCallback(async (id: string, ip: string) => {
+    const ok = window.confirm(`このIPを削除しますか？\n\nIP: ${ip || "-"}`);
+    if (!ok) return;
+
+    try {
+      setDeletingId(id);
+      setError("");
+
+      const res = await fetch(
+        `/api/admin/list-ip?id=${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+        },
       );
-      if (!ok) return;
 
-      try {
-        setDeletingId(id);
-        setError("");
+      const data = (await res.json().catch(() => null)) as
+        | { error?: string }
+        | null;
 
-        const res = await fetch(
-          `/api/admin/list-ip?id=${encodeURIComponent(id)}`,
-          {
-            method: "DELETE",
-          },
-        );
-
-        const data = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-
-        if (!res.ok) {
-          throw new Error(data?.error || `削除に失敗しました (${res.status})`);
-        }
-
-        setItems((prev) =>
-          prev.filter((item) => pick(item, ["id"]) !== id),
-        );
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "削除中に不明なエラーが発生しました",
-        );
-      } finally {
-        setDeletingId("");
+      if (!res.ok) {
+        throw new Error(data?.error || `削除に失敗しました (${res.status})`);
       }
-    },
-    [],
-  );
+
+      setItems((prev) => prev.filter((item) => pick(item, ["id"]) !== id));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "削除中に不明なエラーが発生しました",
+      );
+    } finally {
+      setDeletingId("");
+    }
+  }, []);
 
   const rows = useMemo(() => {
     return items.map((item, index) => {
@@ -159,7 +150,6 @@ export default function AdminListIpPage() {
         note,
         createdAt,
         createdBy,
-        raw: text(item),
       };
     });
   }, [items]);
@@ -173,10 +163,6 @@ export default function AdminListIpPage() {
             <h1 className="text-3xl font-bold tracking-tight">
               ブロックIP一覧
             </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              `/api/admin/list-ip`
-              の返却形式に差異があっても表示が落ちないようにしています。
-            </p>
           </div>
 
           <button
@@ -194,27 +180,6 @@ export default function AdminListIpPage() {
             {error}
           </div>
         ) : null}
-
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">登録件数</p>
-            <p className="mt-2 text-2xl font-bold">{rows.length}</p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">読込状態</p>
-            <p className="mt-2 text-2xl font-bold">
-              {loading ? "Loading" : "Ready"}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">API</p>
-            <p className="mt-2 text-sm font-semibold text-gray-800">
-              /api/admin/list-ip
-            </p>
-          </div>
-        </div>
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -292,15 +257,6 @@ export default function AdminListIpPage() {
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="mb-2 text-sm font-semibold text-gray-800">
-            API 生レスポンス
-          </p>
-          <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all rounded-xl bg-gray-50 p-4 text-xs text-gray-700">
-            {raw || "(empty)"}
-          </pre>
         </div>
       </div>
     </main>
