@@ -120,6 +120,24 @@ function parseEndDate(value: string | null): Date | null {
   return date;
 }
 
+function getShopFromRequest(request: NextRequest): string {
+  const { searchParams } = new URL(request.url);
+  const queryShop = searchParams.get("shop") || "";
+  const headerShop = request.headers.get("x-shopify-shop-domain") || "";
+
+  return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
+}
+
+function isSameShopOrLegacy(log: SerializedLog, targetShop: string): boolean {
+  const shop = log.shop;
+
+  if (typeof shop === "string") {
+    return shop.trim() === "" || shop.trim().toLowerCase() === targetShop;
+  }
+
+  return shop === null || shop === undefined;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -131,6 +149,7 @@ export async function GET(request: NextRequest) {
     );
     const limit = Math.min(requestedLimit || DEFAULT_LIMIT, MAX_LIMIT);
 
+    const shop = getShopFromRequest(request);
     const startDate = parseStartDate(searchParams.get("startDate"));
     const endDate = parseEndDate(searchParams.get("endDate"));
     const legacyCutoffDate = new Date(LEGACY_CUTOFF_TIME);
@@ -149,24 +168,24 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await query
       .orderBy("timestamp", "desc")
-      .offset(offset)
-      .limit(limit + 1)
+      .limit(offset + limit + 1)
       .get();
 
-    const docs = snapshot.docs;
-    const hasMore = docs.length > limit;
-    const pageDocs = hasMore ? docs.slice(0, limit) : docs;
-
-    const logs = pageDocs
+    const filteredLogs = snapshot.docs
       .map((doc) => ({
         id: doc.id,
         ...((serializeValue(doc.data()) as Record<string, JsonValue>) || {}),
       }))
       .filter((log) => getSortableTime(log) > LEGACY_CUTOFF_TIME)
+      .filter((log) => isSameShopOrLegacy(log, shop))
       .sort((a, b) => getSortableTime(b) - getSortableTime(a));
+
+    const logs = filteredLogs.slice(offset, offset + limit);
+    const hasMore = filteredLogs.length > offset + limit;
 
     return NextResponse.json({
       logs,
+      shop,
       offset,
       limit,
       hasMore,

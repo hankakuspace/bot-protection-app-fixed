@@ -24,7 +24,7 @@ type DisplayRow = {
   userAgent: string;
 };
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 100;\nconst ADMIN_SHOP = "be-search.biz";
 const HIDDEN_LOG_PATHS = ["/api/verify-ip"];
 
 function toArray(data: unknown): LogItem[] {
@@ -161,6 +161,7 @@ export default function AdminLogsPage() {
         const params = new URLSearchParams();
         params.set("offset", String(offset));
         params.set("limit", String(PAGE_SIZE));
+        params.set("shop", ADMIN_SHOP);
 
         if (startDateValue) {
           params.set("startDate", startDateValue);
