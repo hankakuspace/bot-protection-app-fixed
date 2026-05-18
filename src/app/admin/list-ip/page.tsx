@@ -21,8 +21,9 @@ function normalizeList(data: unknown): IpItem[] {
 function text(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean")
+  if (typeof value === "number" || typeof value === "boolean") {
     return String(value);
+  }
 
   try {
     return JSON.stringify(value);
@@ -45,6 +46,7 @@ export default function AdminListIpPage() {
   const [items, setItems] = useState<IpItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
   const [raw, setRaw] = useState("");
 
@@ -101,15 +103,58 @@ export default function AdminListIpPage() {
     void fetchList(false);
   }, [fetchList]);
 
+  const handleDelete = useCallback(
+    async (id: string, ip: string) => {
+      const ok = window.confirm(
+        `このIPを削除しますか？\n\nIP: ${ip || "-"}`
+      );
+      if (!ok) return;
+
+      try {
+        setDeletingId(id);
+        setError("");
+
+        const res = await fetch(
+          `/api/admin/list-ip?id=${encodeURIComponent(id)}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        const data = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+
+        if (!res.ok) {
+          throw new Error(data?.error || `削除に失敗しました (${res.status})`);
+        }
+
+        setItems((prev) =>
+          prev.filter((item) => pick(item, ["id"]) !== id),
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "削除中に不明なエラーが発生しました",
+        );
+      } finally {
+        setDeletingId("");
+      }
+    },
+    [],
+  );
+
   const rows = useMemo(() => {
     return items.map((item, index) => {
+      const sourceId = pick(item, ["id"]);
       const ip = pick(item, ["ip", "address", "value"]);
       const note = pick(item, ["note", "memo", "reason", "description"]);
       const createdAt = pick(item, ["createdAt", "timestamp", "time", "date"]);
       const createdBy = pick(item, ["createdBy", "user", "admin"]);
 
       return {
-        id: `${index}-${ip}-${createdAt}`,
+        id: sourceId || `${index}-${ip}-${createdAt}`,
         ip,
         note,
         createdAt,
@@ -188,6 +233,9 @@ export default function AdminListIpPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                     Created By
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    Action
+                  </th>
                 </tr>
               </thead>
 
@@ -195,7 +243,7 @@ export default function AdminListIpPage() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-4 py-8 text-center text-sm text-gray-500"
                     >
                       読み込み中...
@@ -204,7 +252,7 @@ export default function AdminListIpPage() {
                 ) : rows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-4 py-8 text-center text-sm text-gray-500"
                     >
                       登録されたIPがありません
@@ -227,6 +275,16 @@ export default function AdminListIpPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {row.createdBy || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(row.id, row.ip)}
+                          disabled={!row.id || deletingId === row.id}
+                          className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {deletingId === row.id ? "削除中..." : "削除"}
+                        </button>
                       </td>
                     </tr>
                   ))

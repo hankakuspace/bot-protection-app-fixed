@@ -1,5 +1,5 @@
 // src/app/api/admin/list-ip/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
@@ -76,6 +76,34 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "ブロックIP一覧の取得に失敗しました。" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id")?.trim();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "削除対象のIDが指定されていません。" },
+        { status: 400 },
+      );
+    }
+
+    await adminDb.collection("blocked_ips").doc(id).delete();
+
+    return NextResponse.json({
+      success: true,
+      id,
+    });
+  } catch (error) {
+    console.error("DELETE /api/admin/list-ip error:", error);
+
+    return NextResponse.json(
+      { error: "ブロックIPの削除に失敗しました。" },
       { status: 500 },
     );
   }
