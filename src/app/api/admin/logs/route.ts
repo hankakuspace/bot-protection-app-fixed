@@ -105,7 +105,7 @@ function parsePositiveInt(value: string | null, fallback: number): number {
 function parseStartDate(value: string | null): Date | null {
   if (!value) return null;
 
-  const date = new Date(`${value}T00:00:00.000Z`);
+  const date = new Date(`${value}T00:00:00.000+09:00`);
   if (Number.isNaN(date.getTime())) return null;
 
   return date;
@@ -114,7 +114,7 @@ function parseStartDate(value: string | null): Date | null {
 function parseEndDate(value: string | null): Date | null {
   if (!value) return null;
 
-  const date = new Date(`${value}T23:59:59.999Z`);
+  const date = new Date(`${value}T23:59:59.999+09:00`);
   if (Number.isNaN(date.getTime())) return null;
 
   return date;
