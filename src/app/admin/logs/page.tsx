@@ -24,7 +24,8 @@ type DisplayRow = {
   userAgent: string;
 };
 
-const PAGE_SIZE = 100;\nconst ADMIN_SHOP = "be-search.biz";
+const PAGE_SIZE = 100;
+const ADMIN_SHOP = "be-search.biz";
 const HIDDEN_LOG_PATHS = ["/api/verify-ip"];
 
 function toArray(data: unknown): LogItem[] {
