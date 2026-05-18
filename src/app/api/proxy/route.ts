@@ -18,10 +18,14 @@ export async function GET(req: NextRequest) {
     "unknown";
 
   const ua = req.headers.get("user-agent") || "unknown";
+  const shop =
+    req.nextUrl.searchParams.get("shop")?.trim().toLowerCase() ||
+    "be-search.biz";
 
   const doc = {
     ip,
     ua,
+    shop,
     country: "unknown",
     city: "unknown",
     timestamp: FieldValue.serverTimestamp(),

@@ -42,6 +42,25 @@ function normalizeIp(value: unknown): string {
   return trimmed.replace(/^::ffff:/, "");
 }
 
+function getShopFromBody(body: Record<string, unknown> | null): string {
+  const bodyShop = typeof body?.shop === "string" ? body.shop : "";
+  const bodyHref = typeof body?.href === "string" ? body.href : "";
+
+  if (bodyShop.trim()) {
+    return bodyShop.trim().toLowerCase();
+  }
+
+  if (bodyHref.trim()) {
+    try {
+      return new URL(bodyHref).hostname.toLowerCase();
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
 function buildCorsHeaders(request: NextRequest): HeadersInit {
   const origin = request.headers.get("origin") || "*";
 
@@ -79,17 +98,24 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   let bodyIp = "";
+  let shop = "";
 
   try {
-    const body = await request.json().catch(() => null);
+    const body = (await request.json().catch(() => null)) as Record<
+      string,
+      unknown
+    > | null;
     bodyIp = normalizeIp(body?.ip);
+    shop = getShopFromBody(body);
   } catch {
     bodyIp = "";
+    shop = "";
   }
 
   const headerIp = normalizeIp(getClientIp(request));
   const ip = bodyIp || headerIp || "unknown";
   const country = getCountry(request);
+  const resolvedShop = shop || "be-search.biz";
   const corsHeaders = buildCorsHeaders(request);
 
   try {
@@ -101,6 +127,7 @@ export async function POST(request: NextRequest) {
       status: blocked ? "blocked" : "allowed",
       blocked,
       country,
+      shop: resolvedShop,
       path: "/api/verify-ip",
       method: "POST",
       userAgent: request.headers.get("user-agent") || "",
@@ -115,6 +142,7 @@ export async function POST(request: NextRequest) {
         blocked,
         ip,
         country,
+        shop: resolvedShop,
       },
       {
         status: 200,
@@ -131,6 +159,7 @@ export async function POST(request: NextRequest) {
         status: "error",
         blocked: false,
         country,
+        shop: resolvedShop,
         path: "/api/verify-ip",
         method: "POST",
         userAgent: request.headers.get("user-agent") || "",

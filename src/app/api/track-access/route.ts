@@ -49,7 +49,9 @@ export async function GET(req: NextRequest) {
     const userAgent = req.headers.get("user-agent") || "unknown";
     const referer = req.headers.get("referer") || "";
     const page = req.nextUrl.searchParams.get("page") || "";
-    const shop = req.nextUrl.searchParams.get("shop") || "";
+    const shop =
+      req.nextUrl.searchParams.get("shop")?.trim().toLowerCase() ||
+      "be-search.biz";
     const source = req.nextUrl.searchParams.get("source") || "theme";
 
     await adminDb.collection("access_logs").add({

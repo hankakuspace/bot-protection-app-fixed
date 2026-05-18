@@ -10,6 +10,16 @@ function normalizeIp(raw: string): string {
   return raw.trim().replace(/^::ffff:/, "");
 }
 
+function getShopFromRequest(request: NextRequest, bodyShop?: string): string {
+  const queryShop = request.nextUrl.searchParams.get("shop") || "";
+  const headerShop = request.headers.get("x-shopify-shop-domain") || "";
+  const shop = (bodyShop || queryShop || headerShop || "ruhra-store.myshopify.com")
+    .trim()
+    .toLowerCase();
+
+  return shop;
+}
+
 function isValidIpv4(ip: string): boolean {
   const parts = ip.split(".");
 
@@ -32,10 +42,12 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       ip?: string;
       note?: string;
+      shop?: string;
     };
 
     const ip = normalizeIp(body.ip ?? "");
     const note = (body.note ?? "").trim();
+    const shop = getShopFromRequest(request, body.shop);
 
     if (!ip) {
       return NextResponse.json(
@@ -54,6 +66,7 @@ export async function POST(request: NextRequest) {
     const existing = await adminDb
       .collection("blocked_ips")
       .where("ip", "==", ip)
+      .where("shop", "==", shop)
       .limit(1)
       .get();
 
@@ -69,6 +82,7 @@ export async function POST(request: NextRequest) {
     const docRef = await adminDb.collection("blocked_ips").add({
       ip,
       note,
+      shop,
       createdAt: FieldValue.serverTimestamp(),
     });
 
@@ -77,6 +91,7 @@ export async function POST(request: NextRequest) {
       message: "IPを登録しました。",
       id: docRef.id,
       ip,
+      shop,
     });
   } catch (error) {
     console.error("POST /api/admin/add-ip error:", error);
