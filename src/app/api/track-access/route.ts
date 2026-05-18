@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase-admin";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function getClientIp(req: NextRequest): string {
   const forwardedFor = req.headers.get("x-forwarded-for");
   if (forwardedFor) {
@@ -17,6 +20,23 @@ function getClientIp(req: NextRequest): string {
   return "unknown";
 }
 
+function getCountry(req: NextRequest): string {
+  const candidates = [
+    req.headers.get("x-vercel-ip-country"),
+    req.headers.get("cf-ipcountry"),
+    req.headers.get("x-country-code"),
+  ];
+
+  for (const value of candidates) {
+    const country = value?.trim().toUpperCase();
+    if (country && country !== "XX") {
+      return country;
+    }
+  }
+
+  return "";
+}
+
 const TRANSPARENT_GIF = Uint8Array.from([
   71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 128, 0, 0, 0, 0, 0, 255, 255, 255, 33,
   249, 4, 1, 0, 0, 1, 0, 44, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 68, 1, 0, 59,
@@ -25,6 +45,7 @@ const TRANSPARENT_GIF = Uint8Array.from([
 export async function GET(req: NextRequest) {
   try {
     const ip = getClientIp(req);
+    const country = getCountry(req);
     const userAgent = req.headers.get("user-agent") || "unknown";
     const referer = req.headers.get("referer") || "";
     const page = req.nextUrl.searchParams.get("page") || "";
@@ -36,6 +57,7 @@ export async function GET(req: NextRequest) {
       status: "loaded",
       blocked: false,
       ip,
+      country,
       page,
       shop,
       source,

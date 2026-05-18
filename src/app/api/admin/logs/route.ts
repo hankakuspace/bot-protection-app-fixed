@@ -133,12 +133,15 @@ export async function GET(request: NextRequest) {
 
     const startDate = parseStartDate(searchParams.get("startDate"));
     const endDate = parseEndDate(searchParams.get("endDate"));
+    const legacyCutoffDate = new Date(LEGACY_CUTOFF_TIME);
+    const effectiveStartDate =
+      startDate && startDate.getTime() > LEGACY_CUTOFF_TIME
+        ? startDate
+        : legacyCutoffDate;
 
     let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
-    if (startDate) {
-      query = query.where("timestamp", ">=", startDate);
-    }
+    query = query.where("timestamp", ">=", effectiveStartDate);
 
     if (endDate) {
       query = query.where("timestamp", "<=", endDate);

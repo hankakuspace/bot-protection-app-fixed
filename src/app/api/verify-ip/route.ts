@@ -53,6 +53,23 @@ function buildCorsHeaders(request: NextRequest): HeadersInit {
   };
 }
 
+function getCountry(request: NextRequest): string {
+  const candidates = [
+    request.headers.get("x-vercel-ip-country"),
+    request.headers.get("cf-ipcountry"),
+    request.headers.get("x-country-code"),
+  ];
+
+  for (const value of candidates) {
+    const country = value?.trim().toUpperCase();
+    if (country && country !== "XX") {
+      return country;
+    }
+  }
+
+  return "";
+}
+
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -72,6 +89,7 @@ export async function POST(request: NextRequest) {
 
   const headerIp = normalizeIp(getClientIp(request));
   const ip = bodyIp || headerIp || "unknown";
+  const country = getCountry(request);
   const corsHeaders = buildCorsHeaders(request);
 
   try {
@@ -82,6 +100,7 @@ export async function POST(request: NextRequest) {
       ip,
       status: blocked ? "blocked" : "allowed",
       blocked,
+      country,
       path: "/api/verify-ip",
       method: "POST",
       userAgent: request.headers.get("user-agent") || "",
@@ -95,6 +114,7 @@ export async function POST(request: NextRequest) {
         success: true,
         blocked,
         ip,
+        country,
       },
       {
         status: 200,
@@ -110,6 +130,7 @@ export async function POST(request: NextRequest) {
         ip,
         status: "error",
         blocked: false,
+        country,
         path: "/api/verify-ip",
         method: "POST",
         userAgent: request.headers.get("user-agent") || "",
