@@ -64,11 +64,15 @@ function getSortableTime(log: SerializedLog): number {
   const candidates = [log.timestamp, log.createdAt, log.time, log.date];
 
   for (const value of candidates) {
-    if (typeof value !== "string" && typeof value !== "number") {
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      value !== null
+    ) {
       continue;
     }
 
-    const text = String(value).trim();
+    const text = String(value ?? "").trim();
     if (!text) {
       continue;
     }
@@ -98,9 +102,28 @@ function parsePositiveInt(value: string | null, fallback: number): number {
   return Math.floor(parsed);
 }
 
+function parseStartDate(value: string | null): Date | null {
+  if (!value) return null;
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+}
+
+function parseEndDate(value: string | null): Date | null {
+  if (!value) return null;
+
+  const date = new Date(`${value}T23:59:59.999Z`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+
     const offset = parsePositiveInt(searchParams.get("offset"), 0);
     const requestedLimit = parsePositiveInt(
       searchParams.get("limit"),
@@ -108,8 +131,20 @@ export async function GET(request: NextRequest) {
     );
     const limit = Math.min(requestedLimit || DEFAULT_LIMIT, MAX_LIMIT);
 
-    const snapshot = await adminDb
-      .collection("access_logs")
+    const startDate = parseStartDate(searchParams.get("startDate"));
+    const endDate = parseEndDate(searchParams.get("endDate"));
+
+    let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
+
+    if (startDate) {
+      query = query.where("timestamp", ">=", startDate);
+    }
+
+    if (endDate) {
+      query = query.where("timestamp", "<=", endDate);
+    }
+
+    const snapshot = await query
       .orderBy("timestamp", "desc")
       .offset(offset)
       .limit(limit + 1)

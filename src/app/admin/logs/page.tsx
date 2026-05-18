@@ -95,6 +95,26 @@ function formatDateTime(value: string): string {
   }).format(new Date(time));
 }
 
+function escapeCsv(value: string): string {
+  const normalized = value.replace(/\r?\n/g, " ");
+  if (
+    normalized.includes(",") ||
+    normalized.includes('"') ||
+    normalized.includes("\n")
+  ) {
+    return `"${normalized.replace(/"/g, '""')}"`;
+  }
+  return normalized;
+}
+
+function todayString(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,16 +125,22 @@ export default function AdminLogsPage() {
   const [expandedTextKey, setExpandedTextKey] = useState("");
   const [hasMore, setHasMore] = useState(false);
   const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState(todayString());
 
   const fetchLogs = useCallback(
     async ({
       reset,
       offset,
       silent,
+      startDateValue,
+      endDateValue,
     }: {
       reset: boolean;
       offset: number;
       silent: boolean;
+      startDateValue: string;
+      endDateValue: string;
     }) => {
       try {
         if (silent) {
@@ -127,13 +153,22 @@ export default function AdminLogsPage() {
 
         setError("");
 
-        const response = await fetch(
-          `/api/admin/logs?offset=${offset}&limit=${PAGE_SIZE}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          },
-        );
+        const params = new URLSearchParams();
+        params.set("offset", String(offset));
+        params.set("limit", String(PAGE_SIZE));
+
+        if (startDateValue) {
+          params.set("startDate", startDateValue);
+        }
+
+        if (endDateValue) {
+          params.set("endDate", endDateValue);
+        }
+
+        const response = await fetch(`/api/admin/logs?${params.toString()}`, {
+          method: "GET",
+          cache: "no-store",
+        });
 
         const parsed = (await response.json()) as LogsResponse;
 
@@ -171,6 +206,10 @@ export default function AdminLogsPage() {
           typeof parsed.nextOffset === "number" ? parsed.nextOffset : null,
         );
       } catch (err) {
+        if (reset) {
+          setLogs([]);
+        }
+
         setError(
           err instanceof Error
             ? err.message
@@ -186,8 +225,14 @@ export default function AdminLogsPage() {
   );
 
   useEffect(() => {
-    void fetchLogs({ reset: true, offset: 0, silent: false });
-  }, [fetchLogs]);
+    void fetchLogs({
+      reset: true,
+      offset: 0,
+      silent: false,
+      startDateValue: startDate,
+      endDateValue: endDate,
+    });
+  }, [fetchLogs, startDate, endDate]);
 
   const rows = useMemo<DisplayRow[]>(() => {
     return logs
@@ -249,6 +294,43 @@ export default function AdminLogsPage() {
   const latestLabel =
     filteredRows[0]?.timestampLabel || rows[0]?.timestampLabel || "-";
 
+  const handleDownloadCsv = useCallback(() => {
+    const headers = ["Time", "IP", "Path", "Country", "User-Agent", "Status"];
+
+    const lines = filteredRows.map((row) => {
+      const isBlocked =
+        row.blocked === "true" ||
+        row.blocked === "blocked" ||
+        row.status === "blocked";
+
+      const statusLabel = isBlocked ? "Blocked" : "Allowed";
+
+      return [
+        row.timestampLabel,
+        row.ip || "-",
+        row.path || "-",
+        row.country || "-",
+        row.userAgent || "-",
+        statusLabel,
+      ]
+        .map((value) => escapeCsv(value))
+        .join(",");
+    });
+
+    const csv = [headers.join(","), ...lines].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    const suffix = `${startDate || "all"}_${endDate || "all"}`;
+    a.href = url;
+    a.download = `access-logs_${suffix}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [filteredRows, startDate, endDate]);
+
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
@@ -270,7 +352,7 @@ export default function AdminLogsPage() {
               Access Logs
             </h1>
             <p className="mt-1 text-xs text-[#6b7280]">
-              最新ログを100件ずつ追加表示できます。
+              期間指定とCSVダウンロードに対応しています。
             </p>
           </div>
 
@@ -286,7 +368,15 @@ export default function AdminLogsPage() {
 
             <button
               type="button"
-              onClick={() => void fetchLogs({ reset: true, offset: 0, silent: true })}
+              onClick={() =>
+                void fetchLogs({
+                  reset: true,
+                  offset: 0,
+                  silent: true,
+                  startDateValue: startDate,
+                  endDateValue: endDate,
+                })
+              }
               disabled={loading || refreshing}
               className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -302,20 +392,67 @@ export default function AdminLogsPage() {
         ) : null}
 
         <div className="mb-4 rounded-2xl border border-[#e5e7eb] bg-white p-4 shadow-sm">
-          <label
-            htmlFor="searchText"
-            className="mb-2 block text-xs font-medium text-[#374151]"
-          >
-            Search
-          </label>
-          <input
-            id="searchText"
-            type="text"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            placeholder="time / ip / path / country / user-agent / allowed / blocked"
-            className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-xs outline-none focus:border-[#111827]"
-          />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[180px_180px_minmax(0,1fr)_auto]">
+            <div>
+              <label
+                htmlFor="startDate"
+                className="mb-2 block text-xs font-medium text-[#374151]"
+              >
+                開始日
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-xs outline-none focus:border-[#111827]"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="endDate"
+                className="mb-2 block text-xs font-medium text-[#374151]"
+              >
+                終了日
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-xs outline-none focus:border-[#111827]"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="searchText"
+                className="mb-2 block text-xs font-medium text-[#374151]"
+              >
+                Search
+              </label>
+              <input
+                id="searchText"
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="time / ip / path / country / user-agent / allowed / blocked"
+                className="h-10 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-xs outline-none focus:border-[#111827]"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={handleDownloadCsv}
+                disabled={filteredRows.length === 0}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d1d5db] bg-white px-4 text-xs font-medium text-[#111827] transition hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                CSVダウンロード
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-sm">
@@ -470,6 +607,8 @@ export default function AdminLogsPage() {
                         reset: false,
                         offset: nextOffset,
                         silent: false,
+                        startDateValue: startDate,
+                        endDateValue: endDate,
                       });
                     }}
                     disabled={loadingMore}
