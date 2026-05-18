@@ -25,6 +25,7 @@ type DisplayRow = {
 };
 
 const PAGE_SIZE = 100;
+const HIDDEN_LOG_PATHS = ["/api/verify-ip"];
 
 function toArray(data: unknown): LogItem[] {
   if (Array.isArray(data)) return data as LogItem[];
@@ -113,6 +114,10 @@ function todayString(): string {
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function shouldHideLogPath(path: string): boolean {
+  return HIDDEN_LOG_PATHS.includes(path);
 }
 
 export default function AdminLogsPage() {
@@ -262,6 +267,7 @@ export default function AdminLogsPage() {
           userAgent,
         };
       })
+      .filter((row) => !shouldHideLogPath(row.path))
       .sort(
         (a, b) =>
           parseTimestamp(b.timestampRaw) - parseTimestamp(a.timestampRaw),
