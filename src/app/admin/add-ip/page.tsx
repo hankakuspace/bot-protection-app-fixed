@@ -189,15 +189,6 @@ export default function AdminAddIpPage() {
             }`}
           >
             <p className="text-sm font-semibold">{result.message}</p>
-
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide">
-                Response
-              </p>
-              <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap break-all rounded-xl bg-white/70 p-4 text-xs">
-                {result.raw || "(empty)"}
-              </pre>
-            </div>
           </div>
         ) : null}
       </div>
