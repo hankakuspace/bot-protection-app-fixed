@@ -13,7 +13,7 @@ function normalizeIp(raw: string): string {
 function getShopFromRequest(request: NextRequest, bodyShop?: string): string {
   const queryShop = request.nextUrl.searchParams.get("shop") || "";
   const headerShop = request.headers.get("x-shopify-shop-domain") || "";
-  const shop = (bodyShop || queryShop || headerShop || "ruhra-store.myshopify.com")
+  const shop = (bodyShop || queryShop || headerShop || "be-search.biz")
     .trim()
     .toLowerCase();
 

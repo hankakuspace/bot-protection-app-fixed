@@ -51,26 +51,81 @@ function serializeValue(value: unknown): JsonValue {
   return String(value);
 }
 
-export async function GET() {
+function getShopFromRequest(request: NextRequest): string {
+  const queryShop = request.nextUrl.searchParams.get("shop") || "";
+  const headerShop = request.headers.get("x-shopify-shop-domain") || "";
+
+  return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
+}
+
+function isSameShopOrLegacy(
+  data: Record<string, JsonValue>,
+  targetShop: string,
+): boolean {
+  const shop = data.shop;
+
+  if (typeof shop === "string") {
+    return shop.trim() === "" || shop.trim().toLowerCase() === targetShop;
+  }
+
+  return shop === null || shop === undefined;
+}
+
+function getSortableCreatedAt(data: Record<string, JsonValue>): number {
+  const value = data.createdAt || data.timestamp || data.time || data.date;
+
+  if (typeof value !== "string" && typeof value !== "number") {
+    return 0;
+  }
+
+  const text = String(value).trim();
+  if (!text) {
+    return 0;
+  }
+
+  const parsed = Date.parse(text);
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+
+  const numeric = Number(text);
+  if (!Number.isNaN(numeric)) {
+    return text.length <= 10 ? numeric * 1000 : numeric;
+  }
+
+  return 0;
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const shop = getShopFromRequest(request);
     let snapshot;
 
     try {
       snapshot = await adminDb
         .collection("blocked_ips")
         .orderBy("createdAt", "desc")
-        .limit(100)
+        .limit(200)
         .get();
     } catch {
-      snapshot = await adminDb.collection("blocked_ips").limit(100).get();
+      snapshot = await adminDb.collection("blocked_ips").limit(200).get();
     }
 
-    const ips = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...((serializeValue(doc.data()) as Record<string, JsonValue>) || {}),
-    }));
+    const ips = snapshot.docs
+      .map((doc) => {
+        const data =
+          (serializeValue(doc.data()) as Record<string, JsonValue>) || {};
 
-    return NextResponse.json({ ips });
+        return {
+          id: doc.id,
+          ...data,
+        };
+      })
+      .filter((item) => isSameShopOrLegacy(item, shop))
+      .sort((a, b) => getSortableCreatedAt(b) - getSortableCreatedAt(a))
+      .slice(0, 100);
+
+    return NextResponse.json({ ips, shop });
   } catch (error) {
     console.error("GET /api/admin/list-ip error:", error);
 
