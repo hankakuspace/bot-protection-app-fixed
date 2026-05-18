@@ -1,39 +1,19 @@
 // src/app/page.tsx
 "use client";
 
-export default function Home() {
-  return (
-    <main style={{ padding: "2rem" }}>
-      <nav style={{ marginBottom: "1.5rem" }}>
-        <ul
-          style={{
-            display: "flex",
-            gap: "1rem",
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
-            flexWrap: "wrap",
-          }}
-        >
-          <li>
-            <a href="/admin/logs">アクセスログ</a>
-          </li>
-          <li>
-            <a href="/admin/list-ip">ブロック設定</a>
-          </li>
-          <li>
-            <a href="/admin/add-ip">IP追加</a>
-          </li>
-          <li>
-            <a href="/blocked">Blockedページ</a>
-          </li>
-        </ul>
-      </nav>
+import { useEffect } from "react";
 
-      <h1>Bot Guard MAN</h1>
-      <p>
-        Shopify Admin iframe 内でも、通常ブラウザ直アクセスでも表示できます。
-      </p>
+export default function Home() {
+  useEffect(() => {
+    const search = window.location.search || "";
+    window.location.replace(`/admin${search}`);
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
+      <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
+        <p className="text-sm text-[#6b7280]">ダッシュボードへ移動中です...</p>
+      </div>
     </main>
   );
 }
