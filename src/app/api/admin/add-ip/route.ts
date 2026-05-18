@@ -63,19 +63,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = await adminDb
+    const existingForShop = await adminDb
       .collection("blocked_ips")
       .where("ip", "==", ip)
       .where("shop", "==", shop)
       .limit(1)
       .get();
 
-    if (!existing.empty) {
+    if (!existingForShop.empty) {
       return NextResponse.json({
         success: true,
         duplicated: true,
         message: "このIPアドレスはすでに登録されています。",
         ip,
+        shop,
+      });
+    }
+
+    const legacyExisting = await adminDb
+      .collection("blocked_ips")
+      .where("ip", "==", ip)
+      .limit(20)
+      .get();
+
+    const hasLegacyExisting = legacyExisting.docs.some((doc) => {
+      const data = doc.data();
+      const legacyShop = data.shop;
+
+      return (
+        legacyShop === undefined ||
+        legacyShop === null ||
+        (typeof legacyShop === "string" && legacyShop.trim() === "")
+      );
+    });
+
+    if (hasLegacyExisting) {
+      return NextResponse.json({
+        success: true,
+        duplicated: true,
+        message: "このIPアドレスはすでに登録されています。",
+        ip,
+        shop,
       });
     }
 

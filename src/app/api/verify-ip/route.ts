@@ -119,7 +119,8 @@ export async function POST(request: NextRequest) {
   const corsHeaders = buildCorsHeaders(request);
 
   try {
-    const blocked = ip !== "unknown" ? await isIpBlocked(ip) : false;
+    const blocked =
+      ip !== "unknown" ? await isIpBlocked(ip, resolvedShop) : false;
 
     await adminDb.collection("access_logs").add({
       type: "verify-ip",
