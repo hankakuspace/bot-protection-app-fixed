@@ -56,7 +56,7 @@ export default function AdminLayout({
       <Frame>
         <div className="min-h-screen bg-[#f6f8fb]">
           <header className="border-b border-[#e5e7eb] bg-white">
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between xl:px-8">
+            <div className="flex w-full flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between xl:px-8">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b7280]">
                   bot-protection-proxy
