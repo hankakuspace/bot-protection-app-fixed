@@ -42,6 +42,24 @@ function normalizeIp(value: unknown): string {
   return trimmed.replace(/^::ffff:/, "");
 }
 
+function buildCorsHeaders(request: NextRequest): HeadersInit {
+  const origin = request.headers.get("origin") || "*";
+
+  return {
+    "Access-Control-Allow-Origin": origin,
+    Vary: "Origin",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: buildCorsHeaders(request),
+  });
+}
+
 export async function POST(request: NextRequest) {
   let bodyIp = "";
 
@@ -54,6 +72,7 @@ export async function POST(request: NextRequest) {
 
   const headerIp = normalizeIp(getClientIp(request));
   const ip = bodyIp || headerIp || "unknown";
+  const corsHeaders = buildCorsHeaders(request);
 
   try {
     const blocked = ip !== "unknown" ? await isIpBlocked(ip) : false;
@@ -77,7 +96,10 @@ export async function POST(request: NextRequest) {
         blocked,
         ip,
       },
-      { status: 200 },
+      {
+        status: 200,
+        headers: corsHeaders,
+      },
     );
   } catch (error) {
     console.error("verify-ip error:", error);
@@ -106,7 +128,10 @@ export async function POST(request: NextRequest) {
         ip,
         error: "Failed to verify IP",
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: corsHeaders,
+      },
     );
   }
 }
