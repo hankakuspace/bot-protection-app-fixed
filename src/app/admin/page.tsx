@@ -1,5 +1,5 @@
 // src/app/admin/page.tsx
-import { getPlanDefinition } from "@/lib/plans";
+import { getPlanDefinition, type PlanKey } from "@/lib/plans";
 
 const planBadgeStyles = {
   free: {
@@ -19,8 +19,29 @@ const planBadgeStyles = {
   },
 };
 
-export default function AdminDashboardPage() {
-  const currentPlan = getPlanDefinition("free");
+type AdminDashboardPageProps = {
+  searchParams?: Promise<{
+    plan?: string | string[];
+  }>;
+};
+
+function normalizePlanKey(value: string | string[] | undefined): PlanKey {
+  const plan = Array.isArray(value) ? value[0] : value;
+
+  if (plan === "basic" || plan === "pro" || plan === "free") {
+    return plan;
+  }
+
+  return "free";
+}
+
+export default async function AdminDashboardPage({
+  searchParams,
+}: AdminDashboardPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const currentPlan = getPlanDefinition(
+    normalizePlanKey(resolvedSearchParams?.plan),
+  );
   const planBadgeStyle = planBadgeStyles[currentPlan.key];
 
   return (
@@ -52,7 +73,7 @@ export default function AdminDashboardPage() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-[#6b7280]">
-                現在は販売プラン実装前のため、Freeプランとして表示しています。
+                現在は販売プラン実装前のため、確認用のプラン表示です。
               </p>
             </div>
 

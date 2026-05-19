@@ -43,8 +43,15 @@ function pick(obj: IpItem, keys: string[]): string {
   return "";
 }
 
+function getInitialPlanKey(): string {
+  if (typeof window === "undefined") return "free";
+
+  return new URLSearchParams(window.location.search).get("plan") || "free";
+}
+
 export default function AdminListIpPage() {
-  const currentPlan = getPlanDefinition("free");
+  const [planKey, setPlanKey] = useState("free");
+  const currentPlan = getPlanDefinition(planKey);
   const [items, setItems] = useState<IpItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,6 +104,10 @@ export default function AdminListIpPage() {
       setLoading(false);
       setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    setPlanKey(getInitialPlanKey());
   }, []);
 
   useEffect(() => {
@@ -190,7 +201,7 @@ export default function AdminListIpPage() {
             </p>
             <p className="mt-2 text-lg font-semibold">{currentPlan.name}</p>
             <p className="mt-1 text-xs leading-6">
-              FreeプランではブロックIPを{currentPlan.maxBlockedIps}件まで登録できます。
+              {currentPlan.name}プランではブロックIPを{currentPlan.maxBlockedIps}件まで登録できます。
             </p>
           </div>
 

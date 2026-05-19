@@ -25,8 +25,15 @@ function isValidIpv4(ip: string): boolean {
   });
 }
 
+function getInitialPlanKey(): string {
+  if (typeof window === "undefined") return "free";
+
+  return new URLSearchParams(window.location.search).get("plan") || "free";
+}
+
 export default function AdminAddIpPage() {
-  const currentPlan = getPlanDefinition("free");
+  const [planKey, setPlanKey] = useState("free");
+  const currentPlan = getPlanDefinition(planKey);
   const [ip, setIp] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -60,6 +67,10 @@ export default function AdminAddIpPage() {
   }, []);
 
   useEffect(() => {
+    setPlanKey(getInitialPlanKey());
+  }, []);
+
+  useEffect(() => {
     void fetchRegisteredIpCount();
   }, [fetchRegisteredIpCount]);
 
@@ -90,7 +101,10 @@ export default function AdminAddIpPage() {
       setSubmitting(true);
       setResult(null);
 
-      const res = await fetch("/api/admin/add-ip", {
+      const params = new URLSearchParams();
+      params.set("plan", currentPlan.key);
+
+      const res = await fetch(`/api/admin/add-ip?${params.toString()}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,6 +112,7 @@ export default function AdminAddIpPage() {
         body: JSON.stringify({
           ip: targetIp,
           note: note.trim(),
+          plan: currentPlan.key,
         }),
       });
 
@@ -159,9 +174,9 @@ export default function AdminAddIpPage() {
         <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-800">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold">Freeプランの登録上限</p>
+              <p className="font-semibold">{currentPlan.name}プランの登録上限</p>
               <p className="mt-1 text-xs leading-6">
-                FreeプランではブロックIPを{currentPlan.maxBlockedIps}件まで登録できます。
+                {currentPlan.name}プランではブロックIPを{currentPlan.maxBlockedIps}件まで登録できます。
               </p>
             </div>
 
