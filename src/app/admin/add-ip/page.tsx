@@ -1,12 +1,17 @@
 // src/app/admin/add-ip/page.tsx
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { getPlanDefinition } from "@/lib/plans";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type SubmitResult = {
   ok: boolean;
   message: string;
   raw: string;
+};
+
+type ListIpResponse = {
+  ips?: unknown[];
 };
 
 function isValidIpv4(ip: string): boolean {
@@ -21,13 +26,42 @@ function isValidIpv4(ip: string): boolean {
 }
 
 export default function AdminAddIpPage() {
+  const currentPlan = getPlanDefinition("free");
   const [ip, setIp] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [registeredIpCount, setRegisteredIpCount] = useState(0);
+  const [countLoading, setCountLoading] = useState(true);
 
   const trimmedIp = useMemo(() => ip.trim(), [ip]);
-  const canSubmit = trimmedIp.length > 0 && !submitting;
+  const isLimitReached = registeredIpCount >= currentPlan.maxBlockedIps;
+  const canSubmit = trimmedIp.length > 0 && !submitting && !isLimitReached;
+
+  const fetchRegisteredIpCount = useCallback(async () => {
+    try {
+      setCountLoading(true);
+
+      const res = await fetch("/api/admin/list-ip", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const parsed = (await res.json().catch(() => null)) as ListIpResponse | null;
+
+      if (!res.ok) {
+        return;
+      }
+
+      setRegisteredIpCount(Array.isArray(parsed?.ips) ? parsed.ips.length : 0);
+    } finally {
+      setCountLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchRegisteredIpCount();
+  }, [fetchRegisteredIpCount]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,6 +134,7 @@ export default function AdminAddIpPage() {
 
       setIp("");
       setNote("");
+      void fetchRegisteredIpCount();
     } catch (err) {
       setResult({
         ok: false,
@@ -122,10 +157,29 @@ export default function AdminAddIpPage() {
         </div>
 
         <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-800">
-          <p className="font-semibold">Freeプランの登録上限</p>
-          <p className="mt-1 text-xs leading-6">
-            FreeプランではブロックIPを3件まで登録できます。現在の登録数が上限に達している場合、新しいIPは登録できません。
-          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold">Freeプランの登録上限</p>
+              <p className="mt-1 text-xs leading-6">
+                FreeプランではブロックIPを{currentPlan.maxBlockedIps}件まで登録できます。
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-blue-200 bg-white px-4 py-3 text-right">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-blue-500">
+                Registered IPs
+              </p>
+              <p className="mt-1 text-lg font-semibold text-blue-900">
+                {countLoading ? "-" : registeredIpCount} / {currentPlan.maxBlockedIps}件
+              </p>
+            </div>
+          </div>
+
+          {isLimitReached ? (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800">
+              登録上限に達しています。新しいIPを登録する場合は、先に不要なIPを削除してください。
+            </p>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
