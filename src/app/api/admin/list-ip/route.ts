@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
+import { getEffectivePlanDefinition } from "@/lib/shop-plan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,6 +110,7 @@ export async function GET(request: NextRequest) {
     }
 
     const shop = getShopFromRequest(request);
+    const currentPlan = await getEffectivePlanDefinition(shop, null);
     let snapshot;
 
     try {
@@ -135,7 +137,12 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => getSortableCreatedAt(b) - getSortableCreatedAt(a))
       .slice(0, 100);
 
-    return NextResponse.json({ ips, shop });
+    return NextResponse.json({
+      ips,
+      shop,
+      plan: currentPlan.key,
+      maxBlockedIps: currentPlan.maxBlockedIps,
+    });
   } catch (error) {
     console.error("GET /api/admin/list-ip error:", error);
 

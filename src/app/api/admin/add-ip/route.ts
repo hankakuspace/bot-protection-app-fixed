@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase-admin";
-import { getPlanDefinition } from "@/lib/plans";
+import { getEffectivePlanDefinition } from "@/lib/shop-plan";
 import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 
 export const runtime = "nodejs";
@@ -22,11 +22,15 @@ function getShopFromRequest(request: NextRequest, bodyShop?: string): string {
   return shop;
 }
 
-function getPlanKeyFromRequest(request: NextRequest, bodyPlan?: string): string {
+function getPlanKeyFromRequest(
+  request: NextRequest,
+  bodyPlan?: string,
+): string | null {
   const queryPlan = request.nextUrl.searchParams.get("plan") || "";
   const headerPlan = request.headers.get("x-bot-protection-plan") || "";
+  const plan = (bodyPlan || queryPlan || headerPlan).trim().toLowerCase();
 
-  return (bodyPlan || queryPlan || headerPlan || "free").trim().toLowerCase();
+  return plan || null;
 }
 
 
@@ -93,7 +97,10 @@ export async function POST(request: NextRequest) {
     const ip = normalizeIp(body.ip ?? "");
     const note = (body.note ?? "").trim();
     const shop = getShopFromRequest(request, body.shop);
-    const currentPlan = getPlanDefinition(getPlanKeyFromRequest(request, body.plan));
+    const currentPlan = await getEffectivePlanDefinition(
+      shop,
+      getPlanKeyFromRequest(request, body.plan),
+    );
 
     if (!ip) {
       return NextResponse.json(

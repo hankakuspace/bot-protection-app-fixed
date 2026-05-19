@@ -11,6 +11,7 @@ const adminMenuItems = [
   { label: "アクセスログ", url: "/admin/logs" },
   { label: "ブロックIP一覧", url: "/admin/list-ip" },
   { label: "ブロックIP追加", url: "/admin/add-ip" },
+  { label: "プラン設定", url: "/admin/plan" },
 ];
 
 export default function AdminLayout({

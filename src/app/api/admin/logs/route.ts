@@ -1,7 +1,7 @@
 // src/app/api/admin/logs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { getPlanDefinition } from "@/lib/plans";
+import { getEffectivePlanDefinition } from "@/lib/shop-plan";
 import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 
 export const runtime = "nodejs";
@@ -23,7 +23,6 @@ type SerializedLog = {
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 100;
 const LEGACY_CUTOFF_TIME = Date.parse("2025-09-16T23:59:59.999Z");
-const DEFAULT_PLAN_KEY = "free";
 
 function serializeValue(value: unknown): JsonValue {
   if (value === null || value === undefined) {
@@ -131,12 +130,13 @@ function getShopFromRequest(request: NextRequest): string {
   return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
 }
 
-function getPlanKeyFromRequest(request: NextRequest): string {
+function getPlanKeyFromRequest(request: NextRequest): string | null {
   const { searchParams } = new URL(request.url);
   const queryPlan = searchParams.get("plan") || "";
   const headerPlan = request.headers.get("x-bot-protection-plan") || "";
+  const plan = (queryPlan || headerPlan).trim().toLowerCase();
 
-  return (queryPlan || headerPlan || DEFAULT_PLAN_KEY).trim().toLowerCase();
+  return plan || null;
 }
 
 function getRetentionStartDate(retentionDays: number): Date {
@@ -180,7 +180,10 @@ export async function GET(request: NextRequest) {
     const shop = getShopFromRequest(request);
     const startDate = parseStartDate(searchParams.get("startDate"));
     const endDate = parseEndDate(searchParams.get("endDate"));
-    const currentPlan = getPlanDefinition(getPlanKeyFromRequest(request));
+    const currentPlan = await getEffectivePlanDefinition(
+      shop,
+      getPlanKeyFromRequest(request),
+    );
     const retentionStartDate = getRetentionStartDate(
       currentPlan.accessLogRetentionDays,
     );
