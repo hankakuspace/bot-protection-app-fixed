@@ -121,6 +121,13 @@ export default function AdminAddIpPage() {
           <h1 className="text-3xl font-bold tracking-tight">ブロックIP追加</h1>
         </div>
 
+        <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-800">
+          <p className="font-semibold">Freeプランの登録上限</p>
+          <p className="mt-1 text-xs leading-6">
+            FreeプランではブロックIPを3件まで登録できます。現在の登録数が上限に達している場合、新しいIPは登録できません。
+          </p>
+        </div>
+
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
