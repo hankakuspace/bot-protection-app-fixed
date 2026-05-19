@@ -28,6 +28,13 @@ function getPlanKeyFromRequest(request: NextRequest, bodyPlan?: string): string 
   return (bodyPlan || queryPlan || headerPlan || "free").trim().toLowerCase();
 }
 
+function getPlanKeyFromRequest(request: NextRequest, bodyPlan?: string): string {
+  const queryPlan = request.nextUrl.searchParams.get("plan") || "";
+  const headerPlan = request.headers.get("x-bot-protection-plan") || "";
+
+  return (bodyPlan || queryPlan || headerPlan || "free").trim().toLowerCase();
+}
+
 function isValidIpv4(ip: string): boolean {
   const parts = ip.split(".");
 
@@ -78,6 +85,7 @@ export async function POST(request: NextRequest) {
     const ip = normalizeIp(body.ip ?? "");
     const note = (body.note ?? "").trim();
     const shop = getShopFromRequest(request, body.shop);
+    const currentPlan = getPlanDefinition(getPlanKeyFromRequest(request, body.plan));
     const currentPlan = getPlanDefinition(getPlanKeyFromRequest(request, body.plan));
 
     if (!ip) {
