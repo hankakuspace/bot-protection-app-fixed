@@ -14,12 +14,7 @@ type PlanResponse = {
   csvExportEnabled?: boolean;
   countryDisplayEnabled?: boolean;
   countryBlockEnabled?: boolean;
-  countryBlockActive?: boolean;
-  blockedCountries?: string[];
   customBlockedPageEnabled?: boolean;
-  customBlockedPageActive?: boolean;
-  blockedPageTitle?: string;
-  blockedPageMessage?: string;
   error?: string;
 };
 
@@ -38,16 +33,6 @@ export default function AdminPlanPage() {
   const [saving, setSaving] = useState(false);
   const [planKey, setPlanKey] = useState<PlanKey>("free");
   const [note, setNote] = useState("自社運営ECのため手動設定");
-  const [countryBlockEnabled, setCountryBlockEnabled] = useState(false);
-  const [blockedCountriesText, setBlockedCountriesText] = useState("");
-  const [customBlockedPageEnabled, setCustomBlockedPageEnabled] =
-    useState(false);
-  const [blockedPageTitle, setBlockedPageTitle] = useState(
-    "このアクセスはブロックされました",
-  );
-  const [blockedPageMessage, setBlockedPageMessage] = useState(
-    "あなたのIPアドレス、またはこのアクセス元は管理設定により拒否されています。",
-  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const currentPlan = getPlanDefinition(planKey);
@@ -75,23 +60,6 @@ export default function AdminPlanPage() {
       }
 
       setPlanKey(normalizePlanKey(parsed.plan || "free"));
-      setCountryBlockEnabled(parsed.countryBlockActive === true);
-      setBlockedCountriesText(
-        Array.isArray(parsed.blockedCountries)
-          ? parsed.blockedCountries.join(", ")
-          : "",
-      );
-      setCustomBlockedPageEnabled(parsed.customBlockedPageActive === true);
-      setBlockedPageTitle(
-        typeof parsed.blockedPageTitle === "string"
-          ? parsed.blockedPageTitle
-          : "このアクセスはブロックされました",
-      );
-      setBlockedPageMessage(
-        typeof parsed.blockedPageMessage === "string"
-          ? parsed.blockedPageMessage
-          : "あなたのIPアドレス、またはこのアクセス元は管理設定により拒否されています。",
-      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -124,14 +92,6 @@ export default function AdminPlanPage() {
           shop: ADMIN_SHOP,
           plan: planKey,
           note: note.trim(),
-          countryBlockEnabled,
-          blockedCountries: blockedCountriesText
-            .split(",")
-            .map((country) => country.trim().toUpperCase())
-            .filter((country) => /^[A-Z]{2}$/.test(country)),
-          customBlockedPageEnabled,
-          blockedPageTitle: blockedPageTitle.trim(),
-          blockedPageMessage: blockedPageMessage.trim(),
         }),
       });
 
@@ -146,24 +106,7 @@ export default function AdminPlanPage() {
       }
 
       setPlanKey(normalizePlanKey(parsed.plan || planKey));
-      setCountryBlockEnabled(parsed.countryBlockActive === true);
-      setBlockedCountriesText(
-        Array.isArray(parsed.blockedCountries)
-          ? parsed.blockedCountries.join(", ")
-          : blockedCountriesText,
-      );
-      setCustomBlockedPageEnabled(parsed.customBlockedPageActive === true);
-      setBlockedPageTitle(
-        typeof parsed.blockedPageTitle === "string"
-          ? parsed.blockedPageTitle
-          : blockedPageTitle,
-      );
-      setBlockedPageMessage(
-        typeof parsed.blockedPageMessage === "string"
-          ? parsed.blockedPageMessage
-          : blockedPageMessage,
-      );
-      setMessage(`${ADMIN_SHOP} の設定を保存しました。`);
+      setMessage(`${ADMIN_SHOP} のプラン設定を保存しました。`);
     } catch (err) {
       setError(
         err instanceof Error
@@ -235,102 +178,6 @@ export default function AdminPlanPage() {
 
               <div>
                 <label
-                  htmlFor="countryBlockEnabled"
-                  className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#374151]"
-                >
-                  <input
-                    id="countryBlockEnabled"
-                    type="checkbox"
-                    checked={countryBlockEnabled}
-                    onChange={(event) =>
-                      setCountryBlockEnabled(event.target.checked)
-                    }
-                    disabled={!currentPlan.countryBlockEnabled}
-                    className="h-4 w-4"
-                  />
-                  国別ブロックを有効にする
-                </label>
-                <p className="mt-1 text-xs leading-6 text-[#6b7280]">
-                  Proプランで利用できます。国コードはカンマ区切りで指定します。
-                </p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="blockedCountries"
-                  className="mb-2 block text-sm font-semibold text-[#374151]"
-                >
-                  ブロック対象国コード
-                </label>
-                <input
-                  id="blockedCountries"
-                  type="text"
-                  value={blockedCountriesText}
-                  onChange={(event) => setBlockedCountriesText(event.target.value)}
-                  placeholder="例: IN, BD, VN"
-                  disabled={!currentPlan.countryBlockEnabled}
-                  className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="customBlockedPageEnabled"
-                  className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#374151]"
-                >
-                  <input
-                    id="customBlockedPageEnabled"
-                    type="checkbox"
-                    checked={customBlockedPageEnabled}
-                    onChange={(event) =>
-                      setCustomBlockedPageEnabled(event.target.checked)
-                    }
-                    disabled={!currentPlan.customBlockedPageEnabled}
-                    className="h-4 w-4"
-                  />
-                  カスタムブロックページを有効にする
-                </label>
-                <p className="mt-1 text-xs leading-6 text-[#6b7280]">
-                  Proプランで利用できます。ブロック時に表示する文言を変更します。
-                </p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="blockedPageTitle"
-                  className="mb-2 block text-sm font-semibold text-[#374151]"
-                >
-                  ブロックページ見出し
-                </label>
-                <input
-                  id="blockedPageTitle"
-                  type="text"
-                  value={blockedPageTitle}
-                  onChange={(event) => setBlockedPageTitle(event.target.value)}
-                  disabled={!currentPlan.customBlockedPageEnabled}
-                  className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="blockedPageMessage"
-                  className="mb-2 block text-sm font-semibold text-[#374151]"
-                >
-                  ブロックページ本文
-                </label>
-                <textarea
-                  id="blockedPageMessage"
-                  rows={4}
-                  value={blockedPageMessage}
-                  onChange={(event) => setBlockedPageMessage(event.target.value)}
-                  disabled={!currentPlan.customBlockedPageEnabled}
-                  className="w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
                   htmlFor="note"
                   className="mb-2 block text-sm font-semibold text-[#374151]"
                 >
@@ -351,7 +198,7 @@ export default function AdminPlanPage() {
                   disabled={loading || saving}
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving ? "保存中..." : "設定を保存"}
+                  {saving ? "保存中..." : "プラン設定を保存"}
                 </button>
 
                 <button
@@ -397,11 +244,7 @@ export default function AdminPlanPage() {
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
                 <p className="font-semibold text-[#111827]">国別ブロック</p>
                 <p className="mt-1">
-                  {currentPlan.countryBlockEnabled
-                    ? countryBlockEnabled
-                      ? "有効"
-                      : "利用可"
-                    : "未対応"}
+                  {currentPlan.countryBlockEnabled ? "利用可" : "未対応"}
                 </p>
               </div>
 
@@ -410,17 +253,13 @@ export default function AdminPlanPage() {
                   カスタムブロックページ
                 </p>
                 <p className="mt-1">
-                  {currentPlan.customBlockedPageEnabled
-                    ? customBlockedPageEnabled
-                      ? "有効"
-                      : "利用可"
-                    : "未対応"}
+                  {currentPlan.customBlockedPageEnabled ? "利用可" : "未対応"}
                 </p>
               </div>
             </div>
 
             <p className="mt-4 text-xs leading-6 text-[#6b7280]">
-                この設定は Billing 実装前の手動ストア設定です。プラン、国別ブロックなどの設定を保存します。正式な課金実装後は、Billing状態と手動設定の優先順位を別途整理します。
+              この画面では手動プラン設定のみを保存します。国別ブロックとカスタムブロックページは「ブロック設定」で管理します。
             </p>
           </div>
         </div>

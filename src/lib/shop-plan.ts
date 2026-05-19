@@ -8,13 +8,6 @@ import {
   type PlanKey,
 } from "@/lib/plans";
 
-export type ShopPlanSetting = {
-  shop: string;
-  plan: PlanKey;
-  note: string;
-  updatedAt: FirebaseFirestore.FieldValue;
-};
-
 function normalizeShop(shop: string | null | undefined): string {
   return (shop || "be-search.biz").trim().toLowerCase();
 }
@@ -85,29 +78,45 @@ export async function saveShopPlanSetting({
 }) {
   const normalizedShop = normalizeShop(shop);
 
-  await adminDb.collection("shop_settings").doc(normalizedShop).set(
-    {
-      shop: normalizedShop,
-      plan,
-      note: note || "",
-      ...(typeof countryBlockEnabled === "boolean"
-        ? { countryBlockEnabled }
-        : {}),
-      ...(Array.isArray(blockedCountries) ? { blockedCountries } : {}),
-      ...(typeof customBlockedPageEnabled === "boolean"
-        ? { customBlockedPageEnabled }
-        : {}),
-      ...(typeof blockedPageTitle === "string" ? { blockedPageTitle } : {}),
-      ...(typeof blockedPageMessage === "string" ? { blockedPageMessage } : {}),
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+  const updateData: Record<string, unknown> = {
+    shop: normalizedShop,
+    plan,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  if (typeof note === "string") {
+    updateData.note = note;
+  }
+
+  if (typeof countryBlockEnabled === "boolean") {
+    updateData.countryBlockEnabled = countryBlockEnabled;
+  }
+
+  if (Array.isArray(blockedCountries)) {
+    updateData.blockedCountries = blockedCountries;
+  }
+
+  if (typeof customBlockedPageEnabled === "boolean") {
+    updateData.customBlockedPageEnabled = customBlockedPageEnabled;
+  }
+
+  if (typeof blockedPageTitle === "string") {
+    updateData.blockedPageTitle = blockedPageTitle;
+  }
+
+  if (typeof blockedPageMessage === "string") {
+    updateData.blockedPageMessage = blockedPageMessage;
+  }
+
+  await adminDb
+    .collection("shop_settings")
+    .doc(normalizedShop)
+    .set(updateData, { merge: true });
 
   return {
     shop: normalizedShop,
     plan,
-    note: note || "",
+    ...(typeof note === "string" ? { note } : {}),
     ...(typeof countryBlockEnabled === "boolean"
       ? { countryBlockEnabled }
       : {}),

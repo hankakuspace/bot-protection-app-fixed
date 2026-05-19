@@ -106,19 +106,6 @@ export async function PATCH(request: NextRequest) {
       typeof body.plan === "string" ? body.plan : "",
     );
 
-    const note = typeof body.note === "string" ? body.note.trim() : "";
-    const countryBlockEnabled = body.countryBlockEnabled === true;
-    const blockedCountries = normalizeBlockedCountries(body.blockedCountries);
-    const customBlockedPageEnabled = body.customBlockedPageEnabled === true;
-    const blockedPageTitle =
-      typeof body.blockedPageTitle === "string"
-        ? body.blockedPageTitle.trim()
-        : "";
-    const blockedPageMessage =
-      typeof body.blockedPageMessage === "string"
-        ? body.blockedPageMessage.trim()
-        : "";
-
     if (!plan) {
       return NextResponse.json(
         { error: "plan は free / basic / pro のいずれかを指定してください。" },
@@ -129,12 +116,22 @@ export async function PATCH(request: NextRequest) {
     const saved = await saveShopPlanSetting({
       shop,
       plan,
-      note,
-      countryBlockEnabled,
-      blockedCountries,
-      customBlockedPageEnabled,
-      blockedPageTitle,
-      blockedPageMessage,
+      ...(typeof body.note === "string" ? { note: body.note.trim() } : {}),
+      ...(typeof body.countryBlockEnabled === "boolean"
+        ? { countryBlockEnabled: body.countryBlockEnabled }
+        : {}),
+      ...(Array.isArray(body.blockedCountries)
+        ? { blockedCountries: normalizeBlockedCountries(body.blockedCountries) }
+        : {}),
+      ...(typeof body.customBlockedPageEnabled === "boolean"
+        ? { customBlockedPageEnabled: body.customBlockedPageEnabled }
+        : {}),
+      ...(typeof body.blockedPageTitle === "string"
+        ? { blockedPageTitle: body.blockedPageTitle.trim() }
+        : {}),
+      ...(typeof body.blockedPageMessage === "string"
+        ? { blockedPageMessage: body.blockedPageMessage.trim() }
+        : {}),
     });
 
     const currentPlan = await getEffectivePlanDefinition(shop, null);
@@ -153,6 +150,9 @@ export async function PATCH(request: NextRequest) {
       countryBlockActive: countryBlockSettings.enabled,
       blockedCountries: countryBlockSettings.blockedCountries,
       customBlockedPageEnabled: currentPlan.customBlockedPageEnabled,
+      customBlockedPageActive: blockedPageSettings.enabled,
+      blockedPageTitle: blockedPageSettings.title,
+      blockedPageMessage: blockedPageSettings.message,
     });
   } catch (error) {
     console.error("PATCH /api/admin/plan error:", error);
