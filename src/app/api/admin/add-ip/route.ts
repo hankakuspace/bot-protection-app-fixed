@@ -41,8 +41,7 @@ function isValidIpv4(ip: string): boolean {
   }
 
   return parts.every((part) => {
-    if (!/^
-d+$/.test(part)) {
+    if (!/^\d+$/.test(part)) {
       return false;
     }
 
