@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "5e0b45e5abe855d21a409ca713edf9e6"
+client_id = "200524cf1c6c2eb729630eb32ec4c99d"
 name = "Store Access Guard"
 application_url = "https://bot-protection-ten.vercel.app"
 embedded = true
