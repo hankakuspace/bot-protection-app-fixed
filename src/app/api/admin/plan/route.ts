@@ -6,6 +6,7 @@ import {
   saveShopPlanSetting,
 } from "@/lib/shop-plan";
 import { getCountryBlockSettings } from "@/lib/country-block";
+import { getBlockedPageSettings } from "@/lib/blocked-page-settings";
 import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 
 export const runtime = "nodejs";
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     const shop = getShopFromRequest(request);
     const currentPlan = await getEffectivePlanDefinition(shop, null);
     const countryBlockSettings = await getCountryBlockSettings(shop);
+    const blockedPageSettings = await getBlockedPageSettings(shop);
 
     return NextResponse.json({
       shop,
@@ -59,6 +61,9 @@ export async function GET(request: NextRequest) {
       countryBlockActive: countryBlockSettings.enabled,
       blockedCountries: countryBlockSettings.blockedCountries,
       customBlockedPageEnabled: currentPlan.customBlockedPageEnabled,
+      customBlockedPageActive: blockedPageSettings.enabled,
+      blockedPageTitle: blockedPageSettings.title,
+      blockedPageMessage: blockedPageSettings.message,
     });
   } catch (error) {
     console.error("GET /api/admin/plan error:", error);
@@ -87,6 +92,9 @@ export async function PATCH(request: NextRequest) {
       note?: unknown;
       countryBlockEnabled?: unknown;
       blockedCountries?: unknown;
+      customBlockedPageEnabled?: unknown;
+      blockedPageTitle?: unknown;
+      blockedPageMessage?: unknown;
     };
 
     const shop =
@@ -101,6 +109,15 @@ export async function PATCH(request: NextRequest) {
     const note = typeof body.note === "string" ? body.note.trim() : "";
     const countryBlockEnabled = body.countryBlockEnabled === true;
     const blockedCountries = normalizeBlockedCountries(body.blockedCountries);
+    const customBlockedPageEnabled = body.customBlockedPageEnabled === true;
+    const blockedPageTitle =
+      typeof body.blockedPageTitle === "string"
+        ? body.blockedPageTitle.trim()
+        : "";
+    const blockedPageMessage =
+      typeof body.blockedPageMessage === "string"
+        ? body.blockedPageMessage.trim()
+        : "";
 
     if (!plan) {
       return NextResponse.json(
@@ -115,10 +132,14 @@ export async function PATCH(request: NextRequest) {
       note,
       countryBlockEnabled,
       blockedCountries,
+      customBlockedPageEnabled,
+      blockedPageTitle,
+      blockedPageMessage,
     });
 
     const currentPlan = await getEffectivePlanDefinition(shop, null);
     const countryBlockSettings = await getCountryBlockSettings(shop);
+    const blockedPageSettings = await getBlockedPageSettings(shop);
 
     return NextResponse.json({
       success: true,
