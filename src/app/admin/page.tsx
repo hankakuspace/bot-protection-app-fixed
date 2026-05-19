@@ -1,5 +1,9 @@
 // src/app/admin/page.tsx
+import { getPlanDefinition } from "@/lib/plans";
+
 export default function AdminDashboardPage() {
+  const currentPlan = getPlanDefinition("free");
+
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
@@ -10,6 +14,48 @@ export default function AdminDashboardPage() {
           <p className="mt-1 text-xs text-[#6b7280]">
             IPブロック管理とアクセスログ確認を行う管理画面です。
           </p>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                Current Plan
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-[#111827]">
+                {currentPlan.name}
+              </h2>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                現在は販売プラン実装前のため、Freeプランとして表示しています。
+              </p>
+            </div>
+
+            <div className="grid gap-3 text-xs text-[#374151] sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
+                <p className="font-semibold text-[#111827]">IP登録上限</p>
+                <p className="mt-1">{currentPlan.maxBlockedIps}件</p>
+              </div>
+
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
+                <p className="font-semibold text-[#111827]">ログ保存目安</p>
+                <p className="mt-1">{currentPlan.accessLogRetentionDays}日</p>
+              </div>
+
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
+                <p className="font-semibold text-[#111827]">CSV出力</p>
+                <p className="mt-1">
+                  {currentPlan.csvExportEnabled ? "利用可" : "未対応"}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
+                <p className="font-semibold text-[#111827]">国別ブロック</p>
+                <p className="mt-1">
+                  {currentPlan.countryBlockEnabled ? "利用可" : "未対応"}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
