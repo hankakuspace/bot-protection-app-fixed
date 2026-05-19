@@ -21,6 +21,7 @@ type DisplayRow = {
   timestampRaw: string;
   timestampLabel: string;
   status: string;
+  blockReason: string;
   ip: string;
   blocked: string;
   path: string;
@@ -281,6 +282,7 @@ export default function AdminLogsPage() {
           "date",
         ]);
         const status = getCell(log, ["status", "state", "resultStatus"]);
+        const blockReason = getCell(log, ["blockReason", "reason"]);
         const ip = getCell(log, ["ip", "clientIp", "remoteIp"]);
         const blocked = getCell(log, ["blocked", "isBlocked", "result"]);
         const path = getCell(log, ["path", "pathname", "route", "url", "page"]);
@@ -292,6 +294,7 @@ export default function AdminLogsPage() {
           timestampRaw,
           timestampLabel: formatDateTime(timestampRaw),
           status,
+          blockReason,
           ip,
           blocked,
           path,
@@ -316,6 +319,7 @@ export default function AdminLogsPage() {
         row.timestampRaw,
         row.timestampLabel,
         row.status,
+        row.blockReason,
         row.ip,
         row.blocked,
         row.path,
@@ -341,7 +345,12 @@ export default function AdminLogsPage() {
         row.blocked === "blocked" ||
         row.status === "blocked";
 
-      const statusLabel = isBlocked ? "Blocked" : "Allowed";
+      const statusLabel =
+        isBlocked && row.blockReason
+          ? `Blocked / ${row.blockReason}`
+          : isBlocked
+            ? "Blocked"
+            : "Allowed";
 
       return [
         row.timestampLabel,
@@ -529,6 +538,13 @@ export default function AdminLogsPage() {
                         row.blocked === "true" ||
                         row.blocked === "blocked" ||
                         row.status === "blocked";
+
+                      const statusLabel =
+                        isBlocked && row.blockReason
+                          ? `Blocked / ${row.blockReason}`
+                          : isBlocked
+                            ? "Blocked"
+                            : "Allowed";
 
                       const isPathExpanded =
                         expandedTextKey === `${row.id}:path`;
