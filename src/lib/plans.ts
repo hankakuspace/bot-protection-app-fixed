@@ -19,7 +19,7 @@ export const PLAN_DEFINITIONS: Record<PlanKey, PlanDefinition> = {
     name: "Free",
     monthlyPriceUsd: 0,
     maxBlockedIps: 3,
-    accessLogRetentionDays: 7,
+    accessLogRetentionDays: 3,
     csvExportEnabled: false,
     countryDisplayEnabled: true,
     countryBlockEnabled: false,
