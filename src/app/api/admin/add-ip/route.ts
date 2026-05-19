@@ -27,12 +27,8 @@ function getPlanKeyFromRequest(request: NextRequest, bodyPlan?: string): string 
 
   return (bodyPlan || queryPlan || headerPlan || "free").trim().toLowerCase();
 }
-\nfunction getPlanKeyFromRequest(request: NextRequest, bodyPlan?: string): string {
-  const queryPlan = request.nextUrl.searchParams.get("plan") || "";
-  const headerPlan = request.headers.get("x-bot-protection-plan") || "";
 
-  return (bodyPlan || queryPlan || headerPlan || "free").trim().toLowerCase();
-}
+
 
 
 
