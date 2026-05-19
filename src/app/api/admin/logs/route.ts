@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { getPlanDefinition } from "@/lib/plans";
+import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -158,6 +159,15 @@ function isSameShopOrLegacy(log: SerializedLog, targetShop: string): boolean {
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = verifyShopifyAdminRequest(request);
+
+    if (!authResult.ok) {
+      return NextResponse.json(
+        { error: "管理APIの認証に失敗しました。" },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
 
     const offset = parsePositiveInt(searchParams.get("offset"), 0);

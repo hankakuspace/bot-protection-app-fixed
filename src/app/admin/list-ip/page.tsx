@@ -1,6 +1,7 @@
 // src/app/admin/list-ip/page.tsx
 "use client";
 
+import { adminFetch } from "@/lib/admin-auth-fetch";
 import { getPlanDefinition } from "@/lib/plans";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -68,7 +69,7 @@ export default function AdminListIpPage() {
 
       setError("");
 
-      const res = await fetch("/api/admin/list-ip", {
+      const res = await adminFetch("/api/admin/list-ip", {
         method: "GET",
         cache: "no-store",
       });
@@ -122,7 +123,7 @@ export default function AdminListIpPage() {
       setDeletingId(id);
       setError("");
 
-      const res = await fetch(
+      const res = await adminFetch(
         `/api/admin/list-ip?id=${encodeURIComponent(id)}`,
         {
           method: "DELETE",

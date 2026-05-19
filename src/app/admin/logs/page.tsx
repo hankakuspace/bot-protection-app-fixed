@@ -1,6 +1,7 @@
 // src/app/admin/logs/page.tsx
 "use client";
 
+import { adminFetch } from "@/lib/admin-auth-fetch";
 import { getPlanDefinition } from "@/lib/plans";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -182,7 +183,7 @@ export default function AdminLogsPage() {
           params.set("endDate", endDateValue);
         }
 
-        const response = await fetch(`/api/admin/logs?${params.toString()}`, {
+        const response = await adminFetch(`/api/admin/logs?${params.toString()}`, {
           method: "GET",
           cache: "no-store",
         });

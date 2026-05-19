@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase-admin";
 import { getPlanDefinition } from "@/lib/plans";
+import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,6 +74,15 @@ async function countBlockedIpsForShop(shop: string): Promise<number> {
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = verifyShopifyAdminRequest(request);
+
+    if (!authResult.ok) {
+      return NextResponse.json(
+        { error: "管理APIの認証に失敗しました。" },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as {
       ip?: string;
       note?: string;

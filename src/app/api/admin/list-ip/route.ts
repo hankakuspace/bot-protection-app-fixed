@@ -1,6 +1,7 @@
 // src/app/api/admin/list-ip/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,6 +99,15 @@ function getSortableCreatedAt(data: Record<string, JsonValue>): number {
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = verifyShopifyAdminRequest(request);
+
+    if (!authResult.ok) {
+      return NextResponse.json(
+        { error: "管理APIの認証に失敗しました。" },
+        { status: 401 },
+      );
+    }
+
     const shop = getShopFromRequest(request);
     let snapshot;
 
@@ -138,6 +148,15 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const authResult = verifyShopifyAdminRequest(request);
+
+    if (!authResult.ok) {
+      return NextResponse.json(
+        { error: "管理APIの認証に失敗しました。" },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as {
       id?: unknown;
       shop?: unknown;
@@ -195,6 +214,15 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const authResult = verifyShopifyAdminRequest(request);
+
+    if (!authResult.ok) {
+      return NextResponse.json(
+        { error: "管理APIの認証に失敗しました。" },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id")?.trim();
 

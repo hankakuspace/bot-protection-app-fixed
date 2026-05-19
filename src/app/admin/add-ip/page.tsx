@@ -1,6 +1,7 @@
 // src/app/admin/add-ip/page.tsx
 "use client";
 
+import { adminFetch } from "@/lib/admin-auth-fetch";
 import { getPlanDefinition } from "@/lib/plans";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -49,7 +50,7 @@ export default function AdminAddIpPage() {
     try {
       setCountLoading(true);
 
-      const res = await fetch("/api/admin/list-ip", {
+      const res = await adminFetch("/api/admin/list-ip", {
         method: "GET",
         cache: "no-store",
       });
@@ -104,7 +105,7 @@ export default function AdminAddIpPage() {
       const params = new URLSearchParams();
       params.set("plan", currentPlan.key);
 
-      const res = await fetch(`/api/admin/add-ip?${params.toString()}`, {
+      const res = await adminFetch(`/api/admin/add-ip?${params.toString()}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
