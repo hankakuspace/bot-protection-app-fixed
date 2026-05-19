@@ -12,6 +12,7 @@ const adminMenuItems = [
   { label: "ブロックIP一覧", url: "/admin/list-ip" },
   { label: "ブロックIP追加", url: "/admin/add-ip" },
   { label: "ブロック設定", url: "/admin/block-settings" },
+  { label: "料金プラン", url: "/admin/billing" },
   { label: "プラン設定", url: "/admin/plan" },
 ];
 
