@@ -1,6 +1,7 @@
 // src/app/admin/logs/page.tsx
 "use client";
 
+import { getPlanDefinition } from "@/lib/plans";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type LogItem = Record<string, unknown>;
@@ -121,6 +122,12 @@ function shouldHideLogPath(path: string): boolean {
   return HIDDEN_LOG_PATHS.includes(path);
 }
 
+function getInitialPlanKey(): string {
+  if (typeof window === "undefined") return "free";
+
+  return new URLSearchParams(window.location.search).get("plan") || "free";
+}
+
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,6 +140,8 @@ export default function AdminLogsPage() {
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState(todayString());
+  const [planKey, setPlanKey] = useState("free");
+  const currentPlan = getPlanDefinition(planKey);
 
   const fetchLogs = useCallback(
     async ({
@@ -163,6 +172,7 @@ export default function AdminLogsPage() {
         params.set("offset", String(offset));
         params.set("limit", String(PAGE_SIZE));
         params.set("shop", ADMIN_SHOP);
+        params.set("plan", currentPlan.key);
 
         if (startDateValue) {
           params.set("startDate", startDateValue);
@@ -228,8 +238,12 @@ export default function AdminLogsPage() {
         setRefreshing(false);
       }
     },
-    [],
+    [currentPlan.key],
   );
+
+  useEffect(() => {
+    setPlanKey(getInitialPlanKey());
+  }, []);
 
   useEffect(() => {
     void fetchLogs({
@@ -439,9 +453,20 @@ export default function AdminLogsPage() {
             </div>
 
             <div className="flex items-end">
-              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-xs text-[#6b7280]">
-                CSV出力は有料プランで利用できます。
-              </div>
+              {currentPlan.csvExportEnabled ? (
+                <button
+                  type="button"
+                  onClick={handleDownloadCsv}
+                  disabled={filteredRows.length === 0}
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  CSVダウンロード
+                </button>
+              ) : (
+                <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-xs text-[#6b7280]">
+                  CSV出力は有料プランで利用できます。
+                </div>
+              )}
             </div>
           </div>
         </div>
