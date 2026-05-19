@@ -21,6 +21,13 @@ function getShopFromRequest(request: NextRequest, bodyShop?: string): string {
   return shop;
 }
 
+function getPlanKeyFromRequest(request: NextRequest, bodyPlan?: string): string {
+  const queryPlan = request.nextUrl.searchParams.get("plan") || "";
+  const headerPlan = request.headers.get("x-bot-protection-plan") || "";
+
+  return (bodyPlan || queryPlan || headerPlan || "free").trim().toLowerCase();
+}
+
 function isValidIpv4(ip: string): boolean {
   const parts = ip.split(".");
 
@@ -65,11 +72,13 @@ export async function POST(request: NextRequest) {
       ip?: string;
       note?: string;
       shop?: string;
+      plan?: string;
     };
 
     const ip = normalizeIp(body.ip ?? "");
     const note = (body.note ?? "").trim();
     const shop = getShopFromRequest(request, body.shop);
+    const currentPlan = getPlanDefinition(getPlanKeyFromRequest(request, body.plan));
 
     if (!ip) {
       return NextResponse.json(
@@ -129,7 +138,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const currentPlan = getPlanDefinition("free");
     const currentBlockedIpCount = await countBlockedIpsForShop(shop);
 
     if (currentBlockedIpCount >= currentPlan.maxBlockedIps) {
