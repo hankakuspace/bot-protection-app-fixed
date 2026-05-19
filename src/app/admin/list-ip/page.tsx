@@ -7,6 +7,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type IpItem = Record<string, unknown>;
 
+type ListIpResponse = {
+  ips?: unknown[];
+  plan?: string;
+  maxBlockedIps?: number;
+};
+
 function normalizeList(data: unknown): IpItem[] {
   if (Array.isArray(data)) return data as IpItem[];
 
@@ -45,12 +51,13 @@ function pick(obj: IpItem, keys: string[]): string {
 }
 
 function getInitialPlanKey(): string {
-  if (typeof window === "undefined") return "free";
+  if (typeof window === "undefined") return "";
 
-  return new URLSearchParams(window.location.search).get("plan") || "free";
+  return new URLSearchParams(window.location.search).get("plan") || "";
 }
 
 export default function AdminListIpPage() {
+  const [requestedPlanKey, setRequestedPlanKey] = useState("");
   const [planKey, setPlanKey] = useState("free");
   const currentPlan = getPlanDefinition(planKey);
   const [items, setItems] = useState<IpItem[]>([]);
@@ -69,7 +76,13 @@ export default function AdminListIpPage() {
 
       setError("");
 
-      const res = await adminFetch("/api/admin/list-ip", {
+      const params = new URLSearchParams();
+
+      if (requestedPlanKey) {
+        params.set("plan", requestedPlanKey);
+      }
+
+      const res = await adminFetch(`/api/admin/list-ip?${params.toString()}`, {
         method: "GET",
         cache: "no-store",
       });
@@ -94,6 +107,12 @@ export default function AdminListIpPage() {
       }
 
       setItems(normalizeList(parsed));
+
+      const parsedResponse = parsed as ListIpResponse | null;
+
+      if (typeof parsedResponse?.plan === "string") {
+        setPlanKey(parsedResponse.plan);
+      }
     } catch (err) {
       setItems([]);
       setError(
@@ -105,10 +124,15 @@ export default function AdminListIpPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [requestedPlanKey]);
 
   useEffect(() => {
-    setPlanKey(getInitialPlanKey());
+    const initialPlanKey = getInitialPlanKey();
+    setRequestedPlanKey(initialPlanKey);
+
+    if (initialPlanKey) {
+      setPlanKey(initialPlanKey);
+    }
   }, []);
 
   useEffect(() => {

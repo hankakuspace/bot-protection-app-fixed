@@ -13,6 +13,8 @@ type SubmitResult = {
 
 type ListIpResponse = {
   ips?: unknown[];
+  plan?: string;
+  maxBlockedIps?: number;
 };
 
 function isValidIpv4(ip: string): boolean {
@@ -27,12 +29,13 @@ function isValidIpv4(ip: string): boolean {
 }
 
 function getInitialPlanKey(): string {
-  if (typeof window === "undefined") return "free";
+  if (typeof window === "undefined") return "";
 
-  return new URLSearchParams(window.location.search).get("plan") || "free";
+  return new URLSearchParams(window.location.search).get("plan") || "";
 }
 
 export default function AdminAddIpPage() {
+  const [requestedPlanKey, setRequestedPlanKey] = useState("");
   const [planKey, setPlanKey] = useState("free");
   const currentPlan = getPlanDefinition(planKey);
   const [ip, setIp] = useState("");
@@ -50,7 +53,13 @@ export default function AdminAddIpPage() {
     try {
       setCountLoading(true);
 
-      const res = await adminFetch("/api/admin/list-ip", {
+      const params = new URLSearchParams();
+
+      if (requestedPlanKey) {
+        params.set("plan", requestedPlanKey);
+      }
+
+      const res = await adminFetch(`/api/admin/list-ip?${params.toString()}`, {
         method: "GET",
         cache: "no-store",
       });
@@ -62,13 +71,22 @@ export default function AdminAddIpPage() {
       }
 
       setRegisteredIpCount(Array.isArray(parsed?.ips) ? parsed.ips.length : 0);
+
+      if (typeof parsed?.plan === "string") {
+        setPlanKey(parsed.plan);
+      }
     } finally {
       setCountLoading(false);
     }
-  }, []);
+  }, [requestedPlanKey]);
 
   useEffect(() => {
-    setPlanKey(getInitialPlanKey());
+    const initialPlanKey = getInitialPlanKey();
+    setRequestedPlanKey(initialPlanKey);
+
+    if (initialPlanKey) {
+      setPlanKey(initialPlanKey);
+    }
   }, []);
 
   useEffect(() => {
@@ -103,7 +121,10 @@ export default function AdminAddIpPage() {
       setResult(null);
 
       const params = new URLSearchParams();
-      params.set("plan", currentPlan.key);
+
+      if (requestedPlanKey) {
+        params.set("plan", requestedPlanKey);
+      }
 
       const res = await adminFetch(`/api/admin/add-ip?${params.toString()}`, {
         method: "POST",
@@ -113,7 +134,7 @@ export default function AdminAddIpPage() {
         body: JSON.stringify({
           ip: targetIp,
           note: note.trim(),
-          plan: currentPlan.key,
+          ...(requestedPlanKey ? { plan: requestedPlanKey } : {}),
         }),
       });
 

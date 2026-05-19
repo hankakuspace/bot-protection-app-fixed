@@ -11,6 +11,8 @@ type LogsResponse = {
   logs?: LogItem[];
   hasMore?: boolean;
   nextOffset?: number | null;
+  plan?: string;
+  accessLogRetentionDays?: number;
   error?: string;
 };
 
@@ -124,9 +126,9 @@ function shouldHideLogPath(path: string): boolean {
 }
 
 function getInitialPlanKey(): string {
-  if (typeof window === "undefined") return "free";
+  if (typeof window === "undefined") return "";
 
-  return new URLSearchParams(window.location.search).get("plan") || "free";
+  return new URLSearchParams(window.location.search).get("plan") || "";
 }
 
 export default function AdminLogsPage() {
@@ -141,6 +143,7 @@ export default function AdminLogsPage() {
   const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState(todayString());
+  const [requestedPlanKey, setRequestedPlanKey] = useState("");
   const [planKey, setPlanKey] = useState("free");
   const currentPlan = getPlanDefinition(planKey);
 
@@ -173,7 +176,10 @@ export default function AdminLogsPage() {
         params.set("offset", String(offset));
         params.set("limit", String(PAGE_SIZE));
         params.set("shop", ADMIN_SHOP);
-        params.set("plan", currentPlan.key);
+
+        if (requestedPlanKey) {
+          params.set("plan", requestedPlanKey);
+        }
 
         if (startDateValue) {
           params.set("startDate", startDateValue);
@@ -219,6 +225,10 @@ export default function AdminLogsPage() {
           ];
         });
 
+        if (typeof parsed.plan === "string") {
+          setPlanKey(parsed.plan);
+        }
+
         setHasMore(Boolean(parsed.hasMore));
         setNextOffset(
           typeof parsed.nextOffset === "number" ? parsed.nextOffset : null,
@@ -239,11 +249,16 @@ export default function AdminLogsPage() {
         setRefreshing(false);
       }
     },
-    [currentPlan.key],
+    [requestedPlanKey],
   );
 
   useEffect(() => {
-    setPlanKey(getInitialPlanKey());
+    const initialPlanKey = getInitialPlanKey();
+    setRequestedPlanKey(initialPlanKey);
+
+    if (initialPlanKey) {
+      setPlanKey(initialPlanKey);
+    }
   }, []);
 
   useEffect(() => {

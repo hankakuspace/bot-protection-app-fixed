@@ -1,5 +1,6 @@
 // src/app/admin/page.tsx
-import { getPlanDefinition, type PlanKey } from "@/lib/plans";
+import { getEffectivePlanDefinition } from "@/lib/shop-plan";
+import type { PlanKey } from "@/lib/plans";
 
 const planBadgeStyles = {
   free: {
@@ -39,8 +40,10 @@ export default async function AdminDashboardPage({
   searchParams,
 }: AdminDashboardPageProps) {
   const resolvedSearchParams = await searchParams;
-  const currentPlan = getPlanDefinition(
-    normalizePlanKey(resolvedSearchParams?.plan),
+  const requestedPlan = resolvedSearchParams?.plan;
+  const currentPlan = await getEffectivePlanDefinition(
+    "be-search.biz",
+    normalizePlanKey(requestedPlan),
   );
   const planBadgeStyle = planBadgeStyles[currentPlan.key];
 
