@@ -628,11 +628,11 @@ export default function AdminLogsPage() {
 
                           <td className="px-3 py-3 text-xs text-[#111827]">
                             {isBlocked ? (
-                              <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                              <span className="inline-flex whitespace-nowrap items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
                                 {statusLabel}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+                              <span className="inline-flex whitespace-nowrap items-center gap-1.5 text-[11px] font-medium text-emerald-700">
                                 <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                                 {statusLabel}
                               </span>
