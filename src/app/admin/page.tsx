@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
               アクセスログ
             </p>
             <p className="mt-2 text-xs leading-6 text-[#6b7280]">
-              アクセス履歴の確認、期間指定、CSVダウンロードを行います。
+              アクセス履歴の確認、期間指定を行います。
             </p>
           </a>
 
