@@ -26,14 +26,14 @@ type AdminDashboardPageProps = {
   }>;
 };
 
-function normalizePlanKey(value: string | string[] | undefined): PlanKey {
+function normalizePlanKey(value: string | string[] | undefined): PlanKey | null {
   const plan = Array.isArray(value) ? value[0] : value;
 
   if (plan === "basic" || plan === "pro" || plan === "free") {
     return plan;
   }
 
-  return "free";
+  return null;
 }
 
 export default async function AdminDashboardPage({
