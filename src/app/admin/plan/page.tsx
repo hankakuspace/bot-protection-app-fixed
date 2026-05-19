@@ -17,6 +17,9 @@ type PlanResponse = {
   countryBlockActive?: boolean;
   blockedCountries?: string[];
   customBlockedPageEnabled?: boolean;
+  customBlockedPageActive?: boolean;
+  blockedPageTitle?: string;
+  blockedPageMessage?: string;
   error?: string;
 };
 
@@ -37,6 +40,14 @@ export default function AdminPlanPage() {
   const [note, setNote] = useState("自社運営ECのため手動設定");
   const [countryBlockEnabled, setCountryBlockEnabled] = useState(false);
   const [blockedCountriesText, setBlockedCountriesText] = useState("");
+  const [customBlockedPageEnabled, setCustomBlockedPageEnabled] =
+    useState(false);
+  const [blockedPageTitle, setBlockedPageTitle] = useState(
+    "このアクセスはブロックされました",
+  );
+  const [blockedPageMessage, setBlockedPageMessage] = useState(
+    "あなたのIPアドレス、またはこのアクセス元は管理設定により拒否されています。",
+  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const currentPlan = getPlanDefinition(planKey);
@@ -69,6 +80,17 @@ export default function AdminPlanPage() {
         Array.isArray(parsed.blockedCountries)
           ? parsed.blockedCountries.join(", ")
           : "",
+      );
+      setCustomBlockedPageEnabled(parsed.customBlockedPageActive === true);
+      setBlockedPageTitle(
+        typeof parsed.blockedPageTitle === "string"
+          ? parsed.blockedPageTitle
+          : "このアクセスはブロックされました",
+      );
+      setBlockedPageMessage(
+        typeof parsed.blockedPageMessage === "string"
+          ? parsed.blockedPageMessage
+          : "あなたのIPアドレス、またはこのアクセス元は管理設定により拒否されています。",
       );
     } catch (err) {
       setError(
@@ -107,6 +129,9 @@ export default function AdminPlanPage() {
             .split(",")
             .map((country) => country.trim().toUpperCase())
             .filter((country) => /^[A-Z]{2}$/.test(country)),
+          customBlockedPageEnabled,
+          blockedPageTitle: blockedPageTitle.trim(),
+          blockedPageMessage: blockedPageMessage.trim(),
         }),
       });
 
@@ -126,6 +151,17 @@ export default function AdminPlanPage() {
         Array.isArray(parsed.blockedCountries)
           ? parsed.blockedCountries.join(", ")
           : blockedCountriesText,
+      );
+      setCustomBlockedPageEnabled(parsed.customBlockedPageActive === true);
+      setBlockedPageTitle(
+        typeof parsed.blockedPageTitle === "string"
+          ? parsed.blockedPageTitle
+          : blockedPageTitle,
+      );
+      setBlockedPageMessage(
+        typeof parsed.blockedPageMessage === "string"
+          ? parsed.blockedPageMessage
+          : blockedPageMessage,
       );
       setMessage(`${ADMIN_SHOP} の設定を保存しました。`);
     } catch (err) {
@@ -239,6 +275,62 @@ export default function AdminPlanPage() {
 
               <div>
                 <label
+                  htmlFor="customBlockedPageEnabled"
+                  className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#374151]"
+                >
+                  <input
+                    id="customBlockedPageEnabled"
+                    type="checkbox"
+                    checked={customBlockedPageEnabled}
+                    onChange={(event) =>
+                      setCustomBlockedPageEnabled(event.target.checked)
+                    }
+                    disabled={!currentPlan.customBlockedPageEnabled}
+                    className="h-4 w-4"
+                  />
+                  カスタムブロックページを有効にする
+                </label>
+                <p className="mt-1 text-xs leading-6 text-[#6b7280]">
+                  Proプランで利用できます。ブロック時に表示する文言を変更します。
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="blockedPageTitle"
+                  className="mb-2 block text-sm font-semibold text-[#374151]"
+                >
+                  ブロックページ見出し
+                </label>
+                <input
+                  id="blockedPageTitle"
+                  type="text"
+                  value={blockedPageTitle}
+                  onChange={(event) => setBlockedPageTitle(event.target.value)}
+                  disabled={!currentPlan.customBlockedPageEnabled}
+                  className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="blockedPageMessage"
+                  className="mb-2 block text-sm font-semibold text-[#374151]"
+                >
+                  ブロックページ本文
+                </label>
+                <textarea
+                  id="blockedPageMessage"
+                  rows={4}
+                  value={blockedPageMessage}
+                  onChange={(event) => setBlockedPageMessage(event.target.value)}
+                  disabled={!currentPlan.customBlockedPageEnabled}
+                  className="w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
                   htmlFor="note"
                   className="mb-2 block text-sm font-semibold text-[#374151]"
                 >
@@ -318,7 +410,11 @@ export default function AdminPlanPage() {
                   カスタムブロックページ
                 </p>
                 <p className="mt-1">
-                  {currentPlan.customBlockedPageEnabled ? "対応済み" : "未対応"}
+                  {currentPlan.customBlockedPageEnabled
+                    ? customBlockedPageEnabled
+                      ? "有効"
+                      : "利用可"
+                    : "未対応"}
                 </p>
               </div>
             </div>

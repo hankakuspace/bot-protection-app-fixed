@@ -1,5 +1,23 @@
 // src/app/blocked/page.tsx
-export default function BlockedPage() {
+import { getBlockedPageSettings } from "@/lib/blocked-page-settings";
+
+type BlockedPageProps = {
+  searchParams?: Promise<{
+    shop?: string | string[];
+  }>;
+};
+
+function normalizeShop(value: string | string[] | undefined): string {
+  const shop = Array.isArray(value) ? value[0] : value;
+
+  return (shop || "be-search.biz").trim().toLowerCase();
+}
+
+export default async function BlockedPage({ searchParams }: BlockedPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const shop = normalizeShop(resolvedSearchParams?.shop);
+  const settings = await getBlockedPageSettings(shop);
+
   return (
     <main className="min-h-screen bg-white text-gray-900">
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center px-6 py-16">
@@ -9,11 +27,11 @@ export default function BlockedPage() {
           </div>
 
           <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900">
-            このアクセスはブロックされました
+            {settings.title}
           </h1>
 
-          <p className="text-base leading-7 text-gray-700">
-            あなたのIPアドレス、またはこのアクセス元は管理設定により拒否されています。
+          <p className="whitespace-pre-line text-base leading-7 text-gray-700">
+            {settings.message}
           </p>
         </div>
       </div>

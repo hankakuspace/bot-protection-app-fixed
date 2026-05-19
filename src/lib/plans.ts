@@ -45,7 +45,7 @@ export const PLAN_DEFINITIONS: Record<PlanKey, PlanDefinition> = {
     csvExportEnabled: true,
     countryDisplayEnabled: true,
     countryBlockEnabled: true,
-    customBlockedPageEnabled: false,
+    customBlockedPageEnabled: true,
   },
 };
 

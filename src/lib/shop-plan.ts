@@ -70,12 +70,18 @@ export async function saveShopPlanSetting({
   note,
   countryBlockEnabled,
   blockedCountries,
+  customBlockedPageEnabled,
+  blockedPageTitle,
+  blockedPageMessage,
 }: {
   shop: string;
   plan: PlanKey;
   note?: string;
   countryBlockEnabled?: boolean;
   blockedCountries?: string[];
+  customBlockedPageEnabled?: boolean;
+  blockedPageTitle?: string;
+  blockedPageMessage?: string;
 }) {
   const normalizedShop = normalizeShop(shop);
 
@@ -88,6 +94,11 @@ export async function saveShopPlanSetting({
         ? { countryBlockEnabled }
         : {}),
       ...(Array.isArray(blockedCountries) ? { blockedCountries } : {}),
+      ...(typeof customBlockedPageEnabled === "boolean"
+        ? { customBlockedPageEnabled }
+        : {}),
+      ...(typeof blockedPageTitle === "string" ? { blockedPageTitle } : {}),
+      ...(typeof blockedPageMessage === "string" ? { blockedPageMessage } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true },
@@ -101,5 +112,10 @@ export async function saveShopPlanSetting({
       ? { countryBlockEnabled }
       : {}),
     ...(Array.isArray(blockedCountries) ? { blockedCountries } : {}),
+    ...(typeof customBlockedPageEnabled === "boolean"
+      ? { customBlockedPageEnabled }
+      : {}),
+    ...(typeof blockedPageTitle === "string" ? { blockedPageTitle } : {}),
+    ...(typeof blockedPageMessage === "string" ? { blockedPageMessage } : {}),
   };
 }

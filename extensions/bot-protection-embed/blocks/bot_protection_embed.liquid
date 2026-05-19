@@ -24,8 +24,14 @@
     }
 
     function redirectBlocked() {
-      if (window.location.href !== BLOCKED_URL) {
-        window.location.replace(BLOCKED_URL);
+      var params = new URLSearchParams();
+
+      params.set("shop", window.location.hostname);
+
+      var blockedUrl = BLOCKED_URL + "?" + params.toString();
+
+      if (window.location.href !== blockedUrl) {
+        window.location.replace(blockedUrl);
       }
     }
 
