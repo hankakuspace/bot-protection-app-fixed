@@ -2,7 +2,7 @@
 
 client_id = "5e0b45e5abe855d21a409ca713edf9e6"
 name = "bot-protection-proxy"
-application_url = "https://bot-protection-app-fixed.vercel.app"
+application_url = "https://bot-protection-ten.vercel.app"
 embedded = true
 
 [webhooks]
@@ -16,6 +16,6 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
-  "https://bot-protection-app-fixed.vercel.app/api/auth/callback",
-  "https://bot-protection-app-fixed.vercel.app/auth/callback"
+  "https://bot-protection-ten.vercel.app/api/auth/callback",
+  "https://bot-protection-ten.vercel.app/auth/callback"
 ]
