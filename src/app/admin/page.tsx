@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
                 <p className="font-semibold text-[#111827]">IP判定国表示</p>
                 <p className="mt-1">
-                  {currentPlan.countryCodeEnabled ? "対応済み" : "未対応"}
+                  {currentPlan.countryDisplayEnabled ? "対応済み" : "未対応"}
                 </p>
               </div>
             </div>
