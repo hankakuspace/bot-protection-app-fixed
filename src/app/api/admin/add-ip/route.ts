@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase-admin";
+import { getPlanDefinition } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,27 @@ function isValidIpv4(ip: string): boolean {
     const num = Number(part);
     return num >= 0 && num <= 255;
   });
+}
+
+function isSameShopOrLegacy(
+  data: FirebaseFirestore.DocumentData,
+  targetShop: string,
+): boolean {
+  const shop = data.shop;
+
+  if (typeof shop === "string") {
+    return shop.trim() === "" || shop.trim().toLowerCase() === targetShop;
+  }
+
+  return shop === null || shop === undefined;
+}
+
+async function countBlockedIpsForShop(shop: string): Promise<number> {
+  const snapshot = await adminDb.collection("blocked_ips").limit(500).get();
+
+  return snapshot.docs.filter((doc) => {
+    return isSameShopOrLegacy(doc.data(), shop);
+  }).length;
 }
 
 export async function POST(request: NextRequest) {
@@ -105,6 +127,23 @@ export async function POST(request: NextRequest) {
         ip,
         shop,
       });
+    }
+
+    const currentPlan = getPlanDefinition("free");
+    const currentBlockedIpCount = await countBlockedIpsForShop(shop);
+
+    if (currentBlockedIpCount >= currentPlan.maxBlockedIps) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `${currentPlan.name}プランではブロックIPを${currentPlan.maxBlockedIps}件まで登録できます。`,
+          plan: currentPlan.key,
+          maxBlockedIps: currentPlan.maxBlockedIps,
+          currentBlockedIpCount,
+          shop,
+        },
+        { status: 403 },
+      );
     }
 
     const docRef = await adminDb.collection("blocked_ips").add({
