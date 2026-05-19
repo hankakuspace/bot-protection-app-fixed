@@ -61,7 +61,7 @@ export default function AdminLayout({
             <div className="flex w-full flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between xl:px-8">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6b7280]">
-                  bot-protection-proxy
+                  Store Access Guard
                 </p>
                 <h1 className="mt-1 text-lg font-semibold text-[#111827]">
                   管理画面
