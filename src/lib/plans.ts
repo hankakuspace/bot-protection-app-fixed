@@ -44,8 +44,8 @@ export const PLAN_DEFINITIONS: Record<PlanKey, PlanDefinition> = {
     accessLogRetentionDays: 90,
     csvExportEnabled: true,
     countryDisplayEnabled: true,
-    countryBlockEnabled: true,
-    customBlockedPageEnabled: true,
+    countryBlockEnabled: false,
+    customBlockedPageEnabled: false,
   },
 };
 
