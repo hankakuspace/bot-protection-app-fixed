@@ -1,0 +1,91 @@
+{% comment %}
+  extensions/bot-protection-embed/blocks/bot_protection_embed.liquid
+  Bot Protection App Embed
+{% endcomment %}
+
+<script>
+  document.documentElement.classList.add('bot-guard-pending');
+</script>
+
+<style>
+  html.bot-guard-pending body {
+    visibility: hidden;
+  }
+</style>
+
+<script>
+  (function () {
+    var VERIFY_ENDPOINT = "https://bot-protection-ten.vercel.app/api/verify-ip";
+    var BLOCKED_URL = "https://bot-protection-ten.vercel.app/blocked";
+    var TRACK_ENDPOINT = "https://bot-protection-ten.vercel.app/api/track-access";
+
+    function allowPage() {
+      document.documentElement.classList.remove("bot-guard-pending");
+    }
+
+    function redirectBlocked() {
+      if (window.location.href !== BLOCKED_URL) {
+        window.location.replace(BLOCKED_URL);
+      }
+    }
+
+    function trackAccess() {
+      var image = new Image();
+      var params = new URLSearchParams();
+
+      params.set("shop", window.location.hostname);
+      params.set("page", window.location.pathname + window.location.search);
+      params.set("source", "theme-app-extension");
+
+      image.src = TRACK_ENDPOINT + "?" + params.toString();
+    }
+
+    fetch(VERIFY_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        shop: window.location.hostname,
+        path: window.location.pathname,
+        href: window.location.href,
+        userAgent: navigator.userAgent
+      })
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          allowPage();
+          trackAccess();
+          return null;
+        }
+
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data) {
+          return;
+        }
+
+        if (data.blocked === true) {
+          redirectBlocked();
+          return;
+        }
+
+        allowPage();
+        trackAccess();
+      })
+      .catch(function (error) {
+        console.error("bot guard verify error", error);
+        allowPage();
+        trackAccess();
+      });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Bot Protection",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
