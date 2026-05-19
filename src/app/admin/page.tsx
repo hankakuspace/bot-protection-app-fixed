@@ -1,8 +1,27 @@
 // src/app/admin/page.tsx
 import { getPlanDefinition } from "@/lib/plans";
 
+const planBadgeStyles = {
+  free: {
+    wrapper:
+      "inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-3 py-1 text-[#1d4ed8]",
+    icon: "flex h-6 w-6 items-center justify-center rounded-full bg-[#dbeafe] text-[11px] font-bold text-[#1d4ed8]",
+  },
+  basic: {
+    wrapper:
+      "inline-flex items-center gap-2 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-1 text-[#15803d]",
+    icon: "flex h-6 w-6 items-center justify-center rounded-full bg-[#dcfce7] text-[11px] font-bold text-[#15803d]",
+  },
+  pro: {
+    wrapper:
+      "inline-flex items-center gap-2 rounded-full border border-[#ddd6fe] bg-[#f5f3ff] px-3 py-1 text-[#6d28d9]",
+    icon: "flex h-6 w-6 items-center justify-center rounded-full bg-[#ede9fe] text-[11px] font-bold text-[#6d28d9]",
+  },
+};
+
 export default function AdminDashboardPage() {
   const currentPlan = getPlanDefinition("free");
+  const planBadgeStyle = planBadgeStyles[currentPlan.key];
 
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
@@ -22,9 +41,16 @@ export default function AdminDashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
                 Current Plan
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-[#111827]">
-                {currentPlan.name}
-              </h2>
+              <div className="mt-2">
+                <span className={planBadgeStyle.wrapper}>
+                  <span className={planBadgeStyle.icon}>
+                    {currentPlan.name.charAt(0)}
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {currentPlan.name}
+                  </span>
+                </span>
+              </div>
               <p className="mt-1 text-xs text-[#6b7280]">
                 現在は販売プラン実装前のため、Freeプランとして表示しています。
               </p>
