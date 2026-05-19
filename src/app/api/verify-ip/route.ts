@@ -43,6 +43,26 @@ function normalizeIp(value: unknown): string {
   return trimmed.replace(/^::ffff:/, "");
 }
 
+function getRequestPathFromBody(body: Record<string, unknown> | null): string {
+  const bodyPath = typeof body?.path === "string" ? body.path : "";
+  const bodyHref = typeof body?.href === "string" ? body.href : "";
+
+  if (bodyPath.trim()) {
+    return bodyPath.trim();
+  }
+
+  if (bodyHref.trim()) {
+    try {
+      const url = new URL(bodyHref);
+      return `${url.pathname}${url.search}`;
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
 function getShopFromBody(body: Record<string, unknown> | null): string {
   const bodyShop = typeof body?.shop === "string" ? body.shop : "";
   const bodyHref = typeof body?.href === "string" ? body.href : "";
@@ -100,6 +120,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   let bodyIp = "";
   let shop = "";
+  let requestPath = "";
 
   try {
     const body = (await request.json().catch(() => null)) as Record<
@@ -108,9 +129,11 @@ export async function POST(request: NextRequest) {
     > | null;
     bodyIp = normalizeIp(body?.ip);
     shop = getShopFromBody(body);
+    requestPath = getRequestPathFromBody(body);
   } catch {
     bodyIp = "";
     shop = "";
+    requestPath = "";
   }
 
   const headerIp = normalizeIp(getClientIp(request));
@@ -132,6 +155,7 @@ export async function POST(request: NextRequest) {
       : countryBlocked
         ? "country"
         : "";
+    const logPath = blocked ? requestPath || "/" : "/api/verify-ip";
 
     await adminDb.collection("access_logs").add({
       type: "verify-ip",
@@ -141,7 +165,7 @@ export async function POST(request: NextRequest) {
       blockReason,
       country,
       shop: resolvedShop,
-      path: "/api/verify-ip",
+      path: logPath,
       method: "POST",
       userAgent: request.headers.get("user-agent") || "",
       referer: request.headers.get("referer") || "",
