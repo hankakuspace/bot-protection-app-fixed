@@ -225,6 +225,15 @@ export default function AdminPlanPage() {
               </div>
 
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
+                <p className="font-semibold text-[#111827]">月額料金</p>
+                <p className="mt-1">
+                  {currentPlan.monthlyPriceUsd === 0
+                    ? "Free"
+                    : `$${currentPlan.monthlyPriceUsd}/月`}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
                 <p className="font-semibold text-[#111827]">IP登録上限</p>
                 <p className="mt-1">{currentPlan.maxBlockedIps}件</p>
               </div>
