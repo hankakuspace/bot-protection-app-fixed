@@ -1,6 +1,7 @@
 // src/app/api/admin/logs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { getPlanDefinition } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ type SerializedLog = {
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 100;
 const LEGACY_CUTOFF_TIME = Date.parse("2025-09-16T23:59:59.999Z");
+const DEFAULT_PLAN_KEY = "free";
 
 function serializeValue(value: unknown): JsonValue {
   if (value === null || value === undefined) {
@@ -128,6 +130,22 @@ function getShopFromRequest(request: NextRequest): string {
   return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
 }
 
+function getPlanKeyFromRequest(request: NextRequest): string {
+  const { searchParams } = new URL(request.url);
+  const queryPlan = searchParams.get("plan") || "";
+  const headerPlan = request.headers.get("x-bot-protection-plan") || "";
+
+  return (queryPlan || headerPlan || DEFAULT_PLAN_KEY).trim().toLowerCase();
+}
+
+function getRetentionStartDate(retentionDays: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - retentionDays);
+  date.setHours(0, 0, 0, 0);
+
+  return date;
+}
+
 function isSameShopOrLegacy(log: SerializedLog, targetShop: string): boolean {
   const shop = log.shop;
 
@@ -152,11 +170,14 @@ export async function GET(request: NextRequest) {
     const shop = getShopFromRequest(request);
     const startDate = parseStartDate(searchParams.get("startDate"));
     const endDate = parseEndDate(searchParams.get("endDate"));
+    const currentPlan = getPlanDefinition(getPlanKeyFromRequest(request));
+    const retentionStartDate = getRetentionStartDate(
+      currentPlan.accessLogRetentionDays,
+    );
     const legacyCutoffDate = new Date(LEGACY_CUTOFF_TIME);
-    const effectiveStartDate =
-      startDate && startDate.getTime() > LEGACY_CUTOFF_TIME
-        ? startDate
-        : legacyCutoffDate;
+    const effectiveStartDate = [startDate, legacyCutoffDate, retentionStartDate]
+      .filter((date): date is Date => date instanceof Date)
+      .sort((a, b) => b.getTime() - a.getTime())[0];
 
     let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
@@ -190,6 +211,8 @@ export async function GET(request: NextRequest) {
       limit,
       hasMore,
       nextOffset: hasMore ? offset + limit : null,
+      plan: currentPlan.key,
+      accessLogRetentionDays: currentPlan.accessLogRetentionDays,
     });
   } catch (error) {
     console.error("GET /api/admin/logs error:", error);
