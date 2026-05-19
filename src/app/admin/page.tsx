@@ -49,9 +49,9 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
-                <p className="font-semibold text-[#111827]">国別ブロック</p>
+                <p className="font-semibold text-[#111827]">IP判定国表示</p>
                 <p className="mt-1">
-                  {currentPlan.countryBlockEnabled ? "利用可" : "未対応"}
+                  {currentPlan.countryCodeEnabled ? "対応済み" : "未対応"}
                 </p>
               </div>
             </div>
