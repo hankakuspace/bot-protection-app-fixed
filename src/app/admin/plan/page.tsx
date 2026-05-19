@@ -127,7 +127,7 @@ export default function AdminPlanPage() {
           ? parsed.blockedCountries.join(", ")
           : blockedCountriesText,
       );
-      setMessage(`${ADMIN_SHOP} を ${parsed.planName || currentPlan.name} プランに設定しました。`);
+      setMessage(`${ADMIN_SHOP} の設定を保存しました。`);
     } catch (err) {
       setError(
         err instanceof Error
@@ -259,7 +259,7 @@ export default function AdminPlanPage() {
                   disabled={loading || saving}
                   className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving ? "保存中..." : "プランを保存"}
+                  {saving ? "保存中..." : "設定を保存"}
                 </button>
 
                 <button
@@ -324,7 +324,7 @@ export default function AdminPlanPage() {
             </div>
 
             <p className="mt-4 text-xs leading-6 text-[#6b7280]">
-              この設定は Billing 実装前の手動プラン設定です。正式な課金実装後は、Billing状態と手動設定の優先順位を別途整理します。
+                この設定は Billing 実装前の手動ストア設定です。プラン、国別ブロックなどの設定を保存します。正式な課金実装後は、Billing状態と手動設定の優先順位を別途整理します。
             </p>
           </div>
         </div>
