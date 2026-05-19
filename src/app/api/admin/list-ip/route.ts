@@ -136,6 +136,63 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = (await request.json()) as {
+      id?: unknown;
+      shop?: unknown;
+      note?: unknown;
+    };
+
+    const id = typeof body.id === "string" ? body.id.trim() : "";
+    const shop = typeof body.shop === "string" ? body.shop.trim().toLowerCase() : "";
+    const note = typeof body.note === "string" ? body.note.trim() : undefined;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "更新対象のIDが指定されていません。" },
+        { status: 400 },
+      );
+    }
+
+    if (!shop) {
+      return NextResponse.json(
+        { error: "shopが指定されていません。" },
+        { status: 400 },
+      );
+    }
+
+    const updateData: {
+      shop: string;
+      updatedAt: Date;
+      note?: string;
+    } = {
+      shop,
+      updatedAt: new Date(),
+    };
+
+    if (note !== undefined) {
+      updateData.note = note;
+    }
+
+    await adminDb.collection("blocked_ips").doc(id).update(updateData);
+
+    return NextResponse.json({
+      success: true,
+      id,
+      shop,
+      note: note ?? null,
+    });
+  } catch (error) {
+    console.error("PATCH /api/admin/list-ip error:", error);
+
+    return NextResponse.json(
+      { error: "ブロックIPの更新に失敗しました。" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
