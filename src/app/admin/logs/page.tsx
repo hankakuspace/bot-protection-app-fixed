@@ -348,7 +348,7 @@ export default function AdminLogsPage() {
               Access Logs
             </h1>
             <p className="mt-1 text-xs text-[#6b7280]">
-              期間指定とCSVダウンロードに対応しています。
+              期間指定と検索に対応しています。
             </p>
           </div>
 
@@ -439,14 +439,9 @@ export default function AdminLogsPage() {
             </div>
 
             <div className="flex items-end">
-              <button
-                type="button"
-                onClick={handleDownloadCsv}
-                disabled={filteredRows.length === 0}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d1d5db] bg-white px-4 text-xs font-medium text-[#111827] transition hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                CSVダウンロード
-              </button>
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-xs text-[#6b7280]">
+                CSV出力は有料プランで利用できます。
+              </div>
             </div>
           </div>
         </div>
