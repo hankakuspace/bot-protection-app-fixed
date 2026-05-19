@@ -1,8 +1,12 @@
 // src/app/api/admin/plan/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getEffectivePlanDefinition, saveShopPlanSetting } from "@/lib/shop-plan";
+import {
+  getEffectivePlanDefinition,
+  normalizePlanKey,
+  saveShopPlanSetting,
+} from "@/lib/shop-plan";
+import { getCountryBlockSettings } from "@/lib/country-block";
 import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
-import { normalizePlanKey } from "@/lib/shop-plan";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +16,20 @@ function getShopFromRequest(request: NextRequest): string {
   const headerShop = request.headers.get("x-shopify-shop-domain") || "";
 
   return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
+}
+
+function normalizeBlockedCountries(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return Array.from(
+    new Set(
+      value
+        .map((item) =>
+          typeof item === "string" ? item.trim().toUpperCase() : "",
+        )
+        .filter((country) => /^[A-Z]{2}$/.test(country)),
+    ),
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -27,6 +45,7 @@ export async function GET(request: NextRequest) {
 
     const shop = getShopFromRequest(request);
     const currentPlan = await getEffectivePlanDefinition(shop, null);
+    const countryBlockSettings = await getCountryBlockSettings(shop);
 
     return NextResponse.json({
       shop,
@@ -37,6 +56,8 @@ export async function GET(request: NextRequest) {
       csvExportEnabled: currentPlan.csvExportEnabled,
       countryDisplayEnabled: currentPlan.countryDisplayEnabled,
       countryBlockEnabled: currentPlan.countryBlockEnabled,
+      countryBlockActive: countryBlockSettings.enabled,
+      blockedCountries: countryBlockSettings.blockedCountries,
       customBlockedPageEnabled: currentPlan.customBlockedPageEnabled,
     });
   } catch (error) {
@@ -64,6 +85,8 @@ export async function PATCH(request: NextRequest) {
       shop?: unknown;
       plan?: unknown;
       note?: unknown;
+      countryBlockEnabled?: unknown;
+      blockedCountries?: unknown;
     };
 
     const shop =
@@ -76,6 +99,8 @@ export async function PATCH(request: NextRequest) {
     );
 
     const note = typeof body.note === "string" ? body.note.trim() : "";
+    const countryBlockEnabled = body.countryBlockEnabled === true;
+    const blockedCountries = normalizeBlockedCountries(body.blockedCountries);
 
     if (!plan) {
       return NextResponse.json(
@@ -88,9 +113,12 @@ export async function PATCH(request: NextRequest) {
       shop,
       plan,
       note,
+      countryBlockEnabled,
+      blockedCountries,
     });
 
     const currentPlan = await getEffectivePlanDefinition(shop, null);
+    const countryBlockSettings = await getCountryBlockSettings(shop);
 
     return NextResponse.json({
       success: true,
@@ -101,6 +129,8 @@ export async function PATCH(request: NextRequest) {
       csvExportEnabled: currentPlan.csvExportEnabled,
       countryDisplayEnabled: currentPlan.countryDisplayEnabled,
       countryBlockEnabled: currentPlan.countryBlockEnabled,
+      countryBlockActive: countryBlockSettings.enabled,
+      blockedCountries: countryBlockSettings.blockedCountries,
       customBlockedPageEnabled: currentPlan.customBlockedPageEnabled,
     });
   } catch (error) {

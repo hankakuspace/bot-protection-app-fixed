@@ -14,6 +14,8 @@ type PlanResponse = {
   csvExportEnabled?: boolean;
   countryDisplayEnabled?: boolean;
   countryBlockEnabled?: boolean;
+  countryBlockActive?: boolean;
+  blockedCountries?: string[];
   customBlockedPageEnabled?: boolean;
   error?: string;
 };
@@ -33,6 +35,8 @@ export default function AdminPlanPage() {
   const [saving, setSaving] = useState(false);
   const [planKey, setPlanKey] = useState<PlanKey>("free");
   const [note, setNote] = useState("自社運営ECのため手動設定");
+  const [countryBlockEnabled, setCountryBlockEnabled] = useState(false);
+  const [blockedCountriesText, setBlockedCountriesText] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const currentPlan = getPlanDefinition(planKey);
@@ -60,6 +64,12 @@ export default function AdminPlanPage() {
       }
 
       setPlanKey(normalizePlanKey(parsed.plan || "free"));
+      setCountryBlockEnabled(parsed.countryBlockActive === true);
+      setBlockedCountriesText(
+        Array.isArray(parsed.blockedCountries)
+          ? parsed.blockedCountries.join(", ")
+          : "",
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -92,6 +102,11 @@ export default function AdminPlanPage() {
           shop: ADMIN_SHOP,
           plan: planKey,
           note: note.trim(),
+          countryBlockEnabled,
+          blockedCountries: blockedCountriesText
+            .split(",")
+            .map((country) => country.trim().toUpperCase())
+            .filter((country) => /^[A-Z]{2}$/.test(country)),
         }),
       });
 
@@ -106,6 +121,12 @@ export default function AdminPlanPage() {
       }
 
       setPlanKey(normalizePlanKey(parsed.plan || planKey));
+      setCountryBlockEnabled(parsed.countryBlockActive === true);
+      setBlockedCountriesText(
+        Array.isArray(parsed.blockedCountries)
+          ? parsed.blockedCountries.join(", ")
+          : blockedCountriesText,
+      );
       setMessage(`${ADMIN_SHOP} を ${parsed.planName || currentPlan.name} プランに設定しました。`);
     } catch (err) {
       setError(
@@ -178,6 +199,46 @@ export default function AdminPlanPage() {
 
               <div>
                 <label
+                  htmlFor="countryBlockEnabled"
+                  className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#374151]"
+                >
+                  <input
+                    id="countryBlockEnabled"
+                    type="checkbox"
+                    checked={countryBlockEnabled}
+                    onChange={(event) =>
+                      setCountryBlockEnabled(event.target.checked)
+                    }
+                    disabled={!currentPlan.countryBlockEnabled}
+                    className="h-4 w-4"
+                  />
+                  国別ブロックを有効にする
+                </label>
+                <p className="mt-1 text-xs leading-6 text-[#6b7280]">
+                  Proプランで利用できます。国コードはカンマ区切りで指定します。
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="blockedCountries"
+                  className="mb-2 block text-sm font-semibold text-[#374151]"
+                >
+                  ブロック対象国コード
+                </label>
+                <input
+                  id="blockedCountries"
+                  type="text"
+                  value={blockedCountriesText}
+                  onChange={(event) => setBlockedCountriesText(event.target.value)}
+                  placeholder="例: IN, BD, VN"
+                  disabled={!currentPlan.countryBlockEnabled}
+                  className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
+
+              <div>
+                <label
                   htmlFor="note"
                   className="mb-2 block text-sm font-semibold text-[#374151]"
                 >
@@ -244,7 +305,11 @@ export default function AdminPlanPage() {
               <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
                 <p className="font-semibold text-[#111827]">国別ブロック</p>
                 <p className="mt-1">
-                  {currentPlan.countryBlockEnabled ? "対応済み" : "未対応"}
+                  {currentPlan.countryBlockEnabled
+                    ? countryBlockEnabled
+                      ? "有効"
+                      : "利用可"
+                    : "未対応"}
                 </p>
               </div>
 

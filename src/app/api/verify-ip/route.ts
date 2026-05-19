@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { isIpBlocked } from "@/lib/check-ip";
+import { isCountryBlocked } from "@/lib/country-block";
 import { adminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
@@ -119,14 +120,25 @@ export async function POST(request: NextRequest) {
   const corsHeaders = buildCorsHeaders(request);
 
   try {
-    const blocked =
+    const ipBlocked =
       ip !== "unknown" ? await isIpBlocked(ip, resolvedShop) : false;
+    const countryBlocked = await isCountryBlocked({
+      shop: resolvedShop,
+      country,
+    });
+    const blocked = ipBlocked || countryBlocked;
+    const blockReason = ipBlocked
+      ? "ip"
+      : countryBlocked
+        ? "country"
+        : "";
 
     await adminDb.collection("access_logs").add({
       type: "verify-ip",
       ip,
       status: blocked ? "blocked" : "allowed",
       blocked,
+      blockReason,
       country,
       shop: resolvedShop,
       path: "/api/verify-ip",
@@ -141,6 +153,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         blocked,
+        blockReason,
         ip,
         country,
         shop: resolvedShop,

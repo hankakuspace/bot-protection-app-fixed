@@ -68,10 +68,14 @@ export async function saveShopPlanSetting({
   shop,
   plan,
   note,
+  countryBlockEnabled,
+  blockedCountries,
 }: {
   shop: string;
   plan: PlanKey;
   note?: string;
+  countryBlockEnabled?: boolean;
+  blockedCountries?: string[];
 }) {
   const normalizedShop = normalizeShop(shop);
 
@@ -80,6 +84,10 @@ export async function saveShopPlanSetting({
       shop: normalizedShop,
       plan,
       note: note || "",
+      ...(typeof countryBlockEnabled === "boolean"
+        ? { countryBlockEnabled }
+        : {}),
+      ...(Array.isArray(blockedCountries) ? { blockedCountries } : {}),
       updatedAt: FieldValue.serverTimestamp(),
     },
     { merge: true },
@@ -89,5 +97,9 @@ export async function saveShopPlanSetting({
     shop: normalizedShop,
     plan,
     note: note || "",
+    ...(typeof countryBlockEnabled === "boolean"
+      ? { countryBlockEnabled }
+      : {}),
+    ...(Array.isArray(blockedCountries) ? { blockedCountries } : {}),
   };
 }
