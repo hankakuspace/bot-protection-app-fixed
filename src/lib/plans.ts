@@ -28,7 +28,7 @@ export const PLAN_DEFINITIONS: Record<PlanKey, PlanDefinition> = {
   basic: {
     key: "basic",
     name: "Basic",
-    monthlyPriceUsd: 9,
+    monthlyPriceUsd: 4.99,
     maxBlockedIps: 30,
     accessLogRetentionDays: 30,
     csvExportEnabled: true,
@@ -39,7 +39,7 @@ export const PLAN_DEFINITIONS: Record<PlanKey, PlanDefinition> = {
   pro: {
     key: "pro",
     name: "Pro",
-    monthlyPriceUsd: 19,
+    monthlyPriceUsd: 9.99,
     maxBlockedIps: 100,
     accessLogRetentionDays: 90,
     csvExportEnabled: true,
