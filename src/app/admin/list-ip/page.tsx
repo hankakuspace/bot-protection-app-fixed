@@ -1,6 +1,7 @@
 // src/app/admin/list-ip/page.tsx
 "use client";
 
+import { getPlanDefinition } from "@/lib/plans";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type IpItem = Record<string, unknown>;
@@ -43,6 +44,7 @@ function pick(obj: IpItem, keys: string[]): string {
 }
 
 export default function AdminListIpPage() {
+  const currentPlan = getPlanDefinition("free");
   const [items, setItems] = useState<IpItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -180,6 +182,30 @@ export default function AdminListIpPage() {
             {error}
           </div>
         ) : null}
+
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 text-blue-800">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em]">
+              Current Plan
+            </p>
+            <p className="mt-2 text-lg font-semibold">{currentPlan.name}</p>
+            <p className="mt-1 text-xs leading-6">
+              FreeプランではブロックIPを{currentPlan.maxBlockedIps}件まで登録できます。
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">
+              Registered IPs
+            </p>
+            <p className="mt-2 text-lg font-semibold text-gray-900">
+              {rows.length} / {currentPlan.maxBlockedIps}件
+            </p>
+            <p className="mt-1 text-xs leading-6 text-gray-500">
+              上限に達している場合は、不要なIPを削除してから追加してください。
+            </p>
+          </div>
+        </div>
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
