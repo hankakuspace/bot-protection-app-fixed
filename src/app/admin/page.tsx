@@ -1,6 +1,9 @@
 // src/app/admin/page.tsx
-import { getEffectivePlanDefinition } from "@/lib/shop-plan";
-import type { PlanKey } from "@/lib/plans";
+"use client";
+
+import { adminFetch } from "@/lib/admin-auth-fetch";
+import { getPlanDefinition, type PlanKey } from "@/lib/plans";
+import { useCallback, useEffect, useState } from "react";
 
 const planBadgeStyles = {
   free: {
@@ -20,32 +23,64 @@ const planBadgeStyles = {
   },
 };
 
-type AdminDashboardPageProps = {
-  searchParams?: Promise<{
-    plan?: string | string[];
-  }>;
+type PlanResponse = {
+  shop?: string;
+  plan?: PlanKey;
+  error?: string;
 };
 
-function normalizePlanKey(value: string | string[] | undefined): PlanKey | null {
-  const plan = Array.isArray(value) ? value[0] : value;
-
-  if (plan === "basic" || plan === "pro" || plan === "free") {
-    return plan;
+function normalizePlanKey(value: string | undefined): PlanKey {
+  if (value === "basic" || value === "pro" || value === "free") {
+    return value;
   }
 
-  return null;
+  return "free";
 }
 
-export default async function AdminDashboardPage({
-  searchParams,
-}: AdminDashboardPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const requestedPlan = resolvedSearchParams?.plan;
-  const currentPlan = await getEffectivePlanDefinition(
-    "be-search.biz",
-    normalizePlanKey(requestedPlan),
-  );
+export default function AdminDashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [shop, setShop] = useState("");
+  const [planKey, setPlanKey] = useState<PlanKey>("free");
+
+  const currentPlan = getPlanDefinition(planKey);
   const planBadgeStyle = planBadgeStyles[currentPlan.key];
+
+  const fetchPlan = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await adminFetch("/api/admin/plan", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const parsed = (await response.json()) as PlanResponse;
+
+      if (!response.ok) {
+        throw new Error(
+          parsed.error || `プラン情報の取得に失敗しました (${response.status})`,
+        );
+      }
+
+      setShop(parsed.shop || "");
+      setPlanKey(normalizePlanKey(parsed.plan));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "プラン情報の取得中に不明なエラーが発生しました",
+      );
+      setPlanKey("free");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchPlan();
+  }, [fetchPlan]);
 
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
@@ -59,6 +94,12 @@ export default async function AdminDashboardPage({
           </p>
         </div>
 
+        {error ? (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -71,12 +112,14 @@ export default async function AdminDashboardPage({
                     {currentPlan.name.charAt(0)}
                   </span>
                   <span className="text-sm font-semibold">
-                    {currentPlan.name}
+                    {loading ? "取得中..." : currentPlan.name}
                   </span>
                 </span>
               </div>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                現在は販売プラン実装前のため、確認用のプラン表示です。
+              <p className="mt-2 text-xs text-[#6b7280]">
+                {shop
+                  ? `対象ストア：${shop}`
+                  : "インストール中ストアのプラン情報を表示します。"}
               </p>
             </div>
 
