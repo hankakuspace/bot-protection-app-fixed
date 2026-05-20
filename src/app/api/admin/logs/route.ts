@@ -192,9 +192,7 @@ export async function GET(request: NextRequest) {
       .filter((date): date is Date => date instanceof Date)
       .sort((a, b) => b.getTime() - a.getTime())[0];
 
-    let query: FirebaseFirestore.Query = adminDb
-      .collection("access_logs")
-      .where("shop", "==", shop);
+    let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
 
     query = query.where("timestamp", ">=", effectiveStartDate);
 
@@ -202,9 +200,11 @@ export async function GET(request: NextRequest) {
       query = query.where("timestamp", "<=", endDate);
     }
 
+    const readLimit = Math.max(offset + limit + 1, 1000);
+
     const snapshot = await query
       .orderBy("timestamp", "desc")
-      .limit(offset + limit + 1)
+      .limit(readLimit)
       .get();
 
     const filteredLogs = snapshot.docs
