@@ -12,10 +12,14 @@ function normalizeIp(raw: string): string {
   return raw.trim().replace(/^::ffff:/, "");
 }
 
-function getShopFromRequest(request: NextRequest, bodyShop?: string): string {
+function getShopFromRequest(
+  request: NextRequest,
+  verifiedShop: string,
+  bodyShop?: string,
+): string {
   const queryShop = request.nextUrl.searchParams.get("shop") || "";
   const headerShop = request.headers.get("x-shopify-shop-domain") || "";
-  const shop = (bodyShop || queryShop || headerShop || "be-search.biz")
+  const shop = (verifiedShop || bodyShop || queryShop || headerShop || "be-search.biz")
     .trim()
     .toLowerCase();
 
@@ -60,12 +64,19 @@ function isSameShopOrLegacy(
   targetShop: string,
 ): boolean {
   const shop = data.shop;
+  const normalizedTargetShop = targetShop.trim().toLowerCase();
+  const shouldIncludeLegacy = normalizedTargetShop === "be-search.biz";
 
   if (typeof shop === "string") {
-    return shop.trim() === "" || shop.trim().toLowerCase() === targetShop;
+    const normalizedShop = shop.trim().toLowerCase();
+
+    return (
+      normalizedShop === normalizedTargetShop ||
+      (shouldIncludeLegacy && normalizedShop === "")
+    );
   }
 
-  return shop === null || shop === undefined;
+  return shouldIncludeLegacy && (shop === null || shop === undefined);
 }
 
 async function countBlockedIpsForShop(shop: string): Promise<number> {
@@ -96,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     const ip = normalizeIp(body.ip ?? "");
     const note = (body.note ?? "").trim();
-    const shop = getShopFromRequest(request, body.shop);
+    const shop = getShopFromRequest(request, authResult.shop, body.shop);
     const currentPlan = await getEffectivePlanDefinition(
       shop,
       getPlanKeyFromRequest(request, body.plan),
@@ -139,16 +150,18 @@ export async function POST(request: NextRequest) {
       .limit(20)
       .get();
 
-    const hasLegacyExisting = legacyExisting.docs.some((doc) => {
-      const data = doc.data();
-      const legacyShop = data.shop;
+    const hasLegacyExisting =
+      shop === "be-search.biz" &&
+      legacyExisting.docs.some((doc) => {
+        const data = doc.data();
+        const legacyShop = data.shop;
 
-      return (
-        legacyShop === undefined ||
-        legacyShop === null ||
-        (typeof legacyShop === "string" && legacyShop.trim() === "")
-      );
-    });
+        return (
+          legacyShop === undefined ||
+          legacyShop === null ||
+          (typeof legacyShop === "string" && legacyShop.trim() === "")
+        );
+      });
 
     if (hasLegacyExisting) {
       return NextResponse.json({

@@ -53,11 +53,13 @@ function serializeValue(value: unknown): JsonValue {
   return String(value);
 }
 
-function getShopFromRequest(request: NextRequest): string {
+function getShopFromRequest(request: NextRequest, verifiedShop: string): string {
   const queryShop = request.nextUrl.searchParams.get("shop") || "";
   const headerShop = request.headers.get("x-shopify-shop-domain") || "";
 
-  return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
+  return (verifiedShop || queryShop || headerShop || "be-search.biz")
+    .trim()
+    .toLowerCase();
 }
 
 function isSameShopOrLegacy(
@@ -65,12 +67,19 @@ function isSameShopOrLegacy(
   targetShop: string,
 ): boolean {
   const shop = data.shop;
+  const normalizedTargetShop = targetShop.trim().toLowerCase();
+  const shouldIncludeLegacy = normalizedTargetShop === "be-search.biz";
 
   if (typeof shop === "string") {
-    return shop.trim() === "" || shop.trim().toLowerCase() === targetShop;
+    const normalizedShop = shop.trim().toLowerCase();
+
+    return (
+      normalizedShop === normalizedTargetShop ||
+      (shouldIncludeLegacy && normalizedShop === "")
+    );
   }
 
-  return shop === null || shop === undefined;
+  return shouldIncludeLegacy && (shop === null || shop === undefined);
 }
 
 function getSortableCreatedAt(data: Record<string, JsonValue>): number {
@@ -109,7 +118,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const shop = getShopFromRequest(request);
+    const shop = getShopFromRequest(request, authResult.shop);
     const currentPlan = await getEffectivePlanDefinition(shop, null);
     let snapshot;
 
