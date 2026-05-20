@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
                 Current Plan
               </p>
-              <div className="mt-3">
+              <div className="mt-3 mb-3">
                 <span className={planBadgeStyle.wrapper}>
                   <span className={planBadgeStyle.icon}>
                     {currentPlan.name.charAt(0)}
@@ -122,7 +122,7 @@ export default function AdminDashboardPage() {
                   </span>
                 </span>
               </div>
-              <p className="mt-4 text-xs text-[#6b7280]">
+              <p className="mt-0 text-xs text-[#6b7280]">
                 {shop
                   ? `対象ストア：${shop}`
                   : "インストール中ストアのプラン情報を表示します。"}
