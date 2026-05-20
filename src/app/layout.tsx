@@ -16,6 +16,9 @@ export default function RootLayout({
 
   return (
     <html lang="ja">
+      <head>
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" />
+      </head>
       <body>
         <AppBridgeProvider>{children}</AppBridgeProvider>
       </body>

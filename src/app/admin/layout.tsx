@@ -28,10 +28,6 @@ export default function AdminLayout({
   const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "";
 
   useEffect(() => {
-    (
-      window as Window & { ShopifyAppBridgeWebComponents?: string }
-    ).ShopifyAppBridgeWebComponents = "disabled";
-
     const params = new URLSearchParams(window.location.search);
     const hostFromQuery = params.get("host") || "";
     const hostFromStorage = sessionStorage.getItem("shopify-host") || "";
@@ -45,9 +41,7 @@ export default function AdminLayout({
     setCurrentPath(window.location.pathname);
     setIsReady(true);
 
-    console.log(
-      "✅ AppBridge v3 active - forced disable of Shopify WebComponents loader",
-    );
+    console.log("✅ AppBridge active");
   }, []);
 
   if (!isReady) {
