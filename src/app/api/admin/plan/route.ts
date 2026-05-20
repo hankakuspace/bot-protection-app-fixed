@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const shop = getShopFromRequest(request);
+    const shop = authResult.shop || getShopFromRequest(request);
     const currentPlan = await getEffectivePlanDefinition(shop, null);
     const countryBlockSettings = await getCountryBlockSettings(shop);
     const blockedPageSettings = await getBlockedPageSettings(shop);
@@ -100,7 +100,7 @@ export async function PATCH(request: NextRequest) {
     const shop =
       typeof body.shop === "string" && body.shop.trim()
         ? body.shop.trim().toLowerCase()
-        : getShopFromRequest(request);
+        : authResult.shop || getShopFromRequest(request);
 
     const plan = normalizePlanKey(
       typeof body.plan === "string" ? body.plan : "",

@@ -18,8 +18,6 @@ type PlanResponse = {
   error?: string;
 };
 
-const ADMIN_SHOP = "be-search.biz";
-
 function normalizePlanKey(value: string): PlanKey {
   if (value === "basic" || value === "pro" || value === "free") {
     return value;
@@ -32,7 +30,8 @@ export default function AdminPlanPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [planKey, setPlanKey] = useState<PlanKey>("free");
-  const [note, setNote] = useState("自社運営ECのため手動設定");
+  const [note, setNote] = useState("");
+  const [targetShop, setTargetShop] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const currentPlan = getPlanDefinition(planKey);
@@ -43,10 +42,7 @@ export default function AdminPlanPage() {
       setError("");
       setMessage("");
 
-      const params = new URLSearchParams();
-      params.set("shop", ADMIN_SHOP);
-
-      const response = await adminFetch(`/api/admin/plan?${params.toString()}`, {
+      const response = await adminFetch("/api/admin/plan", {
         method: "GET",
         cache: "no-store",
       });
@@ -60,6 +56,7 @@ export default function AdminPlanPage() {
       }
 
       setPlanKey(normalizePlanKey(parsed.plan || "free"));
+      setTargetShop(parsed.shop || "");
     } catch (err) {
       setError(
         err instanceof Error
@@ -89,7 +86,7 @@ export default function AdminPlanPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          shop: ADMIN_SHOP,
+          shop: targetShop,
           plan: planKey,
           note: note.trim(),
         }),
@@ -106,7 +103,8 @@ export default function AdminPlanPage() {
       }
 
       setPlanKey(normalizePlanKey(parsed.plan || planKey));
-      setMessage(`${ADMIN_SHOP} のプラン設定を保存しました。`);
+      setTargetShop(parsed.shop || targetShop);
+      setMessage(`${parsed.shop || targetShop} のプラン設定を保存しました。`);
     } catch (err) {
       setError(
         err instanceof Error
@@ -150,7 +148,7 @@ export default function AdminPlanPage() {
                   Target Shop
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#111827]">
-                  {ADMIN_SHOP}
+                  {targetShop || "取得中..."}
                 </p>
               </div>
 
