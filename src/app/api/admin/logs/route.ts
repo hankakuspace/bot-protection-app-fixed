@@ -192,7 +192,9 @@ export async function GET(request: NextRequest) {
       .filter((date): date is Date => date instanceof Date)
       .sort((a, b) => b.getTime() - a.getTime())[0];
 
-    let query: FirebaseFirestore.Query = adminDb.collection("access_logs");
+    let query: FirebaseFirestore.Query = adminDb
+      .collection("access_logs")
+      .where("shop", "==", shop);
 
     query = query.where("timestamp", ">=", effectiveStartDate);
 
