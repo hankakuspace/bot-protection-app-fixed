@@ -195,19 +195,9 @@ export default function AdminBillingPage() {
                 </div>
 
                 <div className="mt-6">
-                  {pricingPlansUrl ? (
-                    <a
-                      href={pricingPlansUrl}
-                      target="_top"
-                      className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90"
-                    >
-                      {isCurrentPlan ? "プランを管理する" : "プランを変更する"}
-                    </a>
-                  ) : (
-                    <span className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60">
-                      読み込み中...
-                    </span>
-                  )}
+                  <span className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60">
+                    {isCurrentPlan ? "現在のプランです" : "公開後に変更可能"}
+                  </span>
                 </div>
               </section>
             );
