@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
     );
     const limit = Math.min(requestedLimit || DEFAULT_LIMIT, MAX_LIMIT);
 
-    const shop = getShopFromRequest(request);
+    const shop = authResult.shop || getShopFromRequest(request);
     const startDate = parseStartDate(searchParams.get("startDate"));
     const endDate = parseEndDate(searchParams.get("endDate"));
     const currentPlan = await getEffectivePlanDefinition(
