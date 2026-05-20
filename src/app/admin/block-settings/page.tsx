@@ -18,8 +18,6 @@ type SettingsResponse = {
   error?: string;
 };
 
-const ADMIN_SHOP = "be-search.biz";
-
 function normalizePlanKey(value: string | undefined): PlanKey {
   if (value === "basic" || value === "pro" || value === "free") {
     return value;
@@ -44,6 +42,7 @@ export default function AdminBlockSettingsPage() {
   );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [targetShop, setTargetShop] = useState("");
 
   const currentPlan = getPlanDefinition(planKey);
 
@@ -53,10 +52,7 @@ export default function AdminBlockSettingsPage() {
       setError("");
       setMessage("");
 
-      const params = new URLSearchParams();
-      params.set("shop", ADMIN_SHOP);
-
-      const response = await adminFetch(`/api/admin/plan?${params.toString()}`, {
+      const response = await adminFetch("/api/admin/plan", {
         method: "GET",
         cache: "no-store",
       });
@@ -69,6 +65,8 @@ export default function AdminBlockSettingsPage() {
         );
       }
 
+      setTargetShop(parsed.shop || "");
+      setTargetShop(parsed.shop || targetShop);
       setPlanKey(normalizePlanKey(parsed.plan));
       setCountryBlockEnabled(parsed.countryBlockActive === true);
       setBlockedCountriesText(
@@ -116,7 +114,7 @@ export default function AdminBlockSettingsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          shop: ADMIN_SHOP,
+          shop: targetShop,
           plan: planKey,
           countryBlockEnabled,
           blockedCountries: blockedCountriesText
@@ -157,7 +155,7 @@ export default function AdminBlockSettingsPage() {
           ? parsed.blockedPageMessage
           : blockedPageMessage,
       );
-      setMessage(`${ADMIN_SHOP} のブロック設定を保存しました。`);
+      setMessage(`${parsed.shop || targetShop} のブロック設定を保存しました。`);
     } catch (err) {
       setError(
         err instanceof Error

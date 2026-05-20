@@ -124,7 +124,7 @@ export default function AdminPlanPage() {
             プラン設定
           </h1>
           <p className="mt-1 text-xs text-[#6b7280]">
-            自社運営ECなど、特定ストアのプランを手動で切り替えます。
+            このストアに適用するプランを確認・設定できます。
           </p>
         </div>
 

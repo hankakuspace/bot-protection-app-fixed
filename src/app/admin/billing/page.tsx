@@ -11,8 +11,6 @@ type PlanResponse = {
   error?: string;
 };
 
-const ADMIN_SHOP = "be-search.biz";
-
 const planOrder: PlanKey[] = ["free", "basic", "pro"];
 
 const planDescriptions: Record<PlanKey, string> = {
@@ -37,10 +35,7 @@ export default function AdminBillingPage() {
       setLoading(true);
       setError("");
 
-      const params = new URLSearchParams();
-      params.set("shop", ADMIN_SHOP);
-
-      const response = await adminFetch(`/api/admin/plan?${params.toString()}`, {
+      const response = await adminFetch("/api/admin/plan", {
         method: "GET",
         cache: "no-store",
       });
