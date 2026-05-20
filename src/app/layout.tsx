@@ -3,7 +3,6 @@
 
 import "./globals.css";
 import AppBridgeProvider from "@/lib/AppBridgeProvider";
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
@@ -14,6 +13,7 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith("/admin") === true;
+  const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || "";
 
   useEffect(() => {
     console.log("🟢 RootLayout initialized");
@@ -21,15 +21,17 @@ export default function RootLayout({
 
   return (
     <html lang="ja">
+      <head>
+        {isAdminRoute && apiKey ? (
+          <>
+            <meta name="shopify-api-key" content={apiKey} />
+            <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" />
+          </>
+        ) : null}
+      </head>
       <body>
         {isAdminRoute ? (
-          <>
-            <Script
-              src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-              strategy="beforeInteractive"
-            />
-            <AppBridgeProvider>{children}</AppBridgeProvider>
-          </>
+          <AppBridgeProvider>{children}</AppBridgeProvider>
         ) : (
           children
         )}
