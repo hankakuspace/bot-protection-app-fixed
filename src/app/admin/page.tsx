@@ -5,6 +5,8 @@ import { adminFetch } from "@/lib/admin-auth-fetch";
 import { getPlanDefinition, type PlanKey } from "@/lib/plans";
 import { useCallback, useEffect, useState } from "react";
 
+const APP_HANDLE = "store-access-guard";
+
 const planBadgeStyles = {
   free: {
     wrapper:
@@ -45,6 +47,10 @@ export default function AdminDashboardPage() {
 
   const currentPlan = getPlanDefinition(planKey);
   const planBadgeStyle = planBadgeStyles[currentPlan.key];
+  const storeHandle = shop.replace(/\.myshopify\.com$/, "");
+  const themeEditorUrl = storeHandle
+    ? `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?context=apps`
+    : "";
 
   const fetchPlan = useCallback(async () => {
     try {
@@ -157,6 +163,35 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
+                App embed setup
+              </p>
+              <h2 className="mt-2 text-sm font-semibold text-[#111827]">
+                ストアフロント保護を有効化する
+              </h2>
+              <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs leading-6 text-[#4b5563]">
+                <li>Online Store &gt; Themes &gt; Customize を開きます。</li>
+                <li>左メニューの App embeds を開きます。</li>
+                <li>Store Access Guard をONにします。</li>
+                <li>Save を押してテーマに反映します。</li>
+              </ol>
+            </div>
+
+            {themeEditorUrl ? (
+              <a
+                href={themeEditorUrl}
+                target="_top"
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90"
+              >
+                テーマエディタを開く
+              </a>
+            ) : null}
           </div>
         </div>
 

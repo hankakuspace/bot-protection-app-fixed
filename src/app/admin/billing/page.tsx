@@ -11,6 +11,8 @@ type PlanResponse = {
   error?: string;
 };
 
+const APP_HANDLE = "store-access-guard";
+
 const planOrder: PlanKey[] = ["free", "basic", "pro"];
 
 const planDescriptions: Record<PlanKey, string> = {
@@ -27,6 +29,7 @@ function formatPrice(price: number): string {
 
 export default function AdminBillingPage() {
   const [currentPlanKey, setCurrentPlanKey] = useState<PlanKey>("free");
+  const [shop, setShop] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -47,6 +50,8 @@ export default function AdminBillingPage() {
           parsed.error || `プラン情報の取得に失敗しました (${response.status})`,
         );
       }
+
+      setShop(parsed.shop || "");
 
       if (
         parsed.plan === "free" ||
@@ -69,6 +74,11 @@ export default function AdminBillingPage() {
   useEffect(() => {
     void fetchCurrentPlan();
   }, [fetchCurrentPlan]);
+
+  const storeHandle = shop.replace(/\.myshopify\.com$/, "");
+  const pricingPlansUrl = storeHandle
+    ? `https://admin.shopify.com/store/${storeHandle}/charges/${APP_HANDLE}/pricing_plans`
+    : "";
 
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
@@ -185,15 +195,19 @@ export default function AdminBillingPage() {
                 </div>
 
                 <div className="mt-6">
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60"
-                  >
-                    {isCurrentPlan
-                      ? "現在のプランです"
-                      : "Shopify Pricing連携後に変更可能"}
-                  </button>
+                  {pricingPlansUrl ? (
+                    <a
+                      href={pricingPlansUrl}
+                      target="_top"
+                      className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90"
+                    >
+                      {isCurrentPlan ? "プランを管理する" : "プランを変更する"}
+                    </a>
+                  ) : (
+                    <span className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60">
+                      読み込み中...
+                    </span>
+                  )}
                 </div>
               </section>
             );
