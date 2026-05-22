@@ -2,6 +2,7 @@
 
 client_id = "200524cf1c6c2eb729630eb32ec4c99d"
 name = "Store Access Guard"
+handle = "store-access-guard"
 application_url = "https://bot-protection-ten.vercel.app"
 embedded = true
 
