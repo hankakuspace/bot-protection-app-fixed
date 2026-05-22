@@ -195,9 +195,19 @@ export default function AdminBillingPage() {
                 </div>
 
                 <div className="mt-6">
-                  <span className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60">
-                    {isCurrentPlan ? "現在のプランです" : "公開後に変更可能"}
-                  </span>
+                  {pricingPlansUrl ? (
+                    <a
+                      href={pricingPlansUrl}
+                      target="_top"
+                      className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:bg-[#374151]"
+                    >
+                      {isCurrentPlan ? "プランを管理する" : "このプランを選択する"}
+                    </a>
+                  ) : (
+                    <span className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60">
+                      プラン情報を読み込み中
+                    </span>
+                  )}
                 </div>
               </section>
             );
@@ -206,9 +216,7 @@ export default function AdminBillingPage() {
 
         <div className="mt-6 rounded-2xl border border-[#e5e7eb] bg-white p-5 text-xs leading-6 text-[#6b7280] shadow-sm">
           <p>
-            現時点では、プラン変更は手動設定またはShopify App
-            Pricing連携後の導線で行う想定です。正式公開時はShopify
-            Billingの画面で安全に処理されます。
+            プランの選択・変更はShopify管理画面のPricing plansページで安全に処理されます。
           </p>
         </div>
       </div>
