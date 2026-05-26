@@ -3,6 +3,7 @@
 
 import { adminFetch } from "@/lib/admin-auth-fetch";
 import { PLAN_DEFINITIONS, type PlanKey } from "@/lib/plans";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 type PlanResponse = {
@@ -27,7 +28,28 @@ function formatPrice(price: number): string {
   return `$${price}/月`;
 }
 
+function normalizePlanKey(value: string | undefined): PlanKey {
+  if (value === "basic" || value === "pro" || value === "free") {
+    return value;
+  }
+
+  return "free";
+}
+
+function getPlanHandleFromUrl(value: string | null): PlanKey | null {
+  if (value === "basic" || value === "pro" || value === "free") {
+    return value;
+  }
+
+  return null;
+}
+
 export default function AdminBillingPage() {
+  const searchParams = useSearchParams();
+  const billingPlanKey = getPlanHandleFromUrl(
+    searchParams.get("plan_handle") || searchParams.get("plan"),
+  );
+
   const [currentPlanKey, setCurrentPlanKey] = useState<PlanKey>("free");
   const [shop, setShop] = useState("");
   const [loading, setLoading] = useState(true);
@@ -51,15 +73,39 @@ export default function AdminBillingPage() {
         );
       }
 
-      setShop(parsed.shop || "");
+      const resolvedShop = parsed.shop || "";
+      let resolvedPlan = normalizePlanKey(parsed.plan);
 
-      if (
-        parsed.plan === "free" ||
-        parsed.plan === "basic" ||
-        parsed.plan === "pro"
-      ) {
-        setCurrentPlanKey(parsed.plan);
+      if (billingPlanKey && billingPlanKey !== resolvedPlan) {
+        const syncResponse = await adminFetch("/api/admin/plan", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          cache: "no-store",
+          body: JSON.stringify({
+            shop: resolvedShop,
+            plan: billingPlanKey,
+            note: "Synced from Shopify App Pricing plan_handle",
+          }),
+        });
+
+        const syncParsed = (await syncResponse.json()) as PlanResponse;
+
+        if (!syncResponse.ok) {
+          throw new Error(
+            syncParsed.error ||
+              `Shopify App Pricingのプラン同期に失敗しました (${syncResponse.status})`,
+          );
+        }
+
+        setShop(syncParsed.shop || resolvedShop);
+        resolvedPlan = normalizePlanKey(syncParsed.plan);
+      } else {
+        setShop(resolvedShop);
       }
+
+      setCurrentPlanKey(resolvedPlan);
     } catch (err) {
       setError(
         err instanceof Error
@@ -69,7 +115,7 @@ export default function AdminBillingPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [billingPlanKey]);
 
   useEffect(() => {
     void fetchCurrentPlan();

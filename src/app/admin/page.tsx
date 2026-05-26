@@ -3,6 +3,7 @@
 
 import { adminFetch } from "@/lib/admin-auth-fetch";
 import { getPlanDefinition, type PlanKey } from "@/lib/plans";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const APP_HANDLE = "store-access-guard";
@@ -39,7 +40,20 @@ function normalizePlanKey(value: string | undefined): PlanKey {
   return "free";
 }
 
+function getPlanHandleFromUrl(value: string | null): PlanKey | null {
+  if (value === "basic" || value === "pro" || value === "free") {
+    return value;
+  }
+
+  return null;
+}
+
 export default function AdminDashboardPage() {
+  const searchParams = useSearchParams();
+  const billingPlanKey = getPlanHandleFromUrl(
+    searchParams.get("plan_handle") || searchParams.get("plan"),
+  );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [shop, setShop] = useState("");
@@ -70,8 +84,39 @@ export default function AdminDashboardPage() {
         );
       }
 
-      setShop(parsed.shop || "");
-      setPlanKey(normalizePlanKey(parsed.plan));
+      const resolvedShop = parsed.shop || "";
+      let resolvedPlan = normalizePlanKey(parsed.plan);
+
+      if (billingPlanKey && billingPlanKey !== resolvedPlan) {
+        const syncResponse = await adminFetch("/api/admin/plan", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          cache: "no-store",
+          body: JSON.stringify({
+            shop: resolvedShop,
+            plan: billingPlanKey,
+            note: "Synced from Shopify App Pricing plan_handle",
+          }),
+        });
+
+        const syncParsed = (await syncResponse.json()) as PlanResponse;
+
+        if (!syncResponse.ok) {
+          throw new Error(
+            syncParsed.error ||
+              `Shopify App Pricingのプラン同期に失敗しました (${syncResponse.status})`,
+          );
+        }
+
+        setShop(syncParsed.shop || resolvedShop);
+        resolvedPlan = normalizePlanKey(syncParsed.plan);
+      } else {
+        setShop(resolvedShop);
+      }
+
+      setPlanKey(resolvedPlan);
     } catch (err) {
       setError(
         err instanceof Error
@@ -82,7 +127,7 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [billingPlanKey]);
 
   useEffect(() => {
     void fetchPlan();
