@@ -3,7 +3,7 @@
 
 import { adminFetch } from "@/lib/admin-auth-fetch";
 import { getPlanDefinition, type PlanKey } from "@/lib/plans";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type PlanResponse = {
   shop?: string;
@@ -28,19 +28,19 @@ function normalizePlanKey(value: string): PlanKey {
 
 export default function AdminPlanPage() {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [planKey, setPlanKey] = useState<PlanKey>("free");
-  const [note, setNote] = useState("");
   const [targetShop, setTargetShop] = useState("");
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const currentPlan = getPlanDefinition(planKey);
+  const storeHandle = targetShop.replace(/\.myshopify\.com$/, "");
+  const pricingPlansUrl = storeHandle
+    ? `https://admin.shopify.com/store/${storeHandle}/charges/store-access-guard/pricing_plans`
+    : "";
 
   const fetchPlan = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      setMessage("");
 
       const response = await adminFetch("/api/admin/plan", {
         method: "GET",
@@ -71,51 +71,6 @@ export default function AdminPlanPage() {
   useEffect(() => {
     void fetchPlan();
   }, [fetchPlan]);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    try {
-      setSaving(true);
-      setError("");
-      setMessage("");
-
-      const response = await adminFetch("/api/admin/plan", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          shop: targetShop,
-          plan: planKey,
-          note: note.trim(),
-        }),
-      });
-
-      const parsed = (await response.json()) as PlanResponse & {
-        success?: boolean;
-      };
-
-      if (!response.ok) {
-        throw new Error(
-          parsed.error || `プラン情報の更新に失敗しました (${response.status})`,
-        );
-      }
-
-      setPlanKey(normalizePlanKey(parsed.plan || planKey));
-      setTargetShop(parsed.shop || targetShop);
-      setMessage(`${parsed.shop || targetShop} のプラン設定を保存しました。`);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "プラン情報の更新中に不明なエラーが発生しました",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#111827]">
       <div className="w-full px-4 py-6 sm:px-6 xl:px-8">
@@ -133,16 +88,9 @@ export default function AdminPlanPage() {
             {error}
           </div>
         ) : null}
-
-        {message ? (
-          <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
-            {message}
-          </div>
-        ) : null}
-
         <div className="grid gap-4 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
           <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b7280]">
                   Target Shop
@@ -153,62 +101,44 @@ export default function AdminPlanPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="plan"
-                  className="mb-2 block text-sm font-semibold text-[#374151]"
-                >
-                  設定プラン
-                </label>
-                <select
-                  id="plan"
-                  value={planKey}
-                  onChange={(event) =>
-                    setPlanKey(normalizePlanKey(event.target.value))
-                  }
-                  disabled={loading || saving}
-                  className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-3 text-sm outline-none focus:border-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <option value="free">Free</option>
-                  <option value="basic">Basic</option>
-                  <option value="pro">Pro</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="note"
-                  className="mb-2 block text-sm font-semibold text-[#374151]"
-                >
-                  メモ
-                </label>
-                <textarea
-                  id="note"
-                  rows={4}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  className="w-full rounded-xl border border-[#d1d5db] bg-white px-3 py-3 text-sm outline-none focus:border-[#111827]"
-                />
+                <p className="mb-2 block text-sm font-semibold text-[#374151]">
+                  現在のプラン
+                </p>
+                <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
+                  <p className="text-sm font-semibold text-[#111827]">
+                    {loading ? "取得中..." : currentPlan.name}
+                  </p>
+                  <p className="mt-1 text-xs leading-6 text-[#6b7280]">
+                    プランの変更は、Shopify App Pricing のプラン選択画面で承認して行います。
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={loading || saving}
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? "保存中..." : "プラン設定を保存"}
-                </button>
+                {pricingPlansUrl ? (
+                  <a
+                    href={pricingPlansUrl}
+                    target="_top"
+                    className="inline-flex h-10 items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white transition hover:opacity-90"
+                  >
+                    Shopifyでプランを変更する
+                  </a>
+                ) : (
+                  <span className="inline-flex h-10 cursor-not-allowed items-center justify-center rounded-xl bg-[#111827] px-4 text-xs font-medium text-white opacity-60">
+                    プラン変更リンクを読み込み中
+                  </span>
+                )}
 
                 <button
                   type="button"
                   onClick={() => void fetchPlan()}
-                  disabled={loading || saving}
+                  disabled={loading}
                   className="inline-flex h-10 items-center justify-center rounded-xl border border-[#d1d5db] bg-white px-4 text-xs font-medium text-[#374151] transition hover:bg-[#f9fafb] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? "取得中..." : "再取得"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
