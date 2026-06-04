@@ -18,6 +18,7 @@
     var VERIFY_ENDPOINT = "https://bot-protection-ten.vercel.app/api/verify-ip";
     var BLOCKED_URL = "https://bot-protection-ten.vercel.app/blocked";
     var TRACK_ENDPOINT = "https://bot-protection-ten.vercel.app/api/track-access";
+    var SHOP_DOMAIN = {{ shop.permanent_domain | json }};
 
     function allowPage() {
       document.documentElement.classList.remove("bot-guard-pending");
@@ -26,7 +27,7 @@
     function redirectBlocked() {
       var params = new URLSearchParams();
 
-      params.set("shop", window.location.hostname);
+      params.set("shop", SHOP_DOMAIN);
 
       var blockedUrl = BLOCKED_URL + "?" + params.toString();
 
@@ -39,7 +40,7 @@
       var image = new Image();
       var params = new URLSearchParams();
 
-      params.set("shop", window.location.hostname);
+      params.set("shop", SHOP_DOMAIN);
       params.set("page", window.location.pathname + window.location.search);
       params.set("source", "theme-app-extension");
 
@@ -52,7 +53,7 @@
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        shop: window.location.hostname,
+        shop: SHOP_DOMAIN,
         path: window.location.pathname,
         href: window.location.href,
         userAgent: navigator.userAgent
