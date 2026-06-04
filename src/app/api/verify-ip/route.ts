@@ -82,6 +82,16 @@ function getShopFromBody(body: Record<string, unknown> | null): string {
   return "";
 }
 
+function normalizeStorefrontShop(shop: string): string {
+  const normalizedShop = shop.trim().toLowerCase();
+
+  if (normalizedShop === "be-search.biz") {
+    return "ruhra-store.myshopify.com";
+  }
+
+  return normalizedShop;
+}
+
 function buildCorsHeaders(request: NextRequest): HeadersInit {
   const origin = request.headers.get("origin") || "*";
 
@@ -139,7 +149,7 @@ export async function POST(request: NextRequest) {
   const headerIp = normalizeIp(getClientIp(request));
   const ip = bodyIp || headerIp || "unknown";
   const country = getCountry(request);
-  const resolvedShop = shop || "be-search.biz";
+  const resolvedShop = normalizeStorefrontShop(shop || "be-search.biz");
   const corsHeaders = buildCorsHeaders(request);
 
   try {

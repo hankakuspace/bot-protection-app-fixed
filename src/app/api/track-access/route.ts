@@ -37,6 +37,16 @@ function getCountry(req: NextRequest): string {
   return "";
 }
 
+function normalizeStorefrontShop(shop: string): string {
+  const normalizedShop = shop.trim().toLowerCase();
+
+  if (normalizedShop === "be-search.biz") {
+    return "ruhra-store.myshopify.com";
+  }
+
+  return normalizedShop;
+}
+
 const TRANSPARENT_GIF = Uint8Array.from([
   71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 128, 0, 0, 0, 0, 0, 255, 255, 255, 33,
   249, 4, 1, 0, 0, 1, 0, 44, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 68, 1, 0, 59,
@@ -49,9 +59,10 @@ export async function GET(req: NextRequest) {
     const userAgent = req.headers.get("user-agent") || "unknown";
     const referer = req.headers.get("referer") || "";
     const page = req.nextUrl.searchParams.get("page") || "";
-    const shop =
+    const requestedShop =
       req.nextUrl.searchParams.get("shop")?.trim().toLowerCase() ||
       "be-search.biz";
+    const shop = normalizeStorefrontShop(requestedShop);
     const source = req.nextUrl.searchParams.get("source") || "theme";
 
     await adminDb.collection("access_logs").add({
