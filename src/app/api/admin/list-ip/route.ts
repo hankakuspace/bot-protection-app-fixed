@@ -53,33 +53,21 @@ function serializeValue(value: unknown): JsonValue {
   return String(value);
 }
 
-function getShopFromRequest(request: NextRequest, verifiedShop: string): string {
-  const queryShop = request.nextUrl.searchParams.get("shop") || "";
-  const headerShop = request.headers.get("x-shopify-shop-domain") || "";
-
-  return (verifiedShop || queryShop || headerShop || "be-search.biz")
-    .trim()
-    .toLowerCase();
+function hasConflictingShop(request: NextRequest, shop: string): boolean {
+  const headerShop = request.headers.get("x-shopify-shop-domain");
+  return request.nextUrl.searchParams.getAll("shop").some(
+    (value) => value.trim().toLowerCase() !== shop,
+  ) || (headerShop !== null && headerShop.trim().toLowerCase() !== shop);
 }
 
-function isSameShopOrLegacy(
+function isSameShop(
   data: Record<string, JsonValue>,
   targetShop: string,
 ): boolean {
   const shop = data.shop;
   const normalizedTargetShop = targetShop.trim().toLowerCase();
-  const shouldIncludeLegacy = normalizedTargetShop === "be-search.biz";
-
-  if (typeof shop === "string") {
-    const normalizedShop = shop.trim().toLowerCase();
-
-    return (
-      normalizedShop === normalizedTargetShop ||
-      (shouldIncludeLegacy && normalizedShop === "")
-    );
-  }
-
-  return shouldIncludeLegacy && (shop === null || shop === undefined);
+  return typeof shop === "string" &&
+    shop.trim().toLowerCase() === normalizedTargetShop;
 }
 
 function getSortableCreatedAt(data: Record<string, JsonValue>): number {
@@ -111,14 +99,21 @@ export async function GET(request: NextRequest) {
   try {
     const authResult = verifyShopifyAdminRequest(request);
 
-    if (!authResult.ok) {
+    if (!authResult.ok || !authResult.shop.trim()) {
       return NextResponse.json(
         { error: "管理APIの認証に失敗しました。" },
         { status: 401 },
       );
     }
 
-    const shop = getShopFromRequest(request, authResult.shop);
+    const shop = authResult.shop.trim().toLowerCase();
+    if (hasConflictingShop(request, shop)) {
+      return NextResponse.json(
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
+      );
+    }
+
     const currentPlan = await getEffectivePlanDefinition(shop, null);
     let snapshot;
 
@@ -142,7 +137,7 @@ export async function GET(request: NextRequest) {
           ...data,
         };
       })
-      .filter((item) => isSameShopOrLegacy(item, shop))
+      .filter((item) => isSameShop(item, shop))
       .sort((a, b) => getSortableCreatedAt(b) - getSortableCreatedAt(a))
       .slice(0, 100);
 
@@ -166,10 +161,18 @@ export async function PATCH(request: NextRequest) {
   try {
     const authResult = verifyShopifyAdminRequest(request);
 
-    if (!authResult.ok) {
+    if (!authResult.ok || !authResult.shop.trim()) {
       return NextResponse.json(
         { error: "管理APIの認証に失敗しました。" },
         { status: 401 },
+      );
+    }
+
+    const shop = authResult.shop.trim().toLowerCase();
+    if (hasConflictingShop(request, shop)) {
+      return NextResponse.json(
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
       );
     }
 
@@ -180,7 +183,6 @@ export async function PATCH(request: NextRequest) {
     };
 
     const id = typeof body.id === "string" ? body.id.trim() : "";
-    const shop = typeof body.shop === "string" ? body.shop.trim().toLowerCase() : "";
     const note = typeof body.note === "string" ? body.note.trim() : undefined;
 
     if (!id) {
@@ -190,19 +192,18 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (!shop) {
+    if (body.shop !== undefined &&
+        (typeof body.shop !== "string" || body.shop.trim().toLowerCase() !== shop)) {
       return NextResponse.json(
-        { error: "shopが指定されていません。" },
-        { status: 400 },
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
       );
     }
 
     const updateData: {
-      shop: string;
       updatedAt: Date;
       note?: string;
     } = {
-      shop,
       updatedAt: new Date(),
     };
 
@@ -210,7 +211,26 @@ export async function PATCH(request: NextRequest) {
       updateData.note = note;
     }
 
-    await adminDb.collection("blocked_ips").doc(id).update(updateData);
+    if (id.includes("/")) {
+      return NextResponse.json({ error: "無効なIDです。" }, { status: 400 });
+    }
+    const ref = adminDb.collection("blocked_ips").doc(id);
+    // The ownership read and write must share one transaction so a concurrent
+    // ownership change cannot authorize a stale update or deletion.
+    const result = await adminDb.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists) return 404;
+      const owner = snapshot.data()?.shop;
+      if (typeof owner !== "string" || owner.trim().toLowerCase() !== shop) return 403;
+      transaction.update(ref, updateData);
+      return 200;
+    });
+    if (result !== 200) {
+      return NextResponse.json(
+        { error: result === 404 ? "対象のIP設定が見つかりません。" : "他ショップまたは所有ショップ不明の設定は変更できません。" },
+        { status: result },
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -232,10 +252,18 @@ export async function DELETE(request: NextRequest) {
   try {
     const authResult = verifyShopifyAdminRequest(request);
 
-    if (!authResult.ok) {
+    if (!authResult.ok || !authResult.shop.trim()) {
       return NextResponse.json(
         { error: "管理APIの認証に失敗しました。" },
         { status: 401 },
+      );
+    }
+
+    const shop = authResult.shop.trim().toLowerCase();
+    if (hasConflictingShop(request, shop)) {
+      return NextResponse.json(
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
       );
     }
 
@@ -249,7 +277,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await adminDb.collection("blocked_ips").doc(id).delete();
+    if (id.includes("/")) {
+      return NextResponse.json({ error: "無効なIDです。" }, { status: 400 });
+    }
+    const ref = adminDb.collection("blocked_ips").doc(id);
+    // The ownership read and write must share one transaction so a concurrent
+    // ownership change cannot authorize a stale update or deletion.
+    const result = await adminDb.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists) return 404;
+      const owner = snapshot.data()?.shop;
+      if (typeof owner !== "string" || owner.trim().toLowerCase() !== shop) return 403;
+      transaction.delete(ref);
+      return 200;
+    });
+    if (result !== 200) {
+      return NextResponse.json(
+        { error: result === 404 ? "対象のIP設定が見つかりません。" : "他ショップまたは所有ショップ不明の設定は変更できません。" },
+        { status: result },
+      );
+    }
 
     return NextResponse.json({
       success: true,

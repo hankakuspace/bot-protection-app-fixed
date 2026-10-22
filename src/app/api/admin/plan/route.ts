@@ -12,11 +12,11 @@ import { verifyShopifyAdminRequest } from "@/lib/verify-shopify-admin-request";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getShopFromRequest(request: NextRequest): string {
-  const queryShop = request.nextUrl.searchParams.get("shop") || "";
-  const headerShop = request.headers.get("x-shopify-shop-domain") || "";
-
-  return (queryShop || headerShop || "be-search.biz").trim().toLowerCase();
+function hasConflictingShop(request: NextRequest, shop: string): boolean {
+  const headerShop = request.headers.get("x-shopify-shop-domain");
+  return request.nextUrl.searchParams.getAll("shop").some(
+    (value) => value.trim().toLowerCase() !== shop,
+  ) || (headerShop !== null && headerShop.trim().toLowerCase() !== shop);
 }
 
 function normalizeBlockedCountries(value: unknown): string[] {
@@ -37,14 +37,21 @@ export async function GET(request: NextRequest) {
   try {
     const authResult = verifyShopifyAdminRequest(request);
 
-    if (!authResult.ok) {
+    if (!authResult.ok || !authResult.shop.trim()) {
       return NextResponse.json(
         { error: "管理APIの認証に失敗しました。" },
         { status: 401 },
       );
     }
 
-    const shop = authResult.shop || getShopFromRequest(request);
+    const shop = authResult.shop.trim().toLowerCase();
+    if (hasConflictingShop(request, shop)) {
+      return NextResponse.json(
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
+      );
+    }
+
     const currentPlan = await getEffectivePlanDefinition(shop, null);
     const countryBlockSettings = await getCountryBlockSettings(shop);
     const blockedPageSettings = await getBlockedPageSettings(shop);
@@ -79,10 +86,18 @@ export async function PATCH(request: NextRequest) {
   try {
     const authResult = verifyShopifyAdminRequest(request);
 
-    if (!authResult.ok) {
+    if (!authResult.ok || !authResult.shop.trim()) {
       return NextResponse.json(
         { error: "管理APIの認証に失敗しました。" },
         { status: 401 },
+      );
+    }
+
+    const shop = authResult.shop.trim().toLowerCase();
+    if (hasConflictingShop(request, shop)) {
+      return NextResponse.json(
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
       );
     }
 
@@ -97,10 +112,13 @@ export async function PATCH(request: NextRequest) {
       blockedPageMessage?: unknown;
     };
 
-    const shop =
-      typeof body.shop === "string" && body.shop.trim()
-        ? body.shop.trim().toLowerCase()
-        : authResult.shop || getShopFromRequest(request);
+    if (body.shop !== undefined &&
+        (typeof body.shop !== "string" || body.shop.trim().toLowerCase() !== shop)) {
+      return NextResponse.json(
+        { error: "他ショップの設定にはアクセスできません。" },
+        { status: 403 },
+      );
+    }
 
     const plan = normalizePlanKey(
       typeof body.plan === "string" ? body.plan : "",
